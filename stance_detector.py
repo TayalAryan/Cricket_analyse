@@ -230,8 +230,8 @@ class StanceDetector:
         features['left_ankle_toe_angle'] = left_ankle_toe_angle
         features['right_ankle_toe_angle'] = right_ankle_toe_angle
         
-        # 9. Toe Line Pointer (left: 60-90°, right: 90-130°)
-        left_toe_good = 60 <= left_ankle_toe_angle <= 90
+        # 9. Toe Line Pointer (left: 60-105°, right: 90-130°)
+        left_toe_good = 60 <= left_ankle_toe_angle <= 105
         right_toe_good = 90 <= right_ankle_toe_angle <= 130
         features['toe_line_pointer'] = left_toe_good and right_toe_good
         
