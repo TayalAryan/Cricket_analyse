@@ -460,18 +460,25 @@ if uploaded_file is not None:
                                                     st.metric("Stance Score", f"{stance_score:.1%}", 
                                                              help="Percentage of stance criteria met")
                                                     
-                                                    # Show confidence and head angles
-                                                    col_metrics1, col_metrics2, col_metrics3 = st.columns(3)
+                                                    # Show confidence and measurements
+                                                    col_metrics1, col_metrics2 = st.columns(2)
                                                     with col_metrics1:
                                                         confidence = pose_data.get('confidence', 0)
                                                         st.metric("Pose Confidence", f"{confidence:.2f}")
                                                     
                                                     with col_metrics2:
+                                                        stance_width_ratio = pose_data.get('stance_width_ratio', 0)
+                                                        st.metric("Stance Width", f"{stance_width_ratio:.1f}x", 
+                                                                 help="Feet width relative to shoulder width (0.8-1.5x ideal)")
+                                                    
+                                                    # Show head angles in compact format
+                                                    col_angles1, col_angles2 = st.columns(2)
+                                                    with col_angles1:
                                                         head_angle = pose_data.get('head_angle', 0)
                                                         st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Turn:</b> {head_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                     
-                                                    with col_metrics3:
+                                                    with col_angles2:
                                                         head_shoulder_angle = pose_data.get('head_shoulder_angle', 0)
                                                         st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Tilt:</b> {head_shoulder_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)

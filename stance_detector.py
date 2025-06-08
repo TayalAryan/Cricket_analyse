@@ -193,6 +193,7 @@ class StanceDetector:
         feet_width = abs(left_ankle.x - right_ankle.x)
         width_ratio = feet_width / shoulder_width if shoulder_width > 0 else 0
         features['stance_width_good'] = 0.8 <= width_ratio <= 1.5
+        features['stance_width_ratio'] = width_ratio
         
         # 7. Overall stance score
         stance_criteria = [
