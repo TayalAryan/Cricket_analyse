@@ -468,13 +468,13 @@ if uploaded_file is not None:
                                                     
                                                     with col_metrics2:
                                                         head_angle = pose_data.get('head_angle', 0)
-                                                        st.metric("Head Turn", f"{head_angle:.1f}°", 
-                                                                 help="Horizontal head rotation (positive = right turn)")
+                                                        st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Turn:</b> {head_angle:.0f}°</p>", 
+                                                                   unsafe_allow_html=True)
                                                     
                                                     with col_metrics3:
                                                         head_shoulder_angle = pose_data.get('head_shoulder_angle', 0)
-                                                        st.metric("Head Tilt", f"{head_shoulder_angle:.1f}°", 
-                                                                 help="Head-to-shoulder line angle (0° = straight up)")
+                                                        st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Tilt:</b> {head_shoulder_angle:.0f}°</p>", 
+                                                                   unsafe_allow_html=True)
                                                 
                                                 else:
                                                     # No pose detected
