@@ -204,9 +204,25 @@ class StanceDetector:
         features['hip_line_angle'] = hip_line_angle
         features['hip_line_parallel'] = hip_line_angle <= 10  # Within 10 degrees of horizontal
         
+        # 8. Calculate ankle-to-toe angle with camera straight view
+        # Use foot index as toe approximation
+        left_foot_index = landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value]
+        right_foot_index = landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value]
+        
+        # Calculate ankle-to-toe angles (0° = pointing straight at camera)
+        left_ankle_toe_angle = math.degrees(math.atan2(left_foot_index.y - left_ankle.y, left_foot_index.x - left_ankle.x))
+        right_ankle_toe_angle = math.degrees(math.atan2(right_foot_index.y - right_ankle.y, right_foot_index.x - right_ankle.x))
+        
+        # Normalize angles to 0-360 degrees
+        left_ankle_toe_angle = (left_ankle_toe_angle + 360) % 360
+        right_ankle_toe_angle = (right_ankle_toe_angle + 360) % 360
+        
+        features['left_ankle_toe_angle'] = left_ankle_toe_angle
+        features['right_ankle_toe_angle'] = right_ankle_toe_angle
+        
 
         
-        # 8. Overall stance score
+        # 9. Overall stance score
         stance_criteria = [
             features['shoulder_alignment'],
             features['body_facing_camera'],

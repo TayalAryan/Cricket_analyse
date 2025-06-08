@@ -480,7 +480,7 @@ if uploaded_file is not None:
                                                                  help="Feet width relative to shoulder width (0.8-1.5x ideal)")
                                                     
                                                     # Show angles in compact format
-                                                    col_angles1, col_angles2, col_angles3 = st.columns(3)
+                                                    col_angles1, col_angles2, col_angles3, col_angles4 = st.columns(4)
                                                     with col_angles1:
                                                         head_angle = pose_data.get('head_angle', 0)
                                                         st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Turn:</b> {head_angle:.0f}°</p>", 
@@ -494,6 +494,12 @@ if uploaded_file is not None:
                                                     with col_angles3:
                                                         hip_line_angle = pose_data.get('hip_line_angle', 0)
                                                         st.markdown(f"<p style='font-size:12px; margin:0;'><b>Hip Line:</b> {hip_line_angle:.0f}°</p>", 
+                                                                   unsafe_allow_html=True)
+                                                    
+                                                    with col_angles4:
+                                                        left_ankle_toe_angle = pose_data.get('left_ankle_toe_angle', 0)
+                                                        right_ankle_toe_angle = pose_data.get('right_ankle_toe_angle', 0)
+                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>L/R Toe:</b> {left_ankle_toe_angle:.0f}°/{right_ankle_toe_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                 
                                                 else:
