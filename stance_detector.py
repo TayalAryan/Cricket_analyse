@@ -293,7 +293,82 @@ class StanceDetector:
             stance_criteria.append(features['head_facing_bowler'])
         features['stance_score'] = sum(stance_criteria) / len(stance_criteria)
         
+        # Store ankle coordinates for movement tracking
+        features['left_ankle_x'] = left_ankle.x
+        features['left_ankle_y'] = left_ankle.y
+        features['right_ankle_x'] = right_ankle.x
+        features['right_ankle_y'] = right_ankle.y
+        
         return features
+    
+    def _analyze_ankle_movement(self, results: List[Dict], start_frame: int, end_frame: int) -> Dict:
+        """Analyze ankle coordinate changes within a stable period."""
+        ankle_info = {
+            'has_movement': False,
+            'movement_points': [],
+            'max_displacement': 0.0,
+            'total_frames_analyzed': 0
+        }
+        
+        if not results or start_frame >= end_frame:
+            return ankle_info
+        
+        # Get frames with valid ankle coordinates
+        frames_with_coords = []
+        for i in range(start_frame, min(end_frame + 1, len(results))):
+            if (results[i].get('ankle_coords') is not None and 
+                results[i].get('pose_confidence', 0) > 0.5):
+                frames_with_coords.append(i)
+        
+        if len(frames_with_coords) < 2:
+            return ankle_info
+        
+        ankle_info['total_frames_analyzed'] = len(frames_with_coords)
+        
+        # Get initial ankle positions from the first valid frame
+        first_frame_idx = frames_with_coords[0]
+        initial_coords = results[first_frame_idx]['ankle_coords']
+        initial_left_x = initial_coords['left_ankle_x']
+        initial_left_y = initial_coords['left_ankle_y']
+        initial_right_x = initial_coords['right_ankle_x']
+        initial_right_y = initial_coords['right_ankle_y']
+        
+        movement_threshold = 0.02  # 2% movement in normalized coordinates
+        movement_detected_at = []
+        max_displacement = 0.0
+        
+        # Check each frame for significant ankle movement
+        for frame_idx in frames_with_coords[1:]:
+            current_coords = results[frame_idx]['ankle_coords']
+            
+            # Calculate displacement for left ankle
+            left_dx = current_coords['left_ankle_x'] - initial_left_x
+            left_dy = current_coords['left_ankle_y'] - initial_left_y
+            left_displacement = math.sqrt(left_dx * left_dx + left_dy * left_dy)
+            
+            # Calculate displacement for right ankle
+            right_dx = current_coords['right_ankle_x'] - initial_right_x
+            right_dy = current_coords['right_ankle_y'] - initial_right_y
+            right_displacement = math.sqrt(right_dx * right_dx + right_dy * right_dy)
+            
+            # Use the maximum displacement of either ankle
+            max_ankle_displacement = max(left_displacement, right_displacement)
+            
+            if max_ankle_displacement > movement_threshold:
+                movement_detected_at.append({
+                    'frame': frame_idx,
+                    'timestamp': results[frame_idx]['timestamp'],
+                    'displacement': max_ankle_displacement,
+                    'left_displacement': left_displacement,
+                    'right_displacement': right_displacement
+                })
+                max_displacement = max(max_displacement, max_ankle_displacement)
+        
+        ankle_info['has_movement'] = len(movement_detected_at) > 0
+        ankle_info['movement_points'] = movement_detected_at
+        ankle_info['max_displacement'] = max_displacement
+        
+        return ankle_info
     
     def _calculate_angle(self, a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float]) -> float:
         """Calculate angle between three points."""
@@ -446,6 +521,9 @@ class StanceDetector:
                 ]
                 avg_stance_score = np.mean(period_scores) if period_scores else 0
                 
+                # Analyze ankle coordinate changes within this stable period
+                ankle_changes = self._analyze_ankle_movement(results, start_frame, end_frame)
+                
                 stable_periods.append({
                     'start_frame': start_frame,
                     'end_frame': end_frame,
@@ -454,7 +532,8 @@ class StanceDetector:
                     'duration': duration,
                     'avg_confidence': avg_confidence,
                     'avg_stance_score': avg_stance_score,
-                    'frame_count': end_frame - start_frame + 1
+                    'frame_count': end_frame - start_frame + 1,
+                    'ankle_movement': ankle_changes
                 })
                 
                 # Skip 30 frames after finding a stable period

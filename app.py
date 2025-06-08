@@ -202,12 +202,23 @@ if uploaded_file is not None:
                         timestamp = frame_idx / st.session_state.video_processor.get_fps()
                         is_stable_stance, pose_data = stance_detector.detect_stance(cropped_frame, timestamp)
                         
+                        # Store ankle coordinates for movement analysis
+                        ankle_coords = None
+                        if pose_data and pose_data.get('confidence', 0) > 0.5:
+                            ankle_coords = {
+                                'left_ankle_x': pose_data.get('left_ankle_x', 0),
+                                'left_ankle_y': pose_data.get('left_ankle_y', 0),
+                                'right_ankle_x': pose_data.get('right_ankle_x', 0),
+                                'right_ankle_y': pose_data.get('right_ankle_y', 0)
+                            }
+                        
                         results.append({
                             'frame': frame_idx,
                             'timestamp': timestamp,
                             'is_stable_stance': is_stable_stance,
                             'pose_confidence': pose_data.get('confidence', 0) if pose_data else 0,
-                            'stance_score': pose_data.get('stance_score', 0) if pose_data else 0
+                            'stance_score': pose_data.get('stance_score', 0) if pose_data else 0,
+                            'ankle_coords': ankle_coords
                         })
                         
                         frame_idx += 1
@@ -356,6 +367,18 @@ if uploaded_file is not None:
                     
                     periods_data = []
                     for i, period in enumerate(stable_periods):
+                        ankle_movement = period.get('ankle_movement', {})
+                        
+                        # Format movement points for display
+                        movement_display = "No movement"
+                        if ankle_movement.get('has_movement', False):
+                            movement_points = ankle_movement.get('movement_points', [])
+                            if movement_points:
+                                timestamps = [f"{mp['timestamp']:.1f}s" for mp in movement_points[:3]]  # Show first 3
+                                movement_display = f"At: {', '.join(timestamps)}"
+                                if len(movement_points) > 3:
+                                    movement_display += f" (+{len(movement_points)-3} more)"
+                        
                         periods_data.append({
                             'Period': i + 1,
                             'Start Time (s)': f"{period['start_time']:.2f}",
@@ -363,7 +386,9 @@ if uploaded_file is not None:
                             'Duration (s)': f"{period['duration']:.2f}",
                             'Frame Count': period.get('frame_count', 0),
                             'Avg Stance Score': f"{period.get('avg_stance_score', 0):.1%}",
-                            'Avg Confidence': f"{period['avg_confidence']:.3f}"
+                            'Avg Confidence': f"{period['avg_confidence']:.3f}",
+                            'Ankle Movement': movement_display,
+                            'Max Displacement': f"{ankle_movement.get('max_displacement', 0):.3f}"
                         })
                     
                     st.table(periods_data)
