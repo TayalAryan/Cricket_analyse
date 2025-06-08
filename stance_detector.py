@@ -130,10 +130,6 @@ class StanceDetector:
         nose = landmarks[self.mp_pose.PoseLandmark.NOSE.value]
         left_shoulder = landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
         right_shoulder = landmarks[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
-        left_elbow = landmarks[self.mp_pose.PoseLandmark.LEFT_ELBOW.value]
-        right_elbow = landmarks[self.mp_pose.PoseLandmark.RIGHT_ELBOW.value]
-        left_wrist = landmarks[self.mp_pose.PoseLandmark.LEFT_WRIST.value]
-        right_wrist = landmarks[self.mp_pose.PoseLandmark.RIGHT_WRIST.value]
         left_hip = landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value]
         right_hip = landmarks[self.mp_pose.PoseLandmark.RIGHT_HIP.value]
         left_knee = landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value]
@@ -277,10 +273,6 @@ class StanceDetector:
         features['head_tilt_angle'] = head_tilt_angle
         features['head_tilt_good'] = -20 <= head_tilt_angle <= 20
         
-        # 11. Bat detection
-        bat_info = self._detect_bat(landmarks)
-        features.update(bat_info)
-        
 
         
         # 11. Overall stance score
@@ -302,67 +294,6 @@ class StanceDetector:
         features['stance_score'] = sum(stance_criteria) / len(stance_criteria)
         
         return features
-    
-    def _detect_bat(self, landmarks) -> Dict:
-        """Detect cricket bat near the batsman's hands."""
-        bat_features = {}
-        
-        # Get hand and arm landmarks
-        left_wrist = landmarks[self.mp_pose.PoseLandmark.LEFT_WRIST.value]
-        right_wrist = landmarks[self.mp_pose.PoseLandmark.RIGHT_WRIST.value]
-        left_elbow = landmarks[self.mp_pose.PoseLandmark.LEFT_ELBOW.value]
-        right_elbow = landmarks[self.mp_pose.PoseLandmark.RIGHT_ELBOW.value]
-        left_shoulder = landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
-        right_shoulder = landmarks[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
-        
-        # Method 1: Estimate bat position based on hand positions
-        grip_x = (left_wrist.x + right_wrist.x) / 2
-        grip_y = (left_wrist.y + right_wrist.y) / 2
-        
-        # Calculate bat direction - cricket bat typically extends downward and slightly forward
-        # Use the line from grip to a point below and forward
-        bat_length = 0.18  # Typical bat length in normalized coordinates
-        
-        # Cricket bat orientation: downward and slightly forward from grip
-        # Adjust based on camera perspective
-        if self.camera_perspective == "right":
-            # Bowler on right, bat extends down-left from grip
-            bat_end_x = grip_x - bat_length * 0.3  # Slight left angle
-            bat_end_y = grip_y + bat_length * 0.95  # Mostly downward
-        else:
-            # Bowler on left, bat extends down-right from grip  
-            bat_end_x = grip_x + bat_length * 0.3  # Slight right angle
-            bat_end_y = grip_y + bat_length * 0.95  # Mostly downward
-        
-        # Method 2: Enhanced detection considering elbow positions
-        # The bat often aligns somewhat with the arm holding it
-        # Use the arm that's more extended (typically the top hand)
-        left_arm_extension = math.sqrt((left_wrist.x - left_elbow.x)**2 + (left_wrist.y - left_elbow.y)**2)
-        right_arm_extension = math.sqrt((right_wrist.x - right_elbow.x)**2 + (right_wrist.y - right_elbow.y)**2)
-        
-        # Use the more extended arm to help determine bat angle
-        if left_arm_extension > right_arm_extension:
-            # Left arm more extended, use its direction
-            arm_angle = math.atan2(left_wrist.y - left_elbow.y, left_wrist.x - left_elbow.x)
-        else:
-            # Right arm more extended, use its direction
-            arm_angle = math.atan2(right_wrist.y - right_elbow.y, right_wrist.x - right_elbow.x)
-        
-        # Refine bat end position using arm angle
-        refined_bat_end_x = grip_x + bat_length * math.cos(arm_angle + math.pi/4)  # 45° offset from arm
-        refined_bat_end_y = grip_y + bat_length * math.sin(arm_angle + math.pi/4)
-        
-        # Store bat information with both estimates
-        bat_features['bat_detected'] = True
-        bat_features['bat_grip_x'] = grip_x
-        bat_features['bat_grip_y'] = grip_y
-        bat_features['bat_end_x'] = refined_bat_end_x
-        bat_features['bat_end_y'] = refined_bat_end_y
-        bat_features['bat_angle'] = math.degrees(arm_angle)
-        bat_features['left_arm_extension'] = left_arm_extension
-        bat_features['right_arm_extension'] = right_arm_extension
-        
-        return bat_features
     
     def _calculate_angle(self, a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float]) -> float:
         """Calculate angle between three points."""
