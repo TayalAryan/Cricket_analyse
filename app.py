@@ -461,11 +461,7 @@ if uploaded_file is not None:
                                                         else:
                                                             st.markdown("❌ Hip line not parallel")
                                                         
-                                                        # Feet pointing camera
-                                                        if pose_data.get('feet_pointing_camera', False):
-                                                            st.markdown("✅ Feet pointing camera")
-                                                        else:
-                                                            st.markdown("❌ Feet not pointing camera")
+
                                                     
                                                     # Show stance score
                                                     stance_score = pose_data.get('stance_score', 0)
@@ -484,7 +480,7 @@ if uploaded_file is not None:
                                                                  help="Feet width relative to shoulder width (0.8-1.5x ideal)")
                                                     
                                                     # Show angles in compact format
-                                                    col_angles1, col_angles2, col_angles3, col_angles4 = st.columns(4)
+                                                    col_angles1, col_angles2, col_angles3 = st.columns(3)
                                                     with col_angles1:
                                                         head_angle = pose_data.get('head_angle', 0)
                                                         st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Turn:</b> {head_angle:.0f}°</p>", 
@@ -498,12 +494,6 @@ if uploaded_file is not None:
                                                     with col_angles3:
                                                         hip_line_angle = pose_data.get('hip_line_angle', 0)
                                                         st.markdown(f"<p style='font-size:12px; margin:0;'><b>Hip Line:</b> {hip_line_angle:.0f}°</p>", 
-                                                                   unsafe_allow_html=True)
-                                                    
-                                                    with col_angles4:
-                                                        left_foot_angle = pose_data.get('left_foot_angle', 0)
-                                                        right_foot_angle = pose_data.get('right_foot_angle', 0)
-                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>L/R Foot:</b> {left_foot_angle:.0f}°/{right_foot_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                 
                                                 else:

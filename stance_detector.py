@@ -204,24 +204,9 @@ class StanceDetector:
         features['hip_line_angle'] = hip_line_angle
         features['hip_line_parallel'] = hip_line_angle <= 10  # Within 10 degrees of horizontal
         
-        # 8. Feet should be pointing towards camera (both feet between 150-210 degrees)
-        # Calculate foot direction using ankle-to-knee vector
-        left_foot_angle = math.degrees(math.atan2(left_knee.y - left_ankle.y, left_knee.x - left_ankle.x))
-        right_foot_angle = math.degrees(math.atan2(right_knee.y - right_ankle.y, right_knee.x - right_ankle.x))
+
         
-        # Normalize angles to 0-360 degrees
-        left_foot_angle = (left_foot_angle + 360) % 360
-        right_foot_angle = (right_foot_angle + 360) % 360
-        
-        # Check if both feet are pointing towards camera (150-210 degrees)
-        left_foot_good = 150 <= left_foot_angle <= 210
-        right_foot_good = 150 <= right_foot_angle <= 210
-        
-        features['left_foot_angle'] = left_foot_angle
-        features['right_foot_angle'] = right_foot_angle
-        features['feet_pointing_camera'] = left_foot_good and right_foot_good
-        
-        # 9. Overall stance score
+        # 8. Overall stance score
         stance_criteria = [
             features['shoulder_alignment'],
             features['body_facing_camera'],
@@ -229,8 +214,7 @@ class StanceDetector:
             features['feet_parallel'],
             features['head_facing_bowler'],
             features['stance_width_good'],
-            features['hip_line_parallel'],
-            features['feet_pointing_camera']
+            features['hip_line_parallel']
         ]
         features['stance_score'] = sum(stance_criteria) / len(stance_criteria)
         
