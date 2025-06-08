@@ -70,10 +70,28 @@ with st.sidebar:
 uploaded_file = st.file_uploader("Choose a cricket video file", type=['mp4', 'avi', 'mov', 'mkv'])
 
 if uploaded_file is not None:
-    # Save uploaded file to temporary location
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_file:
-        tmp_file.write(uploaded_file.read())
-        video_path = tmp_file.name
+    # Clean up any existing temporary files first
+    if hasattr(st.session_state, 'temp_video_path') and st.session_state.temp_video_path:
+        try:
+            os.unlink(st.session_state.temp_video_path)
+        except:
+            pass
+    
+    # Save uploaded file to temporary location with cleanup
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4', dir='/tmp') as tmp_file:
+            # Write in chunks to handle large files
+            uploaded_file.seek(0)
+            while True:
+                chunk = uploaded_file.read(8192)  # 8KB chunks
+                if not chunk:
+                    break
+                tmp_file.write(chunk)
+            video_path = tmp_file.name
+            st.session_state.temp_video_path = video_path
+    except OSError as e:
+        st.error("Video file too large for processing. Please use a smaller video file (under 100MB recommended).")
+        st.stop()
     
     # Initialize video processor
     if st.session_state.video_processor is None:
@@ -584,3 +602,18 @@ else:
     - Minimal camera shake for accurate analysis
     - Batsman should be clearly visible near the stumps
     """)
+
+# Cleanup function to handle temporary files
+def cleanup_temp_files():
+    """Clean up temporary video files to prevent disk quota issues"""
+    if hasattr(st.session_state, 'temp_video_path') and st.session_state.temp_video_path:
+        try:
+            if os.path.exists(st.session_state.temp_video_path):
+                os.unlink(st.session_state.temp_video_path)
+                st.session_state.temp_video_path = None
+        except Exception:
+            pass
+
+# Register cleanup on session end
+import atexit
+atexit.register(cleanup_temp_files)
