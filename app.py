@@ -54,6 +54,17 @@ with st.sidebar:
                                       help="Minimum time to maintain stable stance")
     confidence_threshold = st.slider("Pose Detection Confidence", 0.3, 0.9, 0.5, 0.1,
                                     help="Minimum confidence for pose detection")
+    
+    # Batsman height configuration
+    st.subheader("Batsman Details")
+    batsman_height = st.number_input(
+        "Batsman Height (feet)",
+        min_value=2.0,
+        max_value=7.0,
+        value=5.5,
+        step=0.1,
+        help="Height of the batsman in feet. Used to adjust stance width criteria for younger players."
+    )
 
 # File upload
 uploaded_file = st.file_uploader("Choose a cricket video file", type=['mp4', 'avi', 'mov', 'mkv'])
@@ -142,7 +153,8 @@ if uploaded_file is not None:
                     stability_threshold=stability_threshold,
                     min_stability_duration=min_stability_duration,
                     confidence_threshold=confidence_threshold,
-                    camera_perspective=camera_perspective
+                    camera_perspective=camera_perspective,
+                    batsman_height=batsman_height
                 )
                 
                 # Create progress bar
@@ -482,8 +494,9 @@ if uploaded_file is not None:
                                                     
                                                     with col_metrics2:
                                                         stance_width_ratio = pose_data.get('stance_width_ratio', 0)
+                                                        width_help = "Feet width relative to shoulder width (0.8-1.5x ideal for adults, up to 2.0x for children under 3.1ft)"
                                                         st.metric("Stance Width", f"{stance_width_ratio:.1f}x", 
-                                                                 help="Feet width relative to shoulder width (0.8-1.5x ideal)")
+                                                                 help=width_help)
                                                     
                                                     # Show angles in compact format
                                                     col_angles1, col_angles2, col_angles3, col_angles4 = st.columns(4)

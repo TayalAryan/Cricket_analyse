@@ -6,7 +6,7 @@ import math
 from collections import deque
 
 class StanceDetector:
-    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.1, confidence_threshold: float = 0.5, camera_perspective: str = "right"):
+    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.1, confidence_threshold: float = 0.5, camera_perspective: str = "right", batsman_height: float = 5.5):
         """
         Initialize the stance detector.
         
@@ -15,11 +15,13 @@ class StanceDetector:
             min_stability_duration: Minimum duration in seconds for stable stance
             confidence_threshold: Minimum confidence for pose detection
             camera_perspective: Camera perspective - "right" (bowler on right) or "left" (bowler on left)
+            batsman_height: Height of batsman in feet
         """
         self.stability_threshold = stability_threshold
         self.min_stability_duration = min_stability_duration
         self.confidence_threshold = confidence_threshold
         self.camera_perspective = camera_perspective
+        self.batsman_height = batsman_height
         
         # Initialize MediaPipe
         self.mp_pose = mp.solutions.pose
@@ -192,7 +194,15 @@ class StanceDetector:
         shoulder_width = abs(left_shoulder.x - right_shoulder.x)
         feet_width = abs(left_ankle.x - right_ankle.x)
         width_ratio = feet_width / shoulder_width if shoulder_width > 0 else 0
-        features['stance_width_good'] = 0.8 <= width_ratio <= 1.5
+        
+        # Adjust stance width criteria based on batsman height
+        if self.batsman_height <= 3.1:
+            # For shorter batsmen (typically children), allow wider stance
+            features['stance_width_good'] = 0.8 <= width_ratio <= 2.0
+        else:
+            # Standard stance width for regular height batsmen
+            features['stance_width_good'] = 0.8 <= width_ratio <= 1.5
+        
         features['stance_width_ratio'] = width_ratio
         
         # 7. Hip line should be almost parallel to ground
