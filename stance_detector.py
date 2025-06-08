@@ -6,7 +6,7 @@ import math
 from collections import deque
 
 class StanceDetector:
-    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.3, confidence_threshold: float = 0.5):
+    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.3, confidence_threshold: float = 0.5, camera_perspective: str = "right"):
         """
         Initialize the stance detector.
         
@@ -14,10 +14,12 @@ class StanceDetector:
             stability_threshold: Maximum movement allowed for stable stance
             min_stability_duration: Minimum duration in seconds for stable stance
             confidence_threshold: Minimum confidence for pose detection
+            camera_perspective: Camera perspective - "right" (bowler on right) or "left" (bowler on left)
         """
         self.stability_threshold = stability_threshold
         self.min_stability_duration = min_stability_duration
         self.confidence_threshold = confidence_threshold
+        self.camera_perspective = camera_perspective
         
         # Initialize MediaPipe
         self.mp_pose = mp.solutions.pose
@@ -163,8 +165,14 @@ class StanceDetector:
         feet_y_diff = abs(left_ankle.y - right_ankle.y)
         features['feet_parallel'] = feet_y_diff < 0.1  # Feet at similar height
         
-        # 5. Head orientation (facing right - towards bowler)
-        features['head_facing_bowler'] = nose.x > (left_shoulder.x + right_shoulder.x) / 2
+        # 5. Head orientation (facing towards bowler based on camera perspective)
+        shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
+        if self.camera_perspective == "right":
+            # Bowler is on the right, batsman should face right (nose x > shoulder center)
+            features['head_facing_bowler'] = nose.x > shoulder_center_x
+        else:
+            # Bowler is on the left, batsman should face left (nose x < shoulder center)
+            features['head_facing_bowler'] = nose.x < shoulder_center_x
         
         # 6. Stance width (feet should be shoulder-width apart)
         shoulder_width = abs(left_shoulder.x - right_shoulder.x)
@@ -261,7 +269,7 @@ class StanceDetector:
                 movements.append(distance)
         
         # Return average movement
-        return np.mean(movements) if movements else float('inf')
+        return float(np.mean(movements)) if movements else float('inf')
     
     def get_stable_periods(self, results: List[Dict]) -> Dict:
         """

@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 st.title("🏏 Cricket Batsman Stance Detection")
-st.markdown("Upload a cricket video to detect stable batting stances. The camera should show the ball coming from right to left with stumps on the left side.")
+st.markdown("Upload a cricket video to detect stable batting stances. Configure the camera perspective based on which side the bowler is positioned.")
 
 # Initialize session state
 if 'video_processor' not in st.session_state:
@@ -35,6 +35,16 @@ if 'stance_results' not in st.session_state:
 # Sidebar for controls
 with st.sidebar:
     st.header("Configuration")
+    
+    # Camera perspective configuration
+    st.subheader("Camera Perspective")
+    camera_perspective = st.radio(
+        "Bowler Position",
+        options=["right", "left"],
+        format_func=lambda x: "Bowler on Right" if x == "right" else "Bowler on Left",
+        index=0,
+        help="Select which side of the camera the bowler is positioned"
+    )
     
     # Stance detection parameters
     st.subheader("Detection Parameters")
@@ -131,7 +141,8 @@ if uploaded_file is not None:
                 stance_detector = StanceDetector(
                     stability_threshold=stability_threshold,
                     min_stability_duration=min_stability_duration,
-                    confidence_threshold=confidence_threshold
+                    confidence_threshold=confidence_threshold,
+                    camera_perspective=camera_perspective
                 )
                 
                 # Create progress bar
@@ -323,7 +334,7 @@ else:
     - Chest and shoulders facing the camera
     - Knees slightly bent
     - Feet almost parallel to each other
-    - Head facing towards the bowler (right side)
+    - Head facing towards the bowler (configurable side)
     - Upper body slightly lunged towards camera
     - Stationary for at least 300ms (configurable)
     - Rhythmic bat tapping is allowed
@@ -331,9 +342,9 @@ else:
     
     st.subheader("Video Requirements")
     st.markdown("""
-    - Camera perspective: Ball coming from right to left
-    - Stumps should be on the left side of the frame
-    - Clear view of the batsman
-    - Good lighting conditions
-    - Minimal camera shake
+    - Configure camera perspective based on bowler position
+    - Clear view of the batsman in the selected analysis area
+    - Good lighting conditions for pose detection
+    - Minimal camera shake for accurate analysis
+    - Batsman should be clearly visible near the stumps
     """)
