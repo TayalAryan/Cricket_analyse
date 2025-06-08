@@ -369,21 +369,82 @@ if uploaded_file is not None:
                                                     use_container_width=True
                                                 )
                                                 
-                                                # Show stance and pose detection status
-                                                frame_result = next((r for r in all_results if abs(r['timestamp'] - timestamp) < 0.1), None)
+                                                # Analyze stance requirements for this frame
+                                                if pose_results.pose_landmarks:
+                                                    # Get detailed stance analysis
+                                                    is_stable_stance, pose_data = sample_detector.detect_stance(cropped_frame, timestamp)
+                                                    
+                                                    # Show overall status
+                                                    col_status1, col_status2 = st.columns(2)
+                                                    with col_status1:
+                                                        if is_stable_stance:
+                                                            st.success("✓ Stable Stance")
+                                                        else:
+                                                            st.info("○ Not Stable")
+                                                    
+                                                    with col_status2:
+                                                        if pose_detected:
+                                                            st.success("✓ Pose Detected")
+                                                        else:
+                                                            st.warning("⚠ No Pose")
+                                                    
+                                                    # Show detailed stance requirements
+                                                    st.markdown("**Stance Requirements:**")
+                                                    
+                                                    # Create two columns for requirements
+                                                    req_col1, req_col2 = st.columns(2)
+                                                    
+                                                    with req_col1:
+                                                        # Shoulder alignment
+                                                        if pose_data.get('shoulder_alignment', False):
+                                                            st.markdown("✅ Shoulders facing camera")
+                                                        else:
+                                                            st.markdown("❌ Shoulders not aligned")
+                                                        
+                                                        # Knees bent
+                                                        if pose_data.get('knees_bent', False):
+                                                            st.markdown("✅ Knees slightly bent")
+                                                        else:
+                                                            st.markdown("❌ Knees not properly bent")
+                                                        
+                                                        # Feet parallel
+                                                        if pose_data.get('feet_parallel', False):
+                                                            st.markdown("✅ Feet parallel")
+                                                        else:
+                                                            st.markdown("❌ Feet not parallel")
+                                                    
+                                                    with req_col2:
+                                                        # Body facing camera
+                                                        if pose_data.get('body_facing_camera', False):
+                                                            st.markdown("✅ Body facing camera")
+                                                        else:
+                                                            st.markdown("❌ Body not facing camera")
+                                                        
+                                                        # Head facing bowler
+                                                        if pose_data.get('head_facing_bowler', False):
+                                                            st.markdown("✅ Head facing bowler")
+                                                        else:
+                                                            st.markdown("❌ Head not facing bowler")
+                                                        
+                                                        # Stance width
+                                                        if pose_data.get('stance_width_good', False):
+                                                            st.markdown("✅ Good stance width")
+                                                        else:
+                                                            st.markdown("❌ Poor stance width")
+                                                    
+                                                    # Show stance score
+                                                    stance_score = pose_data.get('stance_score', 0)
+                                                    st.metric("Stance Score", f"{stance_score:.1%}", 
+                                                             help="Percentage of stance criteria met")
+                                                    
+                                                    # Show confidence
+                                                    confidence = pose_data.get('confidence', 0)
+                                                    st.metric("Pose Confidence", f"{confidence:.2f}")
                                                 
-                                                col_status1, col_status2 = st.columns(2)
-                                                with col_status1:
-                                                    if frame_result and frame_result['is_stable_stance']:
-                                                        st.success("✓ Stable Stance")
-                                                    else:
-                                                        st.info("○ Not Stable")
-                                                
-                                                with col_status2:
-                                                    if pose_detected:
-                                                        st.success("✓ Pose Detected")
-                                                    else:
-                                                        st.warning("⚠ No Pose")
+                                                else:
+                                                    # No pose detected
+                                                    st.warning("⚠ No pose detected")
+                                                    st.markdown("**Cannot analyze stance requirements without pose detection**")
                                             
                                             else:
                                                 st.error(f"Could not load frame at {timestamp:.1f}s")
