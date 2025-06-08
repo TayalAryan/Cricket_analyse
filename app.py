@@ -297,6 +297,100 @@ if uploaded_file is not None:
                     
                     st.table(periods_data)
                 
+                # Show sample frames with pose markers every 3 seconds
+                st.subheader("Sample Frames with Biomechanical Markers")
+                st.markdown("Red dots show body landmarks, green lines show skeletal connections")
+                
+                # Get frames at 3-second intervals
+                sample_interval = 3.0  # seconds
+                video_duration = st.session_state.video_processor.get_duration()
+                sample_timestamps = list(np.arange(0, video_duration, sample_interval))
+                
+                if sample_timestamps:
+                    # Create a pose detector for sample frame visualization
+                    sample_detector = StanceDetector(
+                        stability_threshold=stability_threshold,
+                        min_stability_duration=min_stability_duration,
+                        confidence_threshold=confidence_threshold,
+                        camera_perspective=camera_perspective
+                    )
+                    
+                    # Show progress for sample frame processing
+                    with st.spinner("Processing sample frames with pose detection..."):
+                        # Create columns for frame display
+                        cols_per_row = 3
+                        for i in range(0, len(sample_timestamps), cols_per_row):
+                            cols = st.columns(cols_per_row)
+                            
+                            for j in range(cols_per_row):
+                                idx = i + j
+                                if idx < len(sample_timestamps):
+                                    timestamp = sample_timestamps[idx]
+                                    
+                                    with cols[j]:
+                                        try:
+                                            # Get frame at timestamp
+                                            frame = st.session_state.video_processor.get_frame_at_time(timestamp)
+                                            if frame is not None:
+                                                # Crop to analysis area
+                                                x1, y1, x2, y2 = st.session_state.rectangle_coords
+                                                cropped_frame = frame[y1:y2, x1:x2]
+                                                
+                                                # Process with pose detection
+                                                rgb_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
+                                                pose_results = sample_detector.pose.process(rgb_frame)
+                                                
+                                                # Draw pose landmarks if detected
+                                                annotated_frame = rgb_frame.copy()
+                                                pose_detected = False
+                                                
+                                                if hasattr(pose_results, 'pose_landmarks') and pose_results.pose_landmarks:
+                                                    try:
+                                                        # Draw pose landmarks
+                                                        sample_detector.mp_drawing.draw_landmarks(
+                                                            annotated_frame,
+                                                            pose_results.pose_landmarks,
+                                                            sample_detector.mp_pose.POSE_CONNECTIONS,
+                                                            landmark_drawing_spec=sample_detector.mp_drawing.DrawingSpec(
+                                                                color=(255, 0, 0), thickness=2, circle_radius=3
+                                                            ),
+                                                            connection_drawing_spec=sample_detector.mp_drawing.DrawingSpec(
+                                                                color=(0, 255, 0), thickness=2
+                                                            )
+                                                        )
+                                                        pose_detected = True
+                                                    except Exception as e:
+                                                        st.warning(f"Error drawing pose: {str(e)}")
+                                                
+                                                # Display frame
+                                                st.image(
+                                                    annotated_frame, 
+                                                    caption=f"Frame at {timestamp:.1f}s", 
+                                                    use_container_width=True
+                                                )
+                                                
+                                                # Show stance and pose detection status
+                                                frame_result = next((r for r in all_results if abs(r['timestamp'] - timestamp) < 0.1), None)
+                                                
+                                                col_status1, col_status2 = st.columns(2)
+                                                with col_status1:
+                                                    if frame_result and frame_result['is_stable_stance']:
+                                                        st.success("✓ Stable Stance")
+                                                    else:
+                                                        st.info("○ Not Stable")
+                                                
+                                                with col_status2:
+                                                    if pose_detected:
+                                                        st.success("✓ Pose Detected")
+                                                    else:
+                                                        st.warning("⚠ No Pose")
+                                            
+                                            else:
+                                                st.error(f"Could not load frame at {timestamp:.1f}s")
+                                        
+                                        except Exception as e:
+                                            st.error(f"Error processing frame at {timestamp:.1f}s: {str(e)}")
+                
                 else:
                     st.warning("No stable batting stances detected in the video. Try adjusting the detection parameters.")
             
