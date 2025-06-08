@@ -206,8 +206,8 @@ class StanceDetector:
         
         # 8. Calculate ankle-to-toe angle with camera straight view
         # Use foot index as toe approximation
-        left_foot_index = landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value]
-        right_foot_index = landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value]
+        left_foot_index = landmarks[self.mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value]
+        right_foot_index = landmarks[self.mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value]
         
         # Calculate ankle-to-toe angles (0° = pointing straight at camera)
         left_ankle_toe_angle = math.degrees(math.atan2(left_foot_index.y - left_ankle.y, left_foot_index.x - left_ankle.x))
