@@ -347,7 +347,8 @@ if uploaded_file is not None:
                         stability_threshold=stability_threshold,
                         min_stability_duration=min_stability_duration,
                         confidence_threshold=confidence_threshold,
-                        camera_perspective=camera_perspective
+                        camera_perspective=camera_perspective,
+                        batsman_height=batsman_height
                     )
                     
                     # Show progress for sample frame processing
