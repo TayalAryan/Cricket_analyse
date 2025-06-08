@@ -412,6 +412,27 @@ if uploaded_file is not None:
                                                                 color=(0, 255, 0), thickness=2
                                                             )
                                                         )
+                                                        
+                                                        # Draw bat detection if available
+                                                        is_stable_stance, pose_data = sample_detector.detect_stance(cropped_frame, timestamp)
+                                                        if pose_data and pose_data.get('bat_detected', False):
+                                                            height, width = annotated_frame.shape[:2]
+                                                            
+                                                            # Convert normalized coordinates to pixel coordinates
+                                                            grip_x = int(pose_data['bat_grip_x'] * width)
+                                                            grip_y = int(pose_data['bat_grip_y'] * height)
+                                                            end_x = int(pose_data['bat_end_x'] * width)
+                                                            end_y = int(pose_data['bat_end_y'] * height)
+                                                            
+                                                            # Draw purple line for bat (RGB: 128, 0, 128)
+                                                            cv2.line(annotated_frame, (grip_x, grip_y), (end_x, end_y), (128, 0, 128), 4)
+                                                            
+                                                            # Draw grip point
+                                                            cv2.circle(annotated_frame, (grip_x, grip_y), 6, (128, 0, 128), -1)
+                                                            
+                                                            # Draw bat end point
+                                                            cv2.circle(annotated_frame, (end_x, end_y), 4, (128, 0, 128), -1)
+                                                        
                                                         pose_detected = True
                                                     except Exception as e:
                                                         st.warning(f"Error drawing pose: {str(e)}")
@@ -555,6 +576,15 @@ if uploaded_file is not None:
                                                         left_ankle_toe_angle = pose_data.get('left_ankle_toe_angle', 0)
                                                         right_ankle_toe_angle = pose_data.get('right_ankle_toe_angle', 0)
                                                         st.markdown(f"<p style='font-size:10px; margin:0;'><b>L/R Toe:</b> {left_ankle_toe_angle:.0f}°/{right_ankle_toe_angle:.0f}°</p>", 
+                                                                   unsafe_allow_html=True)
+                                                    
+                                                    # Show bat detection status
+                                                    if pose_data.get('bat_detected', False):
+                                                        bat_angle = pose_data.get('bat_angle', 0)
+                                                        st.markdown(f"<p style='color:purple; font-size:12px; margin:0;'><b>🏏 Bat detected</b> (angle: {bat_angle:.0f}°)</p>", 
+                                                                   unsafe_allow_html=True)
+                                                    else:
+                                                        st.markdown(f"<p style='color:gray; font-size:12px; margin:0;'>🏏 No bat detected</p>", 
                                                                    unsafe_allow_html=True)
                                                 
                                                 else:
