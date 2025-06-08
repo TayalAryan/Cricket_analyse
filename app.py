@@ -461,6 +461,12 @@ if uploaded_file is not None:
                                                         else:
                                                             st.markdown("❌ Hip line not parallel")
                                                         
+                                                        # Toe line pointer
+                                                        if pose_data.get('toe_line_pointer', False):
+                                                            st.markdown("✅ Toe line pointer")
+                                                        else:
+                                                            st.markdown("❌ Toe line pointer")
+                                                        
 
                                                     
                                                     # Show stance score

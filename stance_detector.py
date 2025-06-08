@@ -220,9 +220,14 @@ class StanceDetector:
         features['left_ankle_toe_angle'] = left_ankle_toe_angle
         features['right_ankle_toe_angle'] = right_ankle_toe_angle
         
+        # 9. Toe Line Pointer (left: 60-90°, right: 90-110°)
+        left_toe_good = 60 <= left_ankle_toe_angle <= 90
+        right_toe_good = 90 <= right_ankle_toe_angle <= 110
+        features['toe_line_pointer'] = left_toe_good and right_toe_good
+        
 
         
-        # 9. Overall stance score
+        # 10. Overall stance score
         stance_criteria = [
             features['shoulder_alignment'],
             features['body_facing_camera'],
@@ -230,7 +235,8 @@ class StanceDetector:
             features['feet_parallel'],
             features['head_facing_bowler'],
             features['stance_width_good'],
-            features['hip_line_parallel']
+            features['hip_line_parallel'],
+            features['toe_line_pointer']
         ]
         features['stance_score'] = sum(stance_criteria) / len(stance_criteria)
         
