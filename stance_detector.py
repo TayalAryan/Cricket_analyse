@@ -457,8 +457,8 @@ class StanceDetector:
                     'frame_count': end_frame - start_frame + 1
                 })
                 
-                # Skip 60 frames after finding a stable period
-                i = end_frame + 60 + 1
+                # Skip 30 frames after finding a stable period
+                i = end_frame + 30 + 1
             else:
                 # Move to next frame
                 i += 1
