@@ -139,14 +139,24 @@ class StanceDetector:
         
         # 1. Shoulder alignment (facing camera)
         shoulder_diff_z = abs(left_shoulder.z - right_shoulder.z)
-        features['shoulder_alignment'] = shoulder_diff_z < 0.1  # Shoulders roughly at same depth
+        features['shoulder_alignment'] = shoulder_diff_z < 0.15  # Shoulders roughly at same depth
         
         # 2. Body orientation (chest facing camera)
         hip_center_z = (left_hip.z + right_hip.z) / 2
         shoulder_center_z = (left_shoulder.z + right_shoulder.z) / 2
         features['body_facing_camera'] = shoulder_center_z < hip_center_z  # Upper body leaning forward
         
-        # 3. Knee bend angle
+        # 3. Shoulder line angle with ground
+        shoulder_line_angle = math.degrees(math.atan2(right_shoulder.y - left_shoulder.y, right_shoulder.x - left_shoulder.x))
+        # Normalize to -180 to 180 degrees (0 = horizontal)
+        if shoulder_line_angle > 180:
+            shoulder_line_angle -= 360
+        elif shoulder_line_angle < -180:
+            shoulder_line_angle += 360
+        features['shoulder_line_angle'] = shoulder_line_angle
+        features['shoulder_line_good'] = -10 <= shoulder_line_angle <= 10
+        
+        # 4. Knee bend angle
         left_knee_angle = self._calculate_angle(
             (left_hip.x, left_hip.y), 
             (left_knee.x, left_knee.y), 
@@ -207,12 +217,13 @@ class StanceDetector:
         
         # 7. Hip line should be almost parallel to ground
         hip_line_angle = math.degrees(math.atan2(right_hip.y - left_hip.y, right_hip.x - left_hip.x))
-        # Normalize to 0-180 degrees (0 = horizontal)
-        hip_line_angle = abs(hip_line_angle)
-        if hip_line_angle > 90:
-            hip_line_angle = 180 - hip_line_angle
+        # Normalize to -180 to 180 degrees (0 = horizontal)
+        if hip_line_angle > 180:
+            hip_line_angle -= 360
+        elif hip_line_angle < -180:
+            hip_line_angle += 360
         features['hip_line_angle'] = hip_line_angle
-        features['hip_line_parallel'] = hip_line_angle <= 8  # Within 8 degrees of horizontal
+        features['hip_line_parallel'] = -18 <= hip_line_angle <= 18  # Within 18 degrees of horizontal
         
         # 8. Calculate ankle-to-toe angle with camera straight view
         # Use foot index as toe approximation
@@ -235,17 +246,30 @@ class StanceDetector:
         right_toe_good = 90 <= right_ankle_toe_angle <= 130
         features['toe_line_pointer'] = left_toe_good and right_toe_good
         
+        # 10. Head tilt (relative to vertical axis)
+        # Calculate head tilt angle using nose and shoulder center
+        head_tilt_angle = math.degrees(math.atan2(nose.x - shoulder_center_x, -(nose.y - shoulder_center_y)))
+        # Normalize to -180 to 180 degrees (0 = straight up)
+        if head_tilt_angle > 180:
+            head_tilt_angle -= 360
+        elif head_tilt_angle < -180:
+            head_tilt_angle += 360
+        features['head_tilt_angle'] = head_tilt_angle
+        features['head_tilt_good'] = -20 <= head_tilt_angle <= 20
+        
 
         
-        # 10. Overall stance score
+        # 11. Overall stance score
         stance_criteria = [
             features['shoulder_alignment'],
             features['body_facing_camera'],
+            features['shoulder_line_good'],
             features['knees_bent'],
             features['feet_parallel'],
             features['stance_width_good'],
             features['hip_line_parallel'],
-            features['toe_line_pointer']
+            features['toe_line_pointer'],
+            features['head_tilt_good']
         ]
         
         # Include head facing criteria only for batsmen taller than 3.1 feet
