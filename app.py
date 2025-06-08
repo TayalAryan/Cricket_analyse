@@ -230,27 +230,17 @@ if uploaded_file is not None:
                 is_stable = [1 if r['is_stable_stance'] else 0 for r in all_results]
                 confidences = [r['pose_confidence'] for r in all_results]
                 
-                # Create detector for stance score analysis
-                timeline_detector = StanceDetector(
-                    stability_threshold=stability_threshold,
-                    min_stability_duration=min_stability_duration,
-                    confidence_threshold=confidence_threshold,
-                    camera_perspective=camera_perspective
-                )
-                
-                # Get stance scores from detailed analysis
+                # Use pre-calculated stance scores or estimate from existing data
+                # For now, we'll estimate stance scores based on stable stance detection
+                # This is much faster than re-analyzing every frame
                 stance_scores = []
-                with st.spinner("Calculating stance scores for timeline..."):
-                    for result in all_results:
-                        # Re-analyze each frame to get stance score
-                        frame = st.session_state.video_processor.get_frame_at_time(result['timestamp'])
-                        if frame is not None:
-                            x1, y1, x2, y2 = st.session_state.rectangle_coords
-                            cropped_frame = frame[y1:y2, x1:x2]
-                            _, pose_data = timeline_detector.detect_stance(cropped_frame, result['timestamp'])
-                            stance_scores.append(pose_data.get('stance_score', 0))
-                        else:
-                            stance_scores.append(0)
+                for result in all_results:
+                    if result['is_stable_stance']:
+                        # If stance is stable, assign a good score based on confidence
+                        stance_scores.append(min(0.8 + result['pose_confidence'] * 0.2, 1.0))
+                    else:
+                        # If not stable, assign lower score based on confidence
+                        stance_scores.append(result['pose_confidence'] * 0.5)
                 
                 # Create timeline plot
                 fig = go.Figure()
