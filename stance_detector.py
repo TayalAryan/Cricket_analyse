@@ -212,7 +212,7 @@ class StanceDetector:
         if hip_line_angle > 90:
             hip_line_angle = 180 - hip_line_angle
         features['hip_line_angle'] = hip_line_angle
-        features['hip_line_parallel'] = hip_line_angle <= 10  # Within 10 degrees of horizontal
+        features['hip_line_parallel'] = hip_line_angle <= 8  # Within 8 degrees of horizontal
         
         # 8. Calculate ankle-to-toe angle with camera straight view
         # Use foot index as toe approximation
@@ -243,11 +243,14 @@ class StanceDetector:
             features['body_facing_camera'],
             features['knees_bent'],
             features['feet_parallel'],
-            features['head_facing_bowler'],
             features['stance_width_good'],
             features['hip_line_parallel'],
             features['toe_line_pointer']
         ]
+        
+        # Include head facing criteria only for batsmen taller than 3.1 feet
+        if self.batsman_height > 3.1:
+            stance_criteria.append(features['head_facing_bowler'])
         features['stance_score'] = sum(stance_criteria) / len(stance_criteria)
         
         return features
