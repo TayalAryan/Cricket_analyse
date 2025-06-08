@@ -156,8 +156,8 @@ class StanceDetector:
             (right_ankle.x, right_ankle.y)
         )
         
-        # Knees should be slightly bent (160-175 degrees)
-        features['knees_bent'] = (160 <= left_knee_angle <= 175) and (160 <= right_knee_angle <= 175)
+        # Knees should be slightly bent (160-175 degrees) - either knee bent is sufficient
+        features['knees_bent'] = (160 <= left_knee_angle <= 175) or (160 <= right_knee_angle <= 175)
         features['left_knee_angle'] = left_knee_angle
         features['right_knee_angle'] = right_knee_angle
         
