@@ -147,12 +147,20 @@ class StanceDetector:
         features['body_facing_camera'] = shoulder_center_z < hip_center_z  # Upper body leaning forward
         
         # 3. Shoulder line angle with ground
-        shoulder_line_angle = math.degrees(math.atan2(right_shoulder.y - left_shoulder.y, right_shoulder.x - left_shoulder.x))
-        # Normalize to -180 to 180 degrees (0 = horizontal)
-        if shoulder_line_angle > 180:
-            shoulder_line_angle -= 360
-        elif shoulder_line_angle < -180:
-            shoulder_line_angle += 360
+        # Calculate the slope angle of the line connecting shoulders
+        dx = right_shoulder.x - left_shoulder.x
+        dy = right_shoulder.y - left_shoulder.y
+        
+        # Calculate angle in degrees (0 = horizontal, positive = right shoulder lower)
+        shoulder_line_angle = math.degrees(math.atan2(dy, dx))
+        
+        # Normalize to -90 to 90 degrees for shoulder tilt measurement
+        # We want the acute angle relative to horizontal
+        if shoulder_line_angle > 90:
+            shoulder_line_angle = 180 - shoulder_line_angle
+        elif shoulder_line_angle < -90:
+            shoulder_line_angle = -180 - shoulder_line_angle
+            
         features['shoulder_line_angle'] = shoulder_line_angle
         features['shoulder_line_good'] = -10 <= shoulder_line_angle <= 10
         
