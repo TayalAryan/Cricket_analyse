@@ -498,6 +498,18 @@ if uploaded_file is not None:
                                                         else:
                                                             st.markdown("❌ Toe line pointer")
                                                         
+                                                        # Shoulder line
+                                                        if pose_data.get('shoulder_line_good', False):
+                                                            st.markdown("✅ Shoulder line level")
+                                                        else:
+                                                            st.markdown("❌ Shoulder line not level")
+                                                        
+                                                        # Head tilt
+                                                        if pose_data.get('head_tilt_good', False):
+                                                            st.markdown("✅ Head tilt good")
+                                                        else:
+                                                            st.markdown("❌ Head tilt excessive")
+                                                        
 
                                                     
                                                     # Show stance score
@@ -518,26 +530,31 @@ if uploaded_file is not None:
                                                                  help=width_help)
                                                     
                                                     # Show angles in compact format
-                                                    col_angles1, col_angles2, col_angles3, col_angles4 = st.columns(4)
+                                                    col_angles1, col_angles2, col_angles3, col_angles4, col_angles5 = st.columns(5)
                                                     with col_angles1:
                                                         head_angle = pose_data.get('head_angle', 0)
-                                                        st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Turn:</b> {head_angle:.0f}°</p>", 
+                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>Head Turn:</b> {head_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                     
                                                     with col_angles2:
-                                                        head_shoulder_angle = pose_data.get('head_shoulder_angle', 0)
-                                                        st.markdown(f"<p style='font-size:12px; margin:0;'><b>Head Tilt:</b> {head_shoulder_angle:.0f}°</p>", 
+                                                        head_tilt_angle = pose_data.get('head_tilt_angle', 0)
+                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>Head Tilt:</b> {head_tilt_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                     
                                                     with col_angles3:
-                                                        hip_line_angle = pose_data.get('hip_line_angle', 0)
-                                                        st.markdown(f"<p style='font-size:12px; margin:0;'><b>Hip Line:</b> {hip_line_angle:.0f}°</p>", 
+                                                        shoulder_line_angle = pose_data.get('shoulder_line_angle', 0)
+                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>Shoulder Line:</b> {shoulder_line_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                     
                                                     with col_angles4:
+                                                        hip_line_angle = pose_data.get('hip_line_angle', 0)
+                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>Hip Line:</b> {hip_line_angle:.0f}°</p>", 
+                                                                   unsafe_allow_html=True)
+                                                    
+                                                    with col_angles5:
                                                         left_ankle_toe_angle = pose_data.get('left_ankle_toe_angle', 0)
                                                         right_ankle_toe_angle = pose_data.get('right_ankle_toe_angle', 0)
-                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>L/R Toe:</b> {left_ankle_toe_angle:.0f}°/{right_ankle_toe_angle:.0f}°</p>", 
+                                                        st.markdown(f"<p style='font-size:10px; margin:0;'><b>L/R Toe:</b> {left_ankle_toe_angle:.0f}°/{right_ankle_toe_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                 
                                                 else:
