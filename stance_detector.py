@@ -165,14 +165,12 @@ class StanceDetector:
         feet_y_diff = abs(left_ankle.y - right_ankle.y)
         features['feet_parallel'] = feet_y_diff < 0.1  # Feet at similar height
         
-        # 5. Head orientation (facing towards bowler based on camera perspective)
+        # 5. Head orientation (facing at least 45 degrees to the right of camera)
         shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
-        if self.camera_perspective == "right":
-            # Bowler is on the right, batsman should face right (nose x > shoulder center)
-            features['head_facing_bowler'] = nose.x > shoulder_center_x
-        else:
-            # Bowler is on the left, batsman should face left (nose x < shoulder center)
-            features['head_facing_bowler'] = nose.x < shoulder_center_x
+        # Calculate head angle relative to shoulder center
+        # 45 degrees to the right means nose should be significantly right of center
+        head_offset_threshold = 0.1  # Threshold for 45-degree turn (adjust based on testing)
+        features['head_facing_bowler'] = nose.x > (shoulder_center_x + head_offset_threshold)
         
         # 6. Stance width (feet should be shoulder-width apart)
         shoulder_width = abs(left_shoulder.x - right_shoulder.x)

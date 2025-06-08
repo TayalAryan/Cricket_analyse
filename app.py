@@ -422,9 +422,9 @@ if uploaded_file is not None:
                                                         
                                                         # Head facing bowler
                                                         if pose_data.get('head_facing_bowler', False):
-                                                            st.markdown("✅ Head facing bowler")
+                                                            st.markdown("✅ Head facing 45° right")
                                                         else:
-                                                            st.markdown("❌ Head not facing bowler")
+                                                            st.markdown("❌ Head not facing 45° right")
                                                         
                                                         # Stance width
                                                         if pose_data.get('stance_width_good', False):
@@ -489,7 +489,7 @@ else:
     - Chest and shoulders facing the camera
     - Knees slightly bent
     - Feet almost parallel to each other
-    - Head facing towards the bowler (configurable side)
+    - Head facing at least 45° to the right of camera
     - Upper body slightly lunged towards camera
     - Stationary for at least 100ms (configurable)
     - Rhythmic bat tapping is allowed
