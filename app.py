@@ -437,9 +437,16 @@ if uploaded_file is not None:
                                                     st.metric("Stance Score", f"{stance_score:.1%}", 
                                                              help="Percentage of stance criteria met")
                                                     
-                                                    # Show confidence
-                                                    confidence = pose_data.get('confidence', 0)
-                                                    st.metric("Pose Confidence", f"{confidence:.2f}")
+                                                    # Show confidence and head angle
+                                                    col_metrics1, col_metrics2 = st.columns(2)
+                                                    with col_metrics1:
+                                                        confidence = pose_data.get('confidence', 0)
+                                                        st.metric("Pose Confidence", f"{confidence:.2f}")
+                                                    
+                                                    with col_metrics2:
+                                                        head_angle = pose_data.get('head_angle', 0)
+                                                        st.metric("Head Angle", f"{head_angle:.1f}°", 
+                                                                 help="Angle of head relative to camera (positive = right turn)")
                                                 
                                                 else:
                                                     # No pose detected

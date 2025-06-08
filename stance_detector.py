@@ -168,6 +168,12 @@ class StanceDetector:
         # 5. Head orientation (facing at least 30 degrees to the right of camera)
         shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
         # Calculate head angle relative to shoulder center
+        head_offset = nose.x - shoulder_center_x
+        # Convert offset to approximate angle (rough estimation)
+        # Assuming normalized coordinates, 0.1 offset ≈ 45 degrees
+        head_angle_degrees = head_offset * 450  # Convert to degrees (rough approximation)
+        features['head_angle'] = head_angle_degrees
+        
         # 30 degrees to the right means nose should be moderately right of center
         head_offset_threshold = 0.07  # Threshold for 30-degree turn (reduced from 45 degrees)
         features['head_facing_bowler'] = nose.x > (shoulder_center_x + head_offset_threshold)
