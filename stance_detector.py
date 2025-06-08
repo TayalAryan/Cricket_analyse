@@ -376,74 +376,92 @@ class StanceDetector:
     def get_stable_periods(self, results: List[Dict]) -> Dict:
         """
         Post-process results to identify stable periods.
+        New criteria: 20 continuous frames with >85% stance score, then skip 60 frames.
         
         Args:
-            results: List of frame analysis results
+            results: List of frame analysis results with stance_score
             
         Returns:
             Dictionary with stable periods and statistics
         """
         stable_periods = []
-        current_period_start = None
+        i = 0
         
-        fps = 30  # Assume 30 FPS if not provided
-        min_frames = int(self.min_stability_duration * fps)
-        
-        for i, result in enumerate(results):
-            if result['is_stable_stance']:
-                if current_period_start is None:
-                    current_period_start = i
-            else:
-                if current_period_start is not None:
-                    period_length = i - current_period_start
-                    if period_length >= min_frames:
-                        # Valid stable period
-                        start_time = results[current_period_start]['timestamp']
-                        end_time = results[i-1]['timestamp']
-                        duration = end_time - start_time
-                        
-                        # Calculate average confidence for this period
-                        period_confidences = [
-                            results[j]['pose_confidence'] 
-                            for j in range(current_period_start, i)
-                            if results[j]['pose_confidence'] > 0
-                        ]
-                        avg_confidence = np.mean(period_confidences) if period_confidences else 0
-                        
-                        stable_periods.append({
-                            'start_frame': current_period_start,
-                            'end_frame': i - 1,
-                            'start_time': start_time,
-                            'end_time': end_time,
-                            'duration': duration,
-                            'avg_confidence': avg_confidence
-                        })
+        while i < len(results):
+            # Check if we have at least 20 frames left to analyze
+            if i + 20 > len(results):
+                break
+            
+            # Check 20 continuous frames for >85% stance score
+            high_score_count = 0
+            valid_period = True
+            
+            for j in range(i, min(i + 20, len(results))):
+                # Get stance score from result (need to recalculate or store during analysis)
+                if 'stance_score' in results[j]:
+                    stance_score = results[j]['stance_score']
+                else:
+                    # If stance_score not stored, use is_stable_stance as fallback
+                    stance_score = 0.85 if results[j]['is_stable_stance'] else 0.5
+                
+                if stance_score > 0.85:
+                    high_score_count += 1
+                else:
+                    valid_period = False
+                    break
+            
+            # If all 20 frames have >85% stance score, it's a stable period
+            if valid_period and high_score_count == 20:
+                start_frame = i
+                start_time = results[i]['timestamp']
+                
+                # Find the end of this stable period (continue until score drops below 85%)
+                end_frame = i + 19  # At least 20 frames
+                for j in range(i + 20, len(results)):
+                    if 'stance_score' in results[j]:
+                        stance_score = results[j]['stance_score']
+                    else:
+                        stance_score = 0.85 if results[j]['is_stable_stance'] else 0.5
                     
-                    current_period_start = None
-        
-        # Handle case where video ends during a stable period
-        if current_period_start is not None:
-            period_length = len(results) - current_period_start
-            if period_length >= min_frames:
-                start_time = results[current_period_start]['timestamp']
-                end_time = results[-1]['timestamp']
+                    if stance_score > 0.85:
+                        end_frame = j
+                    else:
+                        break
+                
+                end_time = results[end_frame]['timestamp']
                 duration = end_time - start_time
                 
+                # Calculate average confidence for this period
                 period_confidences = [
                     results[j]['pose_confidence'] 
-                    for j in range(current_period_start, len(results))
+                    for j in range(start_frame, end_frame + 1)
                     if results[j]['pose_confidence'] > 0
                 ]
                 avg_confidence = np.mean(period_confidences) if period_confidences else 0
                 
+                # Calculate average stance score for this period
+                period_scores = [
+                    results[j].get('stance_score', 0.85 if results[j]['is_stable_stance'] else 0.5)
+                    for j in range(start_frame, end_frame + 1)
+                ]
+                avg_stance_score = np.mean(period_scores) if period_scores else 0
+                
                 stable_periods.append({
-                    'start_frame': current_period_start,
-                    'end_frame': len(results) - 1,
+                    'start_frame': start_frame,
+                    'end_frame': end_frame,
                     'start_time': start_time,
                     'end_time': end_time,
                     'duration': duration,
-                    'avg_confidence': avg_confidence
+                    'avg_confidence': avg_confidence,
+                    'avg_stance_score': avg_stance_score,
+                    'frame_count': end_frame - start_frame + 1
                 })
+                
+                # Skip 60 frames after finding a stable period
+                i = end_frame + 60 + 1
+            else:
+                # Move to next frame
+                i += 1
         
         return {
             'stable_periods': stable_periods,

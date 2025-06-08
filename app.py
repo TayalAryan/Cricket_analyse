@@ -206,7 +206,8 @@ if uploaded_file is not None:
                             'frame': frame_idx,
                             'timestamp': timestamp,
                             'is_stable_stance': is_stable_stance,
-                            'pose_confidence': pose_data.get('confidence', 0) if pose_data else 0
+                            'pose_confidence': pose_data.get('confidence', 0) if pose_data else 0,
+                            'stance_score': pose_data.get('stance_score', 0) if pose_data else 0
                         })
                         
                         frame_idx += 1
@@ -308,12 +309,27 @@ if uploaded_file is not None:
                     opacity=0.7
                 ))
                 
-                # Highlight stable periods
+                # Mark stable period start points with vertical lines
+                for i, period in enumerate(stable_periods):
+                    fig.add_vline(
+                        x=period['start_time'],
+                        line=dict(color="red", width=3, dash="solid"),
+                        annotation_text=f"Stable Period {i+1}",
+                        annotation_position="top",
+                        annotation=dict(
+                            font=dict(color="red", size=10),
+                            bgcolor="rgba(255,255,255,0.8)",
+                            bordercolor="red",
+                            borderwidth=1
+                        )
+                    )
+                
+                # Highlight stable periods with light background
                 for period in stable_periods:
                     fig.add_vrect(
                         x0=period['start_time'],
                         x1=period['end_time'],
-                        fillcolor="rgba(255,0,0,0.2)",
+                        fillcolor="rgba(255,0,0,0.1)",
                         layer="below",
                         line_width=0,
                     )
@@ -345,6 +361,8 @@ if uploaded_file is not None:
                             'Start Time (s)': f"{period['start_time']:.2f}",
                             'End Time (s)': f"{period['end_time']:.2f}",
                             'Duration (s)': f"{period['duration']:.2f}",
+                            'Frame Count': period.get('frame_count', 0),
+                            'Avg Stance Score': f"{period.get('avg_stance_score', 0):.1%}",
                             'Avg Confidence': f"{period['avg_confidence']:.3f}"
                         })
                     
