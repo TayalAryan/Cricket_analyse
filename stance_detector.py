@@ -262,9 +262,9 @@ class StanceDetector:
     
     def _check_stance_criteria(self, pose_data: Dict) -> bool:
         """Check if current pose meets batting stance criteria."""
-        # Require a minimum stance score
+        # Require a minimum stance score of 75%
         stance_score = pose_data.get('stance_score', 0)
-        return stance_score >= 0.6  # At least 60% of criteria met
+        return stance_score > 0.75  # More than 75% of criteria met
     
     def _check_stability(self, current_timestamp: float) -> bool:
         """Check if pose has been stable for minimum duration."""
