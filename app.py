@@ -502,7 +502,8 @@ if uploaded_file is not None:
                                                     
                                                     with col_angles4:
                                                         left_foot_angle = pose_data.get('left_foot_angle', 0)
-                                                        st.markdown(f"<p style='font-size:12px; margin:0;'><b>Left Foot:</b> {left_foot_angle:.0f}°</p>", 
+                                                        right_foot_angle = pose_data.get('right_foot_angle', 0)
+                                                        st.markdown(f"<p style='font-size:11px; margin:0;'><b>L/R Foot:</b> {left_foot_angle:.0f}°/{right_foot_angle:.0f}°</p>", 
                                                                    unsafe_allow_html=True)
                                                 
                                                 else:
