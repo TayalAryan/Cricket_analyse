@@ -224,12 +224,20 @@ class StanceDetector:
         features['stance_width_ratio'] = width_ratio
         
         # 7. Hip line should be almost parallel to ground
-        hip_line_angle = math.degrees(math.atan2(right_hip.y - left_hip.y, right_hip.x - left_hip.x))
-        # Normalize to -180 to 180 degrees (0 = horizontal)
-        if hip_line_angle > 180:
-            hip_line_angle -= 360
-        elif hip_line_angle < -180:
-            hip_line_angle += 360
+        # Calculate the slope angle of the line connecting hips
+        dx = right_hip.x - left_hip.x
+        dy = right_hip.y - left_hip.y
+        
+        # Calculate angle in degrees (0 = horizontal, positive = right hip lower)
+        hip_line_angle = math.degrees(math.atan2(dy, dx))
+        
+        # Normalize to -90 to 90 degrees for hip tilt measurement
+        # We want the acute angle relative to horizontal
+        if hip_line_angle > 90:
+            hip_line_angle = 180 - hip_line_angle
+        elif hip_line_angle < -90:
+            hip_line_angle = -180 - hip_line_angle
+            
         features['hip_line_angle'] = hip_line_angle
         features['hip_line_parallel'] = -18 <= hip_line_angle <= 18  # Within 18 degrees of horizontal
         
