@@ -165,11 +165,11 @@ class StanceDetector:
         feet_y_diff = abs(left_ankle.y - right_ankle.y)
         features['feet_parallel'] = feet_y_diff < 0.1  # Feet at similar height
         
-        # 5. Head orientation (facing at least 45 degrees to the right of camera)
+        # 5. Head orientation (facing at least 30 degrees to the right of camera)
         shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
         # Calculate head angle relative to shoulder center
-        # 45 degrees to the right means nose should be significantly right of center
-        head_offset_threshold = 0.1  # Threshold for 45-degree turn (adjust based on testing)
+        # 30 degrees to the right means nose should be moderately right of center
+        head_offset_threshold = 0.07  # Threshold for 30-degree turn (reduced from 45 degrees)
         features['head_facing_bowler'] = nose.x > (shoulder_center_x + head_offset_threshold)
         
         # 6. Stance width (feet should be shoulder-width apart)
