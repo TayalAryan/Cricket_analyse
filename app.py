@@ -230,6 +230,28 @@ if uploaded_file is not None:
                 is_stable = [1 if r['is_stable_stance'] else 0 for r in all_results]
                 confidences = [r['pose_confidence'] for r in all_results]
                 
+                # Create detector for stance score analysis
+                timeline_detector = StanceDetector(
+                    stability_threshold=stability_threshold,
+                    min_stability_duration=min_stability_duration,
+                    confidence_threshold=confidence_threshold,
+                    camera_perspective=camera_perspective
+                )
+                
+                # Get stance scores from detailed analysis
+                stance_scores = []
+                with st.spinner("Calculating stance scores for timeline..."):
+                    for result in all_results:
+                        # Re-analyze each frame to get stance score
+                        frame = st.session_state.video_processor.get_frame_at_time(result['timestamp'])
+                        if frame is not None:
+                            x1, y1, x2, y2 = st.session_state.rectangle_coords
+                            cropped_frame = frame[y1:y2, x1:x2]
+                            _, pose_data = timeline_detector.detect_stance(cropped_frame, result['timestamp'])
+                            stance_scores.append(pose_data.get('stance_score', 0))
+                        else:
+                            stance_scores.append(0)
+                
                 # Create timeline plot
                 fig = go.Figure()
                 
@@ -242,6 +264,17 @@ if uploaded_file is not None:
                     line=dict(color='green', width=2),
                     fill='tonexty',
                     fillcolor='rgba(0,255,0,0.3)'
+                ))
+                
+                # Add stance score timeline on secondary y-axis
+                fig.add_trace(go.Scatter(
+                    x=timestamps,
+                    y=stance_scores,
+                    mode='lines',
+                    name='Stance Score',
+                    line=dict(color='red', width=2),
+                    yaxis='y2',
+                    opacity=0.8
                 ))
                 
                 # Add confidence timeline on secondary y-axis
@@ -270,7 +303,7 @@ if uploaded_file is not None:
                     xaxis_title="Time (seconds)",
                     yaxis_title="Stable Stance (0/1)",
                     yaxis2=dict(
-                        title="Pose Confidence",
+                        title="Stance Score / Pose Confidence",
                         overlaying='y',
                         side='right',
                         range=[0, 1]
