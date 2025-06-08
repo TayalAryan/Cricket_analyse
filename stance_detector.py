@@ -6,7 +6,7 @@ import math
 from collections import deque
 
 class StanceDetector:
-    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.3, confidence_threshold: float = 0.5, camera_perspective: str = "right"):
+    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.1, confidence_threshold: float = 0.5, camera_perspective: str = "right"):
         """
         Initialize the stance detector.
         

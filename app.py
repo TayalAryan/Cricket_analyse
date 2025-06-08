@@ -50,7 +50,7 @@ with st.sidebar:
     st.subheader("Detection Parameters")
     stability_threshold = st.slider("Movement Threshold", 0.01, 0.1, 0.03, 0.01, 
                                    help="Lower values require less movement for stable stance")
-    min_stability_duration = st.slider("Minimum Stance Duration (ms)", 200, 1000, 300, 50,
+    min_stability_duration = st.slider("Minimum Stance Duration (ms)", 50, 1000, 100, 25,
                                       help="Minimum time to maintain stable stance")
     confidence_threshold = st.slider("Pose Detection Confidence", 0.3, 0.9, 0.5, 0.1,
                                     help="Minimum confidence for pose detection")
@@ -112,7 +112,7 @@ if uploaded_file is not None:
             cv2.rectangle(frame_with_rect, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 3)
             
             # Display frame with rectangle
-            st.image(frame_with_rect, caption="First frame with analysis area", use_column_width=True)
+            st.image(frame_with_rect, caption="First frame with analysis area", use_container_width=True)
             
             if st.button("Confirm Selection", type="primary"):
                 if x2 > x1 and y2 > y1:
@@ -336,7 +336,7 @@ else:
     - Feet almost parallel to each other
     - Head facing towards the bowler (configurable side)
     - Upper body slightly lunged towards camera
-    - Stationary for at least 300ms (configurable)
+    - Stationary for at least 100ms (configurable)
     - Rhythmic bat tapping is allowed
     """)
     
