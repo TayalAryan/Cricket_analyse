@@ -379,11 +379,10 @@ class StanceDetector:
         fps = 30  # Assume 30 FPS
         min_duration_frames = int(0.3 * fps)  # 300ms = 9 frames at 30fps
         
-        # Parameters to track for sudden movement
+        # Parameters to track for sudden movement (excluding head tilt)
         tracked_params = [
             'shoulder_line_angle',
-            'hip_line_angle', 
-            'head_tilt_angle',
+            'hip_line_angle',
             'left_knee_angle',
             'right_knee_angle',
             'left_ankle_x',
@@ -419,11 +418,10 @@ class StanceDetector:
         
         # Sliding window analysis for sudden movements
         movement_threshold = {
-            'shoulder_line_angle': 15,  # degrees
-            'hip_line_angle': 12,
-            'head_tilt_angle': 20,
-            'left_knee_angle': 25,
-            'right_knee_angle': 25,
+            'shoulder_line_angle': 20,  # degrees
+            'hip_line_angle': 15,
+            'left_knee_angle': 20,
+            'right_knee_angle': 20,
             'left_ankle_x': 0.05,  # normalized coordinates
             'left_ankle_y': 0.05,
             'right_ankle_x': 0.05,
