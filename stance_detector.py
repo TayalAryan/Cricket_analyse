@@ -441,14 +441,9 @@ class StanceDetector:
             'hip_line_angle',
             'shoulder_line_twist',
             'hip_line_twist',
-            'left_knee_to_ankle_angle',
-            'right_knee_to_ankle_angle',
-            'left_knee_angle',
-            'right_knee_angle',
-            'left_ankle_x',
-            'left_ankle_y',
-            'right_ankle_x',
-            'right_ankle_y'
+            'knee_to_ankle_angle',
+            'knee_angle',
+            'ankle_coordinates'
         ]
         
         # Extract parameter values for frames with valid pose data
@@ -462,15 +457,23 @@ class StanceDetector:
                 # Use actual stored biomechanical data
                 biomech_data = result['biomech_data']
                 param_data[i] = {
-                    'left_ankle_x': biomech_data['left_ankle_x'],
-                    'left_ankle_y': biomech_data['left_ankle_y'],
-                    'right_ankle_x': biomech_data['right_ankle_x'],
-                    'right_ankle_y': biomech_data['right_ankle_y'],
                     'shoulder_line_angle': biomech_data['shoulder_line_angle'],
                     'hip_line_angle': biomech_data['hip_line_angle'],
-                    'head_tilt_angle': biomech_data['head_tilt_angle'],
-                    'left_knee_angle': biomech_data['left_knee_angle'],
-                    'right_knee_angle': biomech_data['right_knee_angle']
+                    'shoulder_line_twist': biomech_data.get('shoulder_line_twist', 0),
+                    'hip_line_twist': biomech_data.get('hip_line_twist', 0),
+                    'knee_to_ankle_angle': max(
+                        biomech_data.get('left_knee_to_ankle_angle', 0),
+                        biomech_data.get('right_knee_to_ankle_angle', 0)
+                    ),
+                    'knee_angle': max(
+                        biomech_data.get('left_knee_angle', 0),
+                        biomech_data.get('right_knee_angle', 0)
+                    ),
+                    # Store individual ankle coordinates for movement calculation
+                    'left_ankle_x': biomech_data.get('left_ankle_x', 0),
+                    'left_ankle_y': biomech_data.get('left_ankle_y', 0),
+                    'right_ankle_x': biomech_data.get('right_ankle_x', 0),
+                    'right_ankle_y': biomech_data.get('right_ankle_y', 0)
                 }
         
         if len(valid_frames) < min_duration_frames * 2:
@@ -482,14 +485,9 @@ class StanceDetector:
             'hip_line_angle': 15,
             'shoulder_line_twist': 15,  # degrees - rotation around vertical axis
             'hip_line_twist': 12,  # degrees - core rotation
-            'left_knee_to_ankle_angle': 15,  # degrees - angle with ground
-            'right_knee_to_ankle_angle': 15,  # degrees - angle with ground
-            'left_knee_angle': 20,
-            'right_knee_angle': 20,
-            'left_ankle_x': 0.05,  # normalized coordinates
-            'left_ankle_y': 0.05,
-            'right_ankle_x': 0.05,
-            'right_ankle_y': 0.05
+            'knee_to_ankle_angle': 15,  # degrees - angle with ground (either leg)
+            'knee_angle': 20,  # degrees - knee bend (either leg)
+            'ankle_coordinates': 0.05  # normalized coordinates (any ankle movement)
         }
         
         i = 0
@@ -508,17 +506,41 @@ class StanceDetector:
                 frame_movements = []
                 
                 for param in tracked_params:
-                    if param in param_data[current_frame] and param in param_data[compare_frame]:
+                    change = 0
+                    
+                    if param == 'ankle_coordinates':
+                        # Calculate maximum ankle coordinate change (any ankle movement)
+                        left_x_change = abs(param_data[compare_frame]['left_ankle_x'] - param_data[current_frame]['left_ankle_x'])
+                        left_y_change = abs(param_data[compare_frame]['left_ankle_y'] - param_data[current_frame]['left_ankle_y'])
+                        right_x_change = abs(param_data[compare_frame]['right_ankle_x'] - param_data[current_frame]['right_ankle_x'])
+                        right_y_change = abs(param_data[compare_frame]['right_ankle_y'] - param_data[current_frame]['right_ankle_y'])
+                        change = max(left_x_change, left_y_change, right_x_change, right_y_change)
+                    
+                    elif param == 'knee_angle':
+                        # Use the pre-calculated maximum knee angle from param_data
                         current_val = param_data[current_frame][param]
                         compare_val = param_data[compare_frame][param]
-                        
                         change = abs(compare_val - current_val)
-                        if change > movement_threshold[param]:
-                            frame_movements.append({
-                                'parameter': param,
-                                'change': change,
-                                'threshold': movement_threshold[param]
-                            })
+                    
+                    elif param == 'knee_to_ankle_angle':
+                        # Use the pre-calculated maximum knee-to-ankle angle from param_data
+                        current_val = param_data[current_frame][param]
+                        compare_val = param_data[compare_frame][param]
+                        change = abs(compare_val - current_val)
+                    
+                    else:
+                        # Standard single parameter change calculation
+                        if param in param_data[current_frame] and param in param_data[compare_frame]:
+                            current_val = param_data[current_frame][param]
+                            compare_val = param_data[compare_frame][param]
+                            change = abs(compare_val - current_val)
+                    
+                    if change > movement_threshold[param]:
+                        frame_movements.append({
+                            'parameter': param,
+                            'change': change,
+                            'threshold': movement_threshold[param]
+                        })
                 
                 if len(frame_movements) >= 3:  # At least 3 parameters showing movement
                     movements_detected.append({
