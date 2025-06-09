@@ -299,6 +299,62 @@ class StanceDetector:
         features['right_ankle_x'] = right_ankle.x
         features['right_ankle_y'] = right_ankle.y
         
+        # 12. Shoulder line twist (rotation around vertical axis)
+        # Calculate using shoulder depth perception (z-axis simulation)
+        # Use shoulder-to-nose distance ratio to estimate twist
+        left_shoulder_nose_dist = math.sqrt((left_shoulder.x - nose.x)**2 + (left_shoulder.y - nose.y)**2)
+        right_shoulder_nose_dist = math.sqrt((right_shoulder.x - nose.x)**2 + (right_shoulder.y - nose.y)**2)
+        
+        # Calculate twist angle based on distance ratio (simulates depth)
+        if right_shoulder_nose_dist > 0:
+            distance_ratio = left_shoulder_nose_dist / right_shoulder_nose_dist
+            # Convert ratio to approximate twist angle (empirical formula)
+            shoulder_line_twist = math.degrees(math.atan((distance_ratio - 1) * 2))
+            # Clamp to reasonable range
+            shoulder_line_twist = max(-45, min(45, shoulder_line_twist))
+        else:
+            shoulder_line_twist = 0
+        features['shoulder_line_twist'] = shoulder_line_twist
+        
+        # 13. Hip line twist (core rotation around vertical axis)
+        # Calculate using hip-to-shoulder center distance ratio
+        hip_center_x = (left_hip.x + right_hip.x) / 2
+        hip_center_y = (left_hip.y + right_hip.y) / 2
+        
+        left_hip_shoulder_dist = math.sqrt((left_hip.x - shoulder_center_x)**2 + (left_hip.y - shoulder_center_y)**2)
+        right_hip_shoulder_dist = math.sqrt((right_hip.x - shoulder_center_x)**2 + (right_hip.y - shoulder_center_y)**2)
+        
+        if right_hip_shoulder_dist > 0:
+            hip_distance_ratio = left_hip_shoulder_dist / right_hip_shoulder_dist
+            # Convert to twist angle
+            hip_line_twist = math.degrees(math.atan((hip_distance_ratio - 1) * 1.5))
+            # Clamp to reasonable range
+            hip_line_twist = max(-30, min(30, hip_line_twist))
+        else:
+            hip_line_twist = 0
+        features['hip_line_twist'] = hip_line_twist
+        
+        # 14. Knee-to-ankle line angles with ground
+        # Left knee-to-ankle angle with horizontal ground
+        left_knee_ankle_dx = left_ankle.x - left_knee.x
+        left_knee_ankle_dy = left_ankle.y - left_knee.y
+        left_knee_to_ankle_angle = math.degrees(math.atan2(left_knee_ankle_dy, left_knee_ankle_dx))
+        # Normalize to angle with ground (0° = horizontal, 90° = vertical down)
+        left_knee_to_ankle_angle = abs(left_knee_to_ankle_angle)
+        if left_knee_to_ankle_angle > 90:
+            left_knee_to_ankle_angle = 180 - left_knee_to_ankle_angle
+        features['left_knee_to_ankle_angle'] = left_knee_to_ankle_angle
+        
+        # Right knee-to-ankle angle with horizontal ground
+        right_knee_ankle_dx = right_ankle.x - right_knee.x
+        right_knee_ankle_dy = right_ankle.y - right_knee.y
+        right_knee_to_ankle_angle = math.degrees(math.atan2(right_knee_ankle_dy, right_knee_ankle_dx))
+        # Normalize to angle with ground
+        right_knee_to_ankle_angle = abs(right_knee_to_ankle_angle)
+        if right_knee_to_ankle_angle > 90:
+            right_knee_to_ankle_angle = 180 - right_knee_to_ankle_angle
+        features['right_knee_to_ankle_angle'] = right_knee_to_ankle_angle
+        
         return features
     
     def _analyze_ankle_movement(self, results: List[Dict], start_frame: int, end_frame: int) -> Dict:
@@ -383,6 +439,10 @@ class StanceDetector:
         tracked_params = [
             'shoulder_line_angle',
             'hip_line_angle',
+            'shoulder_line_twist',
+            'hip_line_twist',
+            'left_knee_to_ankle_angle',
+            'right_knee_to_ankle_angle',
             'left_knee_angle',
             'right_knee_angle',
             'left_ankle_x',
@@ -420,6 +480,10 @@ class StanceDetector:
         movement_threshold = {
             'shoulder_line_angle': 20,  # degrees
             'hip_line_angle': 15,
+            'shoulder_line_twist': 15,  # degrees - rotation around vertical axis
+            'hip_line_twist': 12,  # degrees - core rotation
+            'left_knee_to_ankle_angle': 15,  # degrees - angle with ground
+            'right_knee_to_ankle_angle': 15,  # degrees - angle with ground
             'left_knee_angle': 20,
             'right_knee_angle': 20,
             'left_ankle_x': 0.05,  # normalized coordinates
