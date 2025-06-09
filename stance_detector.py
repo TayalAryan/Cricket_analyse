@@ -491,13 +491,14 @@ class StanceDetector:
         }
         
         i = 0
-        while i < len(valid_frames) - min_duration_frames:
+        frame_skip = 3  # Skip 2 frames, so compare with 3rd frame ahead
+        while i < len(valid_frames) - min_duration_frames - frame_skip:
             current_frame = valid_frames[i]
             
-            # Check for sudden movement in next few frames
+            # Check for sudden movement by comparing with frame that's 3 positions ahead
             movements_detected = []
             
-            for j in range(i + 1, min(i + min_duration_frames + 1, len(valid_frames))):
+            for j in range(i + frame_skip, min(i + min_duration_frames + frame_skip, len(valid_frames)), frame_skip):
                 compare_frame = valid_frames[j]
                 
                 if current_frame not in param_data or compare_frame not in param_data:
