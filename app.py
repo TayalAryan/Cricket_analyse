@@ -202,14 +202,19 @@ if uploaded_file is not None:
                         timestamp = frame_idx / st.session_state.video_processor.get_fps()
                         is_stable_stance, pose_data = stance_detector.detect_stance(cropped_frame, timestamp)
                         
-                        # Store ankle coordinates for movement analysis
-                        ankle_coords = None
+                        # Store comprehensive biomechanical data for shot trigger analysis
+                        biomech_data = None
                         if pose_data and pose_data.get('confidence', 0) > 0.5:
-                            ankle_coords = {
+                            biomech_data = {
                                 'left_ankle_x': pose_data.get('left_ankle_x', 0),
                                 'left_ankle_y': pose_data.get('left_ankle_y', 0),
                                 'right_ankle_x': pose_data.get('right_ankle_x', 0),
-                                'right_ankle_y': pose_data.get('right_ankle_y', 0)
+                                'right_ankle_y': pose_data.get('right_ankle_y', 0),
+                                'shoulder_line_angle': pose_data.get('shoulder_line_angle', 0),
+                                'hip_line_angle': pose_data.get('hip_line_angle', 0),
+                                'head_tilt_angle': pose_data.get('head_tilt_angle', 0),
+                                'left_knee_angle': pose_data.get('left_knee_angle', 170),
+                                'right_knee_angle': pose_data.get('right_knee_angle', 170)
                             }
                         
                         results.append({
@@ -218,7 +223,8 @@ if uploaded_file is not None:
                             'is_stable_stance': is_stable_stance,
                             'pose_confidence': pose_data.get('confidence', 0) if pose_data else 0,
                             'stance_score': pose_data.get('stance_score', 0) if pose_data else 0,
-                            'ankle_coords': ankle_coords
+                            'ankle_coords': biomech_data,  # Keep same name for compatibility
+                            'biomech_data': biomech_data
                         })
                         
                         frame_idx += 1
@@ -243,6 +249,7 @@ if uploaded_file is not None:
             
             if st.session_state.stance_results:
                 stable_periods = st.session_state.stance_results['stable_periods']
+                shot_triggers = st.session_state.stance_results.get('shot_triggers', [])
                 all_results = st.session_state.stance_results['all_frames']
                 
                 # Summary statistics
@@ -261,8 +268,7 @@ if uploaded_file is not None:
                     st.metric("Stability %", f"{stability_percentage:.1f}%")
                 
                 with col4:
-                    avg_confidence = np.mean([r['pose_confidence'] for r in all_results if r['pose_confidence'] > 0])
-                    st.metric("Avg Pose Confidence", f"{avg_confidence:.2f}")
+                    st.metric("Shot Triggers Found", len(shot_triggers))
                 
                 # Timeline visualization
                 st.subheader("Stance Detection Timeline")
@@ -335,6 +341,21 @@ if uploaded_file is not None:
                         )
                     )
                 
+                # Mark shot trigger points with vertical lines
+                for i, trigger in enumerate(shot_triggers):
+                    fig.add_vline(
+                        x=trigger['trigger_time'],
+                        line=dict(color="orange", width=2, dash="dash"),
+                        annotation_text=f"Shot Trigger {i+1}",
+                        annotation_position="bottom",
+                        annotation=dict(
+                            font=dict(color="orange", size=9),
+                            bgcolor="rgba(255,255,255,0.8)",
+                            bordercolor="orange",
+                            borderwidth=1
+                        )
+                    )
+                
                 # Highlight stable periods with light background
                 for period in stable_periods:
                     fig.add_vrect(
@@ -392,6 +413,42 @@ if uploaded_file is not None:
                         })
                     
                     st.table(periods_data)
+                
+                # Shot Trigger Analysis Results
+                if shot_triggers:
+                    st.subheader("Shot Trigger Analysis")
+                    st.markdown("**Detected moments when batsman initiated shot-making movements**")
+                    
+                    trigger_data = []
+                    for i, trigger in enumerate(shot_triggers):
+                        movement_params = [m['parameter'] for m in trigger['movement_details']]
+                        param_summary = ', '.join(movement_params[:3])
+                        if len(movement_params) > 3:
+                            param_summary += f" (+{len(movement_params)-3} more)"
+                        
+                        trigger_data.append({
+                            'Trigger #': i + 1,
+                            'Time (s)': f"{trigger['trigger_time']:.2f}",
+                            'Duration (ms)': f"{trigger['duration']*1000:.0f}",
+                            'Parameters Moved': trigger['parameters_moved'],
+                            'Sustained Frames': trigger['sustained_frames'],
+                            'Key Movements': param_summary
+                        })
+                    
+                    st.table(trigger_data)
+                    
+                    # Detailed movement analysis
+                    with st.expander("Detailed Movement Analysis"):
+                        for i, trigger in enumerate(shot_triggers):
+                            st.markdown(f"**Trigger {i+1} at {trigger['trigger_time']:.2f}s:**")
+                            for movement in trigger['movement_details']:
+                                param_name = movement['parameter'].replace('_', ' ').title()
+                                change_val = movement['change']
+                                threshold = movement['threshold']
+                                st.markdown(f"- {param_name}: {change_val:.3f} (threshold: {threshold})")
+                else:
+                    st.subheader("Shot Trigger Analysis")
+                    st.info("No shot triggers detected in this video. This indicates the batsman maintained a stable stance throughout without initiating shot movements.")
                 
                 # Show sample frames with pose markers every 3 seconds
                 st.subheader("Sample Frames with Biomechanical Markers")

@@ -370,6 +370,128 @@ class StanceDetector:
         
         return ankle_info
     
+    def _analyze_shot_triggers(self, results: List[Dict]) -> List[Dict]:
+        """Analyze sudden, significant movements in biomechanical parameters to detect shot triggers."""
+        if len(results) < 10:  # Need minimum frames for analysis
+            return []
+        
+        shot_triggers = []
+        fps = 30  # Assume 30 FPS
+        min_duration_frames = int(0.3 * fps)  # 300ms = 9 frames at 30fps
+        
+        # Parameters to track for sudden movement
+        tracked_params = [
+            'shoulder_line_angle',
+            'hip_line_angle', 
+            'head_tilt_angle',
+            'left_knee_angle',
+            'right_knee_angle',
+            'left_ankle_x',
+            'left_ankle_y',
+            'right_ankle_x',
+            'right_ankle_y'
+        ]
+        
+        # Extract parameter values for frames with valid pose data
+        param_data = {}
+        valid_frames = []
+        
+        for i, result in enumerate(results):
+            if result.get('pose_confidence', 0) > 0.5 and result.get('biomech_data'):
+                valid_frames.append(i)
+                
+                # Use actual stored biomechanical data
+                biomech_data = result['biomech_data']
+                param_data[i] = {
+                    'left_ankle_x': biomech_data['left_ankle_x'],
+                    'left_ankle_y': biomech_data['left_ankle_y'],
+                    'right_ankle_x': biomech_data['right_ankle_x'],
+                    'right_ankle_y': biomech_data['right_ankle_y'],
+                    'shoulder_line_angle': biomech_data['shoulder_line_angle'],
+                    'hip_line_angle': biomech_data['hip_line_angle'],
+                    'head_tilt_angle': biomech_data['head_tilt_angle'],
+                    'left_knee_angle': biomech_data['left_knee_angle'],
+                    'right_knee_angle': biomech_data['right_knee_angle']
+                }
+        
+        if len(valid_frames) < min_duration_frames * 2:
+            return []
+        
+        # Sliding window analysis for sudden movements
+        movement_threshold = {
+            'shoulder_line_angle': 15,  # degrees
+            'hip_line_angle': 12,
+            'head_tilt_angle': 20,
+            'left_knee_angle': 25,
+            'right_knee_angle': 25,
+            'left_ankle_x': 0.05,  # normalized coordinates
+            'left_ankle_y': 0.05,
+            'right_ankle_x': 0.05,
+            'right_ankle_y': 0.05
+        }
+        
+        i = 0
+        while i < len(valid_frames) - min_duration_frames:
+            current_frame = valid_frames[i]
+            
+            # Check for sudden movement in next few frames
+            movements_detected = []
+            
+            for j in range(i + 1, min(i + min_duration_frames + 1, len(valid_frames))):
+                compare_frame = valid_frames[j]
+                
+                if current_frame not in param_data or compare_frame not in param_data:
+                    continue
+                
+                frame_movements = []
+                
+                for param in tracked_params:
+                    if param in param_data[current_frame] and param in param_data[compare_frame]:
+                        current_val = param_data[current_frame][param]
+                        compare_val = param_data[compare_frame][param]
+                        
+                        change = abs(compare_val - current_val)
+                        if change > movement_threshold[param]:
+                            frame_movements.append({
+                                'parameter': param,
+                                'change': change,
+                                'threshold': movement_threshold[param]
+                            })
+                
+                if len(frame_movements) >= 3:  # At least 3 parameters showing movement
+                    movements_detected.append({
+                        'frame': compare_frame,
+                        'timestamp': results[compare_frame]['timestamp'],
+                        'movements': frame_movements
+                    })
+            
+            # Check if movement sustained for minimum duration
+            if len(movements_detected) >= min_duration_frames:
+                # Found a potential shot trigger
+                trigger_start = movements_detected[0]['timestamp']
+                trigger_end = movements_detected[-1]['timestamp']
+                duration = trigger_end - trigger_start
+                
+                if duration >= 0.3:  # 300ms minimum
+                    shot_triggers.append({
+                        'trigger_frame': movements_detected[0]['frame'],
+                        'trigger_time': trigger_start,
+                        'end_time': trigger_end,
+                        'duration': duration,
+                        'parameters_moved': len(movements_detected[0]['movements']),
+                        'sustained_frames': len(movements_detected),
+                        'movement_details': movements_detected[0]['movements']
+                    })
+                    
+                    # Skip ahead to avoid overlapping detections
+                    i += min_duration_frames
+                else:
+                    i += 1
+            else:
+                i += 1
+        
+        return shot_triggers
+    
     def _calculate_angle(self, a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float]) -> float:
         """Calculate angle between three points."""
         radians = math.atan2(c[1] - b[1], c[0] - b[0]) - math.atan2(a[1] - b[1], a[0] - b[0])
@@ -542,8 +664,12 @@ class StanceDetector:
                 # Move to next frame
                 i += 1
         
+        # Analyze shot triggers after stable period detection
+        shot_triggers = self._analyze_shot_triggers(results)
+        
         return {
             'stable_periods': stable_periods,
+            'shot_triggers': shot_triggers,
             'all_frames': results,
             'total_stable_time': sum(p['duration'] for p in stable_periods),
             'stability_percentage': len([r for r in results if r['is_stable_stance']]) / len(results) * 100 if results else 0
