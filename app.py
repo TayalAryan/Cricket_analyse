@@ -531,6 +531,49 @@ if uploaded_file is not None:
                                                     # Get detailed stance analysis
                                                     is_stable_stance, pose_data = sample_detector.detect_stance(cropped_frame, timestamp)
                                                     
+                                                    # Calculate movement compared to frame 3 positions earlier
+                                                    frame_number = int(timestamp * st.session_state.video_processor.get_fps())
+                                                    skip_frames = 3
+                                                    earlier_frame_number = frame_number - skip_frames
+                                                    
+                                                    movement_data = None
+                                                    if earlier_frame_number >= 0:
+                                                        # Get earlier frame for comparison
+                                                        earlier_timestamp = earlier_frame_number / st.session_state.video_processor.get_fps()
+                                                        earlier_frame = st.session_state.video_processor.get_frame_at_time(earlier_timestamp)
+                                                        
+                                                        if earlier_frame is not None:
+                                                            # Crop earlier frame
+                                                            earlier_cropped = earlier_frame[y1:y2, x1:x2]
+                                                            earlier_rgb = cv2.cvtColor(earlier_cropped, cv2.COLOR_BGR2RGB)
+                                                            earlier_pose_results = sample_detector.pose.process(earlier_rgb)
+                                                            
+                                                            if hasattr(earlier_pose_results, 'pose_landmarks') and earlier_pose_results.pose_landmarks:
+                                                                # Get biomechanical data for both frames
+                                                                _, earlier_pose_data = sample_detector.detect_stance(earlier_cropped, earlier_timestamp)
+                                                                
+                                                                # Calculate movement parameters
+                                                                movement_data = {
+                                                                    'shoulder_line_angle': abs(pose_data.get('shoulder_line_angle', 0) - earlier_pose_data.get('shoulder_line_angle', 0)),
+                                                                    'hip_line_angle': abs(pose_data.get('hip_line_angle', 0) - earlier_pose_data.get('hip_line_angle', 0)),
+                                                                    'shoulder_line_twist': abs(pose_data.get('shoulder_line_twist', 0) - earlier_pose_data.get('shoulder_line_twist', 0)),
+                                                                    'hip_line_twist': abs(pose_data.get('hip_line_twist', 0) - earlier_pose_data.get('hip_line_twist', 0)),
+                                                                    'knee_to_ankle_angle': max(
+                                                                        abs(pose_data.get('left_knee_to_ankle_angle', 0) - earlier_pose_data.get('left_knee_to_ankle_angle', 0)),
+                                                                        abs(pose_data.get('right_knee_to_ankle_angle', 0) - earlier_pose_data.get('right_knee_to_ankle_angle', 0))
+                                                                    ),
+                                                                    'knee_angle': max(
+                                                                        abs(pose_data.get('left_knee_angle', 0) - earlier_pose_data.get('left_knee_angle', 0)),
+                                                                        abs(pose_data.get('right_knee_angle', 0) - earlier_pose_data.get('right_knee_angle', 0))
+                                                                    ),
+                                                                    'ankle_coordinates': max(
+                                                                        abs(pose_data.get('left_ankle_x', 0) - earlier_pose_data.get('left_ankle_x', 0)),
+                                                                        abs(pose_data.get('left_ankle_y', 0) - earlier_pose_data.get('left_ankle_y', 0)),
+                                                                        abs(pose_data.get('right_ankle_x', 0) - earlier_pose_data.get('right_ankle_x', 0)),
+                                                                        abs(pose_data.get('right_ankle_y', 0) - earlier_pose_data.get('right_ankle_y', 0))
+                                                                    )
+                                                                }
+                                                    
                                                     # Show overall status
                                                     col_status1, col_status2 = st.columns(2)
                                                     with col_status1:
@@ -614,6 +657,61 @@ if uploaded_file is not None:
                                                             st.markdown("❌ Head tilt excessive")
                                                         
 
+                                                    
+                                                    # Show movement parameters (3-frame skip comparison)
+                                                    if movement_data:
+                                                        st.markdown("**Movement Parameters (vs 3 frames earlier):**")
+                                                        
+                                                        # Movement thresholds for reference
+                                                        thresholds = {
+                                                            'shoulder_line_angle': 20,
+                                                            'hip_line_angle': 15, 
+                                                            'shoulder_line_twist': 15,
+                                                            'hip_line_twist': 12,
+                                                            'knee_to_ankle_angle': 15,
+                                                            'knee_angle': 20,
+                                                            'ankle_coordinates': 0.05
+                                                        }
+                                                        
+                                                        # Display movement in table format
+                                                        movement_table = []
+                                                        for param, change in movement_data.items():
+                                                            threshold = thresholds[param]
+                                                            exceeds_threshold = change > threshold
+                                                            
+                                                            # Format display name
+                                                            display_name = param.replace('_', ' ').title()
+                                                            if param == 'ankle_coordinates':
+                                                                unit = 'norm'
+                                                                change_str = f"{change:.3f}"
+                                                                threshold_str = f"{threshold:.3f}"
+                                                            else:
+                                                                unit = '°'
+                                                                change_str = f"{change:.1f}°"
+                                                                threshold_str = f"{threshold}°"
+                                                            
+                                                            status = "🔴 TRIGGER" if exceeds_threshold else "🟢 Normal"
+                                                            
+                                                            movement_table.append({
+                                                                'Parameter': display_name,
+                                                                'Change': change_str,
+                                                                'Threshold': threshold_str,
+                                                                'Status': status
+                                                            })
+                                                        
+                                                        # Display as table
+                                                        st.table(movement_table)
+                                                        
+                                                        # Count triggered parameters
+                                                        triggered_count = sum(1 for param, change in movement_data.items() 
+                                                                             if change > thresholds[param])
+                                                        
+                                                        if triggered_count >= 3:
+                                                            st.error(f"⚠️ {triggered_count}/7 parameters exceed thresholds - Potential shot trigger detected!")
+                                                        elif triggered_count > 0:
+                                                            st.warning(f"ℹ️ {triggered_count}/7 parameters exceed thresholds")
+                                                        else:
+                                                            st.success("✅ All parameters within normal range")
                                                     
                                                     # Show stance score
                                                     stance_score = pose_data.get('stance_score', 0)
