@@ -665,9 +665,9 @@ if uploaded_file is not None:
                                                         # Movement thresholds for reference
                                                         thresholds = {
                                                             'shoulder_line_angle': 10,
-                                                            'hip_line_angle': 5, 
+                                                            'hip_line_angle': 2.5, 
                                                             'shoulder_line_twist': 20,
-                                                            'hip_line_twist': 4,
+                                                            'hip_line_twist': 2,
                                                             'knee_to_ankle_angle': 5,
                                                             'knee_angle': 10,
                                                             'ankle_coordinates': 0.025

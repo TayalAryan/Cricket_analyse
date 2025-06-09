@@ -482,9 +482,9 @@ class StanceDetector:
         # Sliding window analysis for sudden movements
         movement_threshold = {
             'shoulder_line_angle': 10,  # degrees
-            'hip_line_angle': 5,
+            'hip_line_angle': 2.5,
             'shoulder_line_twist': 20,  # degrees - rotation around vertical axis
-            'hip_line_twist': 4,  # degrees - core rotation
+            'hip_line_twist': 2,  # degrees - core rotation
             'knee_to_ankle_angle': 5,  # degrees - angle with ground (either leg)
             'knee_angle': 10,  # degrees - knee bend (either leg)
             'ankle_coordinates': 0.025  # normalized coordinates (any ankle movement)
