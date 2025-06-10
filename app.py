@@ -786,12 +786,8 @@ if uploaded_file is not None:
                 
                 else:
                     st.warning("No stable batting stances detected in the video. Try adjusting the detection parameters.")
-            
-            else:
-                st.warning("No analysis results available.")
-            
-            # Debug section: Show frames from 14.8 to 15.3 seconds
-            if results and st.session_state.get('video_processor'):
+                
+                # Debug section: Show frames from 14.8 to 15.3 seconds
                 st.subheader("Debug: Shot Trigger Analysis (14.8s - 15.3s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
                 
@@ -881,6 +877,7 @@ if uploaded_file is not None:
                                                     earlier_frame_number = frame_number - skip_frames
                                                     
                                                     movement_data = None
+                                                    earlier_timestamp = 0
                                                     if earlier_frame_number >= 0:
                                                         # Get earlier frame for comparison
                                                         earlier_timestamp = earlier_frame_number / fps
@@ -997,6 +994,11 @@ if uploaded_file is not None:
                                             st.error(f"Error processing debug frame: {str(e)}")
                 else:
                     st.info(f"Debug time range (14.8s - 15.3s) is outside video duration ({video_duration:.1f}s)")
+            
+            else:
+                st.warning("No analysis results available.")
+            
+
             
             # Reset button
             if st.button("Analyze New Video"):
