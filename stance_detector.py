@@ -638,9 +638,54 @@ class StanceDetector:
                             change = abs(compare_val - current_val)
                     
                     if change > movement_threshold[param]:
+                        # Calculate directional change (positive = increase, negative = decrease)
+                        if param == 'ankle_coordinates':
+                            # For ankle coordinates, use the maximum directional change
+                            left_x_dir = param_data[compare_frame]['left_ankle_x'] - param_data[current_frame]['left_ankle_x']
+                            left_y_dir = param_data[compare_frame]['left_ankle_y'] - param_data[current_frame]['left_ankle_y']
+                            right_x_dir = param_data[compare_frame]['right_ankle_x'] - param_data[current_frame]['right_ankle_x']
+                            right_y_dir = param_data[compare_frame]['right_ankle_y'] - param_data[current_frame]['right_ankle_y']
+                            
+                            # Use the direction with maximum absolute change
+                            changes = [left_x_dir, left_y_dir, right_x_dir, right_y_dir]
+                            max_change_idx = max(range(len(changes)), key=lambda i: abs(changes[i]))
+                            directional_change = changes[max_change_idx]
+                        
+                        elif param in ['knee_angle', 'knee_to_ankle_angle']:
+                            # For composite parameters, use the direction of the larger change
+                            directional_change = param_data[compare_frame][param] - param_data[current_frame][param]
+                        
+                        elif param == 'elbow_wrist_line_angle':
+                            # Use direction of arm with larger change
+                            left_current = param_data[current_frame].get('left_elbow_wrist_angle', 0)
+                            left_compare = param_data[compare_frame].get('left_elbow_wrist_angle', 0)
+                            right_current = param_data[current_frame].get('right_elbow_wrist_angle', 0)
+                            right_compare = param_data[compare_frame].get('right_elbow_wrist_angle', 0)
+                            
+                            left_change = left_compare - left_current
+                            right_change = right_compare - right_current
+                            directional_change = left_change if abs(left_change) > abs(right_change) else right_change
+                        
+                        elif param == 'shoulder_elbow_line_angle':
+                            # Use direction of arm with larger change
+                            left_current = param_data[current_frame].get('left_shoulder_elbow_angle', 0)
+                            left_compare = param_data[compare_frame].get('left_shoulder_elbow_angle', 0)
+                            right_current = param_data[current_frame].get('right_shoulder_elbow_angle', 0)
+                            right_compare = param_data[compare_frame].get('right_shoulder_elbow_angle', 0)
+                            
+                            left_change = left_compare - left_current
+                            right_change = right_compare - right_current
+                            directional_change = left_change if abs(left_change) > abs(right_change) else right_change
+                        
+                        else:
+                            # Standard directional change calculation
+                            directional_change = param_data[compare_frame][param] - param_data[current_frame][param]
+                        
                         frame_movements.append({
                             'parameter': param,
                             'change': change,
+                            'directional_change': directional_change,
+                            'direction': 'increase' if directional_change > 0 else 'decrease',
                             'threshold': movement_threshold[param]
                         })
                 

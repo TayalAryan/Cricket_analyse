@@ -1067,7 +1067,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                                 else:
                                                                     st.success("✅ All parameters within normal range")
                                                                 
-                                                                # Display movement parameters table
+                                                                # Display movement parameters table with directional information
                                                                 movement_table = []
                                                                 time_span = skip_frames / fps
                                                                 
@@ -1075,8 +1075,38 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                                     threshold = movement_threshold[param]
                                                                     exceeds_threshold = change > threshold
                                                                     
-                                                                    # Calculate velocity
+                                                                    # Calculate directional change
+                                                                    if param == 'ankle_coordinates':
+                                                                        left_x_dir = current_features.get('left_ankle_x', 0) - earlier_features.get('left_ankle_x', 0)
+                                                                        left_y_dir = current_features.get('left_ankle_y', 0) - earlier_features.get('left_ankle_y', 0)
+                                                                        right_x_dir = current_features.get('right_ankle_x', 0) - earlier_features.get('right_ankle_x', 0)
+                                                                        right_y_dir = current_features.get('right_ankle_y', 0) - earlier_features.get('right_ankle_y', 0)
+                                                                        
+                                                                        changes = [left_x_dir, left_y_dir, right_x_dir, right_y_dir]
+                                                                        max_change_idx = max(range(len(changes)), key=lambda i: abs(changes[i]))
+                                                                        directional_change = changes[max_change_idx]
+                                                                    elif param == 'knee_angle':
+                                                                        current_max = max(current_features.get('left_knee_angle', 0), current_features.get('right_knee_angle', 0))
+                                                                        earlier_max = max(earlier_features.get('left_knee_angle', 0), earlier_features.get('right_knee_angle', 0))
+                                                                        directional_change = current_max - earlier_max
+                                                                    elif param == 'knee_to_ankle_angle':
+                                                                        current_max = max(current_features.get('left_knee_to_ankle_angle', 0), current_features.get('right_knee_to_ankle_angle', 0))
+                                                                        earlier_max = max(earlier_features.get('left_knee_to_ankle_angle', 0), earlier_features.get('right_knee_to_ankle_angle', 0))
+                                                                        directional_change = current_max - earlier_max
+                                                                    elif param == 'elbow_wrist_line_angle':
+                                                                        current_max = max(current_features.get('left_elbow_wrist_angle', 0), current_features.get('right_elbow_wrist_angle', 0))
+                                                                        earlier_max = max(earlier_features.get('left_elbow_wrist_angle', 0), earlier_features.get('right_elbow_wrist_angle', 0))
+                                                                        directional_change = current_max - earlier_max
+                                                                    elif param == 'shoulder_elbow_line_angle':
+                                                                        current_max = max(current_features.get('left_shoulder_elbow_angle', 0), current_features.get('right_shoulder_elbow_angle', 0))
+                                                                        earlier_max = max(earlier_features.get('left_shoulder_elbow_angle', 0), earlier_features.get('right_shoulder_elbow_angle', 0))
+                                                                        directional_change = current_max - earlier_max
+                                                                    else:
+                                                                        directional_change = current_features.get(param, 0) - earlier_features.get(param, 0)
+                                                                    
+                                                                    # Calculate velocity and direction
                                                                     velocity = change / time_span
+                                                                    direction_arrow = "↗" if directional_change > 0 else "↘"
                                                                     
                                                                     # Format display
                                                                     display_name = param.replace('_', ' ').title()
@@ -1084,16 +1114,19 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                                         change_str = f"{change:.3f}"
                                                                         velocity_str = f"{velocity:.3f}/s"
                                                                         threshold_str = f"{threshold:.3f}"
+                                                                        direction_str = f"{directional_change:+.3f}"
                                                                     else:
                                                                         change_str = f"{change:.1f}°"
                                                                         velocity_str = f"{velocity:.1f}°/s"
                                                                         threshold_str = f"{threshold}°"
+                                                                        direction_str = f"{directional_change:+.1f}°"
                                                                     
                                                                     status = "🔴" if exceeds_threshold else "🟢"
                                                                     
                                                                     movement_table.append({
                                                                         'Parameter': display_name,
                                                                         'Change': change_str,
+                                                                        'Direction': f"{direction_str} {direction_arrow}",
                                                                         'Velocity': velocity_str,
                                                                         'Threshold': threshold_str,
                                                                         'Status': status
