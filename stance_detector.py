@@ -433,7 +433,7 @@ class StanceDetector:
         
         shot_triggers = []
         fps = 30  # Assume 30 FPS
-        min_duration_frames = int(0.3 * fps)  # 300ms = 9 frames at 30fps
+        min_duration_frames = int(0.2 * fps)  # 200ms = 6 frames at 30fps
         
         # Parameters to track for sudden movement (excluding head tilt)
         tracked_params = [
