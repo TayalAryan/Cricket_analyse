@@ -550,6 +550,7 @@ class StanceDetector:
         
         i = 0
         frame_skip = 3  # Skip 2 frames, so compare with 3rd frame ahead (n+3)
+        cooldown_frames = int(1.0 * fps)  # 1 second cooldown = 30 frames at 30fps
         while i < len(valid_frames) - min_duration_frames - frame_skip:
             current_frame = valid_frames[i]
             
@@ -636,8 +637,8 @@ class StanceDetector:
                         'movements': frame_movements
                     })
             
-            # Shot triggered if at least 3 frames in the 200ms window exceed movement threshold
-            min_trigger_frames = 3  # At least 3 out of 6 frames in window
+            # Shot triggered if at least 4 frames in the 200ms window exceed movement threshold
+            min_trigger_frames = 4  # At least 4 out of 6 frames in window
             if len(movements_detected) >= min_trigger_frames:
                 # Found a potential shot trigger
                 trigger_start = movements_detected[0]['timestamp']
@@ -660,8 +661,8 @@ class StanceDetector:
                     'movement_details': movements_detected[0]['movements']
                 })
                 
-                # Skip ahead to avoid overlapping detections
-                i += min_duration_frames
+                # Skip ahead by 1 second (cooldown period) to avoid overlapping detections
+                i += cooldown_frames
             else:
                 i += 1
         

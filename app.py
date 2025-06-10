@@ -454,7 +454,7 @@ if uploaded_file is not None:
                             'Time (s)': f"{trigger['trigger_time']:.2f}",
                             'Duration (ms)': f"{trigger['duration']*1000:.0f}",
                             'Parameters Moved': trigger['parameters_moved'],
-                            'Sustained Frames': trigger['sustained_frames'],
+                            'Trigger Frames': trigger.get('trigger_frames_count', trigger.get('sustained_frames', 0)),
                             'Key Movements': param_summary
                         })
                     
