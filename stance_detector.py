@@ -553,12 +553,17 @@ class StanceDetector:
         while i < len(valid_frames) - min_duration_frames - frame_skip:
             current_frame = valid_frames[i]
             
-            # Check for sudden movement by comparing with frame that's 3 positions ahead
+            # Check all frames in 200ms window for movement detection
+            window_frames = []
             movements_detected = []
             
-            for j in range(i + frame_skip, min(i + min_duration_frames + frame_skip, len(valid_frames)), frame_skip):
-                compare_frame = valid_frames[j]
-                
+            # Collect all frames in the 200ms window (6 frames)
+            for j in range(i + frame_skip, min(i + min_duration_frames + frame_skip, len(valid_frames))):
+                if j < len(valid_frames):
+                    window_frames.append(valid_frames[j])
+            
+            # Check each frame in the window for significant movement
+            for compare_frame in window_frames:
                 if current_frame not in param_data or compare_frame not in param_data:
                     continue
                 
@@ -623,35 +628,40 @@ class StanceDetector:
                             'threshold': movement_threshold[param]
                         })
                 
-                if len(frame_movements) >= 3:  # At least 3 parameters showing movement
+                # If this frame has 3+ parameters exceeding thresholds, count it
+                if len(frame_movements) >= 3:
                     movements_detected.append({
                         'frame': compare_frame,
                         'timestamp': results[compare_frame]['timestamp'],
                         'movements': frame_movements
                     })
             
-            # Check if movement sustained for minimum duration
-            if len(movements_detected) >= min_duration_frames:
+            # Shot triggered if at least 3 frames in the 200ms window exceed movement threshold
+            min_trigger_frames = 3  # At least 3 out of 6 frames in window
+            if len(movements_detected) >= min_trigger_frames:
                 # Found a potential shot trigger
                 trigger_start = movements_detected[0]['timestamp']
                 trigger_end = movements_detected[-1]['timestamp']
                 duration = trigger_end - trigger_start
                 
-                if duration >= 0.3:  # 300ms minimum
-                    shot_triggers.append({
-                        'trigger_frame': movements_detected[0]['frame'],
-                        'trigger_time': trigger_start,
-                        'end_time': trigger_end,
-                        'duration': duration,
-                        'parameters_moved': len(movements_detected[0]['movements']),
-                        'sustained_frames': len(movements_detected),
-                        'movement_details': movements_detected[0]['movements']
-                    })
-                    
-                    # Skip ahead to avoid overlapping detections
-                    i += min_duration_frames
-                else:
-                    i += 1
+                # Calculate average parameters moved across trigger frames
+                total_params = sum(len(frame['movements']) for frame in movements_detected)
+                avg_params_moved = total_params / len(movements_detected) if movements_detected else 0
+                
+                shot_triggers.append({
+                    'trigger_frame': movements_detected[0]['frame'],
+                    'trigger_time': trigger_start,
+                    'end_time': trigger_end,
+                    'duration': duration,
+                    'parameters_moved': int(avg_params_moved),
+                    'trigger_frames_count': len(movements_detected),
+                    'total_window_frames': len(window_frames),
+                    'trigger_ratio': len(movements_detected) / len(window_frames) if window_frames else 0,
+                    'movement_details': movements_detected[0]['movements']
+                })
+                
+                # Skip ahead to avoid overlapping detections
+                i += min_duration_frames
             else:
                 i += 1
         
