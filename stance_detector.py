@@ -483,6 +483,9 @@ class StanceDetector:
         fps = 30  # Assume 30 FPS
         min_duration_frames = int(0.2 * fps)  # 200ms = 6 frames at 30fps
         
+        # Debug flag for 15.2-15.3 timeframe
+        debug_timeframe = True
+        
         # Parameters to track for sudden movement (excluding head tilt)
         tracked_params = [
             'shoulder_line_angle',
@@ -548,15 +551,20 @@ class StanceDetector:
             'ankle_coordinates': 0.025  # normalized coordinates (any ankle movement)
         }
         
-        i = 0
         frame_skip = 3  # Compare with 3rd frame before (n-3)
         cooldown_frames = int(1.0 * fps)  # 1 second cooldown = 30 frames at 30fps
+        min_trigger_frames = 4  # At least 4 frames with 3+ parameters each
+        last_trigger_idx = -cooldown_frames  # Track last trigger to enforce cooldown
         
-        # Start from frame_skip to ensure we have earlier frames to compare with
-        while i + frame_skip < len(valid_frames) - min_duration_frames:
+        # Process each possible 200ms window
+        for start_idx in range(frame_skip, len(valid_frames) - min_duration_frames + 1):
+            # Skip if we're still in cooldown period from last trigger
+            if start_idx < last_trigger_idx + cooldown_frames:
+                continue
+                
             # Define the 200ms window of frames to analyze
-            window_start_idx = i + frame_skip
-            window_end_idx = min(window_start_idx + min_duration_frames, len(valid_frames))
+            window_start_idx = start_idx
+            window_end_idx = min(start_idx + min_duration_frames, len(valid_frames))
             
             qualifying_frames = []  # Frames that have 3+ parameters exceeding thresholds
             
@@ -566,7 +574,7 @@ class StanceDetector:
                 compare_frame_idx = window_idx - frame_skip
                 
                 # Make sure comparison frame exists
-                if compare_frame_idx < 0:
+                if compare_frame_idx < 0 or compare_frame_idx >= len(valid_frames):
                     continue
                     
                 compare_frame = valid_frames[compare_frame_idx]
@@ -647,8 +655,16 @@ class StanceDetector:
                         'parameter_count': len(frame_movements)
                     })
             
+            # Debug output for 15.2-15.3 timeframe
+            window_start_time = results[valid_frames[window_start_idx]]['timestamp'] if window_start_idx < len(valid_frames) else 0
+            window_end_time = results[valid_frames[min(window_end_idx-1, len(valid_frames)-1)]]['timestamp'] if window_end_idx <= len(valid_frames) else 0
+            
+            if debug_timeframe and 15.2 <= window_start_time <= 15.3:
+                print(f"Debug: Window {window_start_time:.3f}-{window_end_time:.3f}s: {len(qualifying_frames)} qualifying frames (need {min_trigger_frames})")
+                for qf in qualifying_frames:
+                    print(f"  Frame {qf['frame']} at {qf['timestamp']:.3f}s: {qf['parameter_count']} parameters")
+            
             # Step 2: Check if we have at least 4 qualifying frames in the 200ms window
-            min_trigger_frames = 4  # At least 4 frames with 3+ parameters each
             if len(qualifying_frames) >= min_trigger_frames:
                 # Found a potential shot trigger
                 trigger_start = qualifying_frames[0]['timestamp']
@@ -658,6 +674,9 @@ class StanceDetector:
                 # Calculate average parameters moved across qualifying frames
                 total_params = sum(frame['parameter_count'] for frame in qualifying_frames)
                 avg_params_moved = total_params / len(qualifying_frames) if qualifying_frames else 0
+                
+                if debug_timeframe and 15.2 <= trigger_start <= 15.3:
+                    print(f"Debug: SHOT TRIGGER DETECTED at {trigger_start:.3f}s with {len(qualifying_frames)} qualifying frames")
                 
                 shot_triggers.append({
                     'trigger_frame': qualifying_frames[0]['frame'],
@@ -672,10 +691,8 @@ class StanceDetector:
                     'qualifying_frame_details': qualifying_frames
                 })
                 
-                # Skip ahead by 1 second (cooldown period) to avoid overlapping detections
-                i += cooldown_frames
-            else:
-                i += 1
+                # Update last trigger index and enforce cooldown
+                last_trigger_idx = start_idx
         
         return shot_triggers
     
