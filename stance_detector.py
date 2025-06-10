@@ -382,6 +382,27 @@ class StanceDetector:
             right_elbow_wrist_angle = 180 - right_elbow_wrist_angle
         features['right_elbow_wrist_angle'] = right_elbow_wrist_angle
         
+        # 16. Shoulder-to-elbow line angles
+        # Left shoulder-to-elbow angle with horizontal
+        left_shoulder_elbow_dx = left_elbow.x - left_shoulder.x
+        left_shoulder_elbow_dy = left_elbow.y - left_shoulder.y
+        left_shoulder_elbow_angle = math.degrees(math.atan2(left_shoulder_elbow_dy, left_shoulder_elbow_dx))
+        # Normalize to 0-180 degrees (angle magnitude)
+        left_shoulder_elbow_angle = abs(left_shoulder_elbow_angle)
+        if left_shoulder_elbow_angle > 90:
+            left_shoulder_elbow_angle = 180 - left_shoulder_elbow_angle
+        features['left_shoulder_elbow_angle'] = left_shoulder_elbow_angle
+        
+        # Right shoulder-to-elbow angle with horizontal
+        right_shoulder_elbow_dx = right_elbow.x - right_shoulder.x
+        right_shoulder_elbow_dy = right_elbow.y - right_shoulder.y
+        right_shoulder_elbow_angle = math.degrees(math.atan2(right_shoulder_elbow_dy, right_shoulder_elbow_dx))
+        # Normalize to 0-180 degrees (angle magnitude)
+        right_shoulder_elbow_angle = abs(right_shoulder_elbow_angle)
+        if right_shoulder_elbow_angle > 90:
+            right_shoulder_elbow_angle = 180 - right_shoulder_elbow_angle
+        features['right_shoulder_elbow_angle'] = right_shoulder_elbow_angle
+        
         return features
     
     def _analyze_ankle_movement(self, results: List[Dict], start_frame: int, end_frame: int) -> Dict:
@@ -471,6 +492,7 @@ class StanceDetector:
             'knee_to_ankle_angle',
             'knee_angle',
             'elbow_wrist_line_angle',
+            'shoulder_elbow_line_angle',
             'ankle_coordinates'
         ]
         
@@ -504,7 +526,10 @@ class StanceDetector:
                     'right_ankle_y': biomech_data.get('right_ankle_y', 0),
                     # Store individual elbow-wrist angles for movement calculation
                     'left_elbow_wrist_angle': biomech_data.get('left_elbow_wrist_angle', 0),
-                    'right_elbow_wrist_angle': biomech_data.get('right_elbow_wrist_angle', 0)
+                    'right_elbow_wrist_angle': biomech_data.get('right_elbow_wrist_angle', 0),
+                    # Store individual shoulder-elbow angles for movement calculation
+                    'left_shoulder_elbow_angle': biomech_data.get('left_shoulder_elbow_angle', 0),
+                    'right_shoulder_elbow_angle': biomech_data.get('right_shoulder_elbow_angle', 0)
                 }
         
         if len(valid_frames) < min_duration_frames * 2:
@@ -518,12 +543,13 @@ class StanceDetector:
             'hip_line_twist': 2,  # degrees - core rotation
             'knee_to_ankle_angle': 5,  # degrees - angle with ground (either leg)
             'knee_angle': 10,  # degrees - knee bend (either leg)
-            'elbow_wrist_line_angle': 15,  # degrees - elbow-wrist line angle (either arm)
+            'elbow_wrist_line_angle': 10,  # degrees - elbow-wrist line angle (either arm)
+            'shoulder_elbow_line_angle': 5,  # degrees - shoulder-elbow line angle (either arm)
             'ankle_coordinates': 0.025  # normalized coordinates (any ankle movement)
         }
         
         i = 0
-        frame_skip = 2  # Skip 1 frame, so compare with 2nd frame ahead
+        frame_skip = 3  # Skip 2 frames, so compare with 3rd frame ahead (n+3)
         while i < len(valid_frames) - min_duration_frames - frame_skip:
             current_frame = valid_frames[i]
             
@@ -567,6 +593,17 @@ class StanceDetector:
                         left_compare = param_data[compare_frame].get('left_elbow_wrist_angle', 0)
                         right_current = param_data[current_frame].get('right_elbow_wrist_angle', 0)
                         right_compare = param_data[compare_frame].get('right_elbow_wrist_angle', 0)
+                        
+                        left_change = abs(left_compare - left_current)
+                        right_change = abs(right_compare - right_current)
+                        change = max(left_change, right_change)
+                    
+                    elif param == 'shoulder_elbow_line_angle':
+                        # Calculate maximum shoulder-elbow angle change (either arm)
+                        left_current = param_data[current_frame].get('left_shoulder_elbow_angle', 0)
+                        left_compare = param_data[compare_frame].get('left_shoulder_elbow_angle', 0)
+                        right_current = param_data[current_frame].get('right_shoulder_elbow_angle', 0)
+                        right_compare = param_data[compare_frame].get('right_shoulder_elbow_angle', 0)
                         
                         left_change = abs(left_compare - left_current)
                         right_change = abs(right_compare - right_current)

@@ -871,9 +871,9 @@ if uploaded_file is not None:
                                                     # Get detailed stance analysis
                                                     is_stable_stance, pose_data = debug_detector.detect_stance(cropped_frame, timestamp)
                                                     
-                                                    # Calculate movement compared to frame 2 positions earlier (1-frame hop)
+                                                    # Calculate movement compared to frame 3 positions earlier (n+3 comparison)
                                                     frame_number = int(timestamp * fps)
-                                                    skip_frames = 2
+                                                    skip_frames = 3
                                                     earlier_frame_number = frame_number - skip_frames
                                                     
                                                     movement_data = None
