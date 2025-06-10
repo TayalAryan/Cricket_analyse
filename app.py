@@ -134,9 +134,7 @@ with st.expander("Method 3: Use Previously Uploaded Files"):
     else:
         st.info("No video files found")
 
-# Check if we have a video to process (from any method)
-process_video = uploaded_file is not None or st.session_state.get('temp_video_path')
-
+# Process uploaded file if present
 if uploaded_file is not None:
     # Clean up any existing temporary files first
     if hasattr(st.session_state, 'temp_video_path') and st.session_state.temp_video_path:
@@ -212,6 +210,9 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f"Error loading video: {str(e)}")
                 st.stop()
+
+# Continue processing if we have a video loaded (from any method)
+if st.session_state.get('temp_video_path') and st.session_state.get('video_processor'):
     
     # Rectangle selection on first frame
     if st.session_state.first_frame is not None and st.session_state.rectangle_coords is None:
