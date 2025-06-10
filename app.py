@@ -566,6 +566,10 @@ if uploaded_file is not None:
                                                                         abs(pose_data.get('left_knee_angle', 0) - earlier_pose_data.get('left_knee_angle', 0)),
                                                                         abs(pose_data.get('right_knee_angle', 0) - earlier_pose_data.get('right_knee_angle', 0))
                                                                     ),
+                                                                    'elbow_wrist_line_angle': max(
+                                                                        abs(pose_data.get('left_elbow_wrist_angle', 0) - earlier_pose_data.get('left_elbow_wrist_angle', 0)),
+                                                                        abs(pose_data.get('right_elbow_wrist_angle', 0) - earlier_pose_data.get('right_elbow_wrist_angle', 0))
+                                                                    ),
                                                                     'ankle_coordinates': max(
                                                                         abs(pose_data.get('left_ankle_x', 0) - earlier_pose_data.get('left_ankle_x', 0)),
                                                                         abs(pose_data.get('left_ankle_y', 0) - earlier_pose_data.get('left_ankle_y', 0)),
@@ -670,6 +674,7 @@ if uploaded_file is not None:
                                                             'hip_line_twist': 2,
                                                             'knee_to_ankle_angle': 5,
                                                             'knee_angle': 10,
+                                                            'elbow_wrist_line_angle': 15,
                                                             'ankle_coordinates': 0.025
                                                         }
                                                         
