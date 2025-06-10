@@ -72,70 +72,134 @@ with st.sidebar:
         help="Height of the batsman in feet. Used to adjust stance width criteria for younger players."
     )
 
-# File upload
+# Enhanced file upload with multiple methods
+st.markdown("### Upload Cricket Video")
+
+# Method 1: Direct drag-and-drop area
+st.markdown("**Method 1: Direct Upload**")
 uploaded_file = st.file_uploader(
-    "Choose a cricket video file", 
+    "Drag and drop your cricket video file here", 
     type=['mp4', 'avi', 'mov', 'mkv'],
-    help="Upload a cricket video file (max 1000MB). If upload fails, try the Reset Application button first.",
-    key="video_uploader"
+    help="Supports files up to 1000MB",
+    key="main_uploader"
 )
 
-# Add fallback option for upload issues
-with st.expander("🔧 Alternative: Use existing file (if upload fails)"):
-    st.markdown("**For troubleshooting upload issues:**")
+# Method 2: URL-based upload (for large files)
+st.markdown("**Method 2: URL Upload** (for files >100MB)")
+video_url = st.text_input("Enter video URL (Google Drive, Dropbox, etc.):", placeholder="https://...")
+if video_url and st.button("Download from URL"):
+    try:
+        import urllib.request
+        import uuid
+        
+        st.info("Downloading video from URL...")
+        unique_id = str(uuid.uuid4())[:8]
+        temp_filename = f"cricket_video_{unique_id}.mp4"
+        video_path = os.path.join('/tmp', temp_filename)
+        
+        urllib.request.urlretrieve(video_url, video_path)
+        
+        file_size = os.path.getsize(video_path) / (1024*1024)
+        st.session_state.temp_video_path = video_path
+        st.session_state.video_processor = None
+        st.success(f"Downloaded successfully: {file_size:.1f} MB")
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Failed to download from URL: {str(e)}")
+
+# Method 3: Existing files fallback
+with st.expander("Method 3: Use Previously Uploaded Files"):
     existing_files = []
     try:
         import glob
-        existing_files = glob.glob('/tmp/cricket_video_*.mp4')
+        existing_files = glob.glob('/tmp/cricket_video_*.mp4') + glob.glob('/tmp/*.mp4')
+        existing_files = [f for f in existing_files if os.path.getsize(f) > 1024*1024]  # Only files >1MB
     except:
         pass
     
     if existing_files:
-        st.markdown(f"Found {len(existing_files)} existing video file(s):")
-        selected_file = st.selectbox("Select existing video:", existing_files)
-        if st.button("Use Selected File"):
-            st.session_state.temp_video_path = selected_file
-            st.session_state.video_processor = None  # Reset processor
-            st.success(f"Using existing file: {os.path.basename(selected_file)}")
-            st.rerun()
+        st.markdown(f"Found {len(existing_files)} video file(s):")
+        for file_path in existing_files:
+            file_size = os.path.getsize(file_path) / (1024*1024)
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.text(f"{os.path.basename(file_path)} ({file_size:.1f} MB)")
+            with col2:
+                if st.button("Use", key=f"use_{os.path.basename(file_path)}"):
+                    st.session_state.temp_video_path = file_path
+                    st.session_state.video_processor = None
+                    st.success(f"Using: {os.path.basename(file_path)}")
+                    st.rerun()
     else:
-        st.info("No existing video files found in /tmp directory")
+        st.info("No video files found")
+
+# Check if we have a video to process (from any method)
+process_video = uploaded_file is not None or st.session_state.get('temp_video_path')
 
 if uploaded_file is not None:
     # Clean up any existing temporary files first
     if hasattr(st.session_state, 'temp_video_path') and st.session_state.temp_video_path:
         try:
-            os.unlink(st.session_state.temp_video_path)
+            if os.path.exists(st.session_state.temp_video_path):
+                os.unlink(st.session_state.temp_video_path)
         except:
             pass
     
-    # Save uploaded file to temporary location with cleanup
+    # Enhanced file processing with chunked writing for large files
     try:
         file_size_mb = uploaded_file.size / (1024*1024)
+        
+        # Reject files that are too large for memory processing
+        if file_size_mb > 500:
+            st.error(f"File too large ({file_size_mb:.1f} MB). Please use Method 2 (URL Upload) for files over 500MB.")
+            st.stop()
+        
         st.info(f"Processing video file: {uploaded_file.name} ({file_size_mb:.1f} MB)")
         
-        # Create a unique filename to avoid conflicts
+        # Create a unique filename
         import uuid
         unique_id = str(uuid.uuid4())[:8]
         file_extension = os.path.splitext(uploaded_file.name)[1] or '.mp4'
         temp_filename = f"cricket_video_{unique_id}{file_extension}"
-        
-        # Use /tmp directory explicitly
         video_path = os.path.join('/tmp', temp_filename)
         
-        with open(video_path, 'wb') as f:
-            f.write(uploaded_file.getvalue())
+        # Write file in chunks to handle large files better
+        chunk_size = 8192  # 8KB chunks
+        total_size = uploaded_file.size
+        written = 0
         
-        st.session_state.temp_video_path = video_path
-        st.success(f"File saved successfully: {file_size_mb:.1f} MB")
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        with open(video_path, 'wb') as f:
+            uploaded_file.seek(0)
+            while written < total_size:
+                chunk = uploaded_file.read(min(chunk_size, total_size - written))
+                if not chunk:
+                    break
+                f.write(chunk)
+                written += len(chunk)
+                progress = written / total_size
+                progress_bar.progress(progress)
+                status_text.text(f"Uploading: {progress*100:.1f}% ({written/(1024*1024):.1f}/{file_size_mb:.1f} MB)")
+        
+        progress_bar.empty()
+        status_text.empty()
+        
+        # Verify file was written correctly
+        if os.path.exists(video_path) and os.path.getsize(video_path) == total_size:
+            st.session_state.temp_video_path = video_path
+            st.success(f"File uploaded successfully: {file_size_mb:.1f} MB")
+        else:
+            raise Exception("File verification failed - incomplete upload")
             
     except Exception as e:
-        st.error(f"Failed to process video file: {str(e)}")
-        st.markdown("**Troubleshooting steps:**")
-        st.markdown("1. Click 'Reset Application' button above")
-        st.markdown("2. Refresh the browser page completely")
-        st.markdown("3. Try uploading again")
-        st.markdown(f"4. File size: {uploaded_file.size / (1024*1024):.1f} MB (limit: 1000 MB)")
+        st.error(f"Upload failed: {str(e)}")
+        st.markdown("**Alternative solutions:**")
+        st.markdown("- Use Method 2 (URL Upload) for reliable large file handling")
+        st.markdown("- Use Method 3 if file was partially uploaded")
+        st.markdown("- Try smaller file chunks or compress the video")
         st.stop()
     
     # Initialize video processor
