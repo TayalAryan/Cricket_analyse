@@ -120,13 +120,13 @@ with st.expander("Method 3: Use Previously Uploaded Files"):
     
     if existing_files:
         st.markdown(f"Found {len(existing_files)} video file(s):")
-        for file_path in existing_files:
+        for idx, file_path in enumerate(existing_files):
             file_size = os.path.getsize(file_path) / (1024*1024)
             col1, col2 = st.columns([3, 1])
             with col1:
                 st.text(f"{os.path.basename(file_path)} ({file_size:.1f} MB)")
             with col2:
-                if st.button("Use", key=f"use_{os.path.basename(file_path)}"):
+                if st.button("Use", key=f"use_file_{idx}"):
                     st.session_state.temp_video_path = file_path
                     st.session_state.video_processor = None
                     st.success(f"Using: {os.path.basename(file_path)}")
@@ -897,7 +897,196 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No stable batting stances detected in the video. Try adjusting the detection parameters.")
                 
-                # Debug section: Show frames from 14.8 to 15.3 seconds (n+3 frame comparison)
+                # Debug section 1: Show frames from 3.2 to 3.5 seconds (n+3 frame comparison)
+                st.subheader("Debug: Shot Trigger Analysis (3.2s - 3.5s)")
+                st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
+                
+                debug_start_time_1 = 3.2
+                debug_end_time_1 = 3.5
+                video_duration = st.session_state.video_processor.get_duration()
+                
+                if debug_start_time_1 < video_duration and debug_end_time_1 <= video_duration:
+                    # Get frames in the debug range
+                    fps = st.session_state.video_processor.get_fps()
+                    frame_interval = 1.0 / fps  # Show every frame
+                    debug_timestamps_1 = []
+                    
+                    current_time = debug_start_time_1
+                    while current_time <= debug_end_time_1:
+                        debug_timestamps_1.append(current_time)
+                        current_time += frame_interval
+                    
+                    # Create stance detector for debug analysis
+                    debug_detector_1 = StanceDetector(
+                        stability_threshold=stability_threshold,
+                        min_stability_duration=min_stability_duration,
+                        confidence_threshold=confidence_threshold,
+                        camera_perspective=camera_perspective,
+                        batsman_height=batsman_height
+                    )
+                    
+                    # Process debug frames
+                    with st.spinner("Processing debug frames (3.2s-3.5s)..."):
+                        cols_per_row = 2
+                        for i in range(0, len(debug_timestamps_1), cols_per_row):
+                            cols = st.columns(cols_per_row)
+                            
+                            for j in range(cols_per_row):
+                                idx = i + j
+                                if idx < len(debug_timestamps_1):
+                                    timestamp = debug_timestamps_1[idx]
+                                    
+                                    with cols[j]:
+                                        try:
+                                            # Get frame at timestamp
+                                            frame = st.session_state.video_processor.get_frame_at_time(timestamp)
+                                            if frame is not None:
+                                                # Crop to analysis area
+                                                x1, y1, x2, y2 = st.session_state.rectangle_coords
+                                                cropped_frame = frame[y1:y2, x1:x2]
+                                                
+                                                # Process with pose detection
+                                                rgb_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
+                                                pose_results = debug_detector_1.pose.process(rgb_frame)
+                                                
+                                                # Draw pose landmarks if detected
+                                                annotated_frame = rgb_frame.copy()
+                                                
+                                                if pose_results.pose_landmarks:
+                                                    debug_detector_1.mp_drawing.draw_landmarks(
+                                                        annotated_frame, 
+                                                        pose_results.pose_landmarks, 
+                                                        debug_detector_1.mp_pose.POSE_CONNECTIONS
+                                                    )
+                                                
+                                                # Display frame
+                                                st.image(
+                                                    annotated_frame, 
+                                                    caption=f"Debug Frame at {timestamp:.3f}s", 
+                                                    use_container_width=True
+                                                )
+                                                
+                                                # Analyze stance and movement for this frame
+                                                if pose_results.pose_landmarks:
+                                                    # Get detailed stance analysis
+                                                    is_stable_stance, pose_data = debug_detector_1.detect_stance(cropped_frame, timestamp)
+                                                    
+                                                    # Calculate movement compared to frame 3 positions earlier (n+3 comparison)
+                                                    frame_number = int(timestamp * fps)
+                                                    skip_frames = 3
+                                                    earlier_frame_number = frame_number - skip_frames
+                                                    
+                                                    movement_data = None
+                                                    if earlier_frame_number >= 0:
+                                                        # Get earlier frame for comparison
+                                                        earlier_timestamp = earlier_frame_number / fps
+                                                        earlier_frame = st.session_state.video_processor.get_frame_at_time(earlier_timestamp)
+                                                        
+                                                        if earlier_frame is not None:
+                                                            # Crop earlier frame
+                                                            earlier_cropped = earlier_frame[y1:y2, x1:x2]
+                                                            earlier_rgb = cv2.cvtColor(earlier_cropped, cv2.COLOR_BGR2RGB)
+                                                            earlier_pose_results = debug_detector_1.pose.process(earlier_rgb)
+                                                            
+                                                            if hasattr(earlier_pose_results, 'pose_landmarks') and earlier_pose_results.pose_landmarks:
+                                                                # Get biomechanical data for both frames
+                                                                current_features = debug_detector_1._calculate_stance_features(pose_results.pose_landmarks.landmark)
+                                                                earlier_features = debug_detector_1._calculate_stance_features(earlier_pose_results.pose_landmarks.landmark)
+                                                                
+                                                                # Calculate parameter changes (matching shot trigger algorithm)
+                                                                movement_threshold = {
+                                                                    'shoulder_line_angle': 10,  # degrees
+                                                                    'hip_line_angle': 2.5,
+                                                                    'shoulder_line_twist': 20,  # degrees - rotation around vertical axis
+                                                                    'hip_line_twist': 2,  # degrees - core rotation
+                                                                    'knee_to_ankle_angle': 5,  # degrees - angle with ground (either leg)
+                                                                    'knee_angle': 10,  # degrees - knee bend (either leg)
+                                                                    'elbow_wrist_line_angle': 10,  # degrees - elbow-wrist line angle (either arm)
+                                                                    'shoulder_elbow_line_angle': 5,  # degrees - shoulder-elbow line angle (either arm)
+                                                                    'ankle_coordinates': 0.025  # normalized coordinates (any ankle movement)
+                                                                }
+                                                                
+                                                                triggered_params = []
+                                                                
+                                                                # Check each parameter for movement
+                                                                param_changes = {
+                                                                    'shoulder_line_angle': abs(current_features.get('shoulder_line_angle', 0) - earlier_features.get('shoulder_line_angle', 0)),
+                                                                    'hip_line_angle': abs(current_features.get('hip_line_angle', 0) - earlier_features.get('hip_line_angle', 0)),
+                                                                    'shoulder_line_twist': abs(current_features.get('shoulder_line_twist', 0) - earlier_features.get('shoulder_line_twist', 0)),
+                                                                    'hip_line_twist': abs(current_features.get('hip_line_twist', 0) - earlier_features.get('hip_line_twist', 0)),
+                                                                }
+                                                                
+                                                                # Knee angles (max of left/right)
+                                                                current_knee_max = max(current_features.get('left_knee_angle', 0), current_features.get('right_knee_angle', 0))
+                                                                earlier_knee_max = max(earlier_features.get('left_knee_angle', 0), earlier_features.get('right_knee_angle', 0))
+                                                                param_changes['knee_angle'] = abs(current_knee_max - earlier_knee_max)
+                                                                
+                                                                # Knee-to-ankle angles (max of left/right)
+                                                                current_knee_ankle_max = max(current_features.get('left_knee_to_ankle_angle', 0), current_features.get('right_knee_to_ankle_angle', 0))
+                                                                earlier_knee_ankle_max = max(earlier_features.get('left_knee_to_ankle_angle', 0), earlier_features.get('right_knee_to_ankle_angle', 0))
+                                                                param_changes['knee_to_ankle_angle'] = abs(current_knee_ankle_max - earlier_knee_ankle_max)
+                                                                
+                                                                # Elbow-wrist angles (max of left/right)
+                                                                current_elbow_wrist_max = max(current_features.get('left_elbow_wrist_angle', 0), current_features.get('right_elbow_wrist_angle', 0))
+                                                                earlier_elbow_wrist_max = max(earlier_features.get('left_elbow_wrist_angle', 0), earlier_features.get('right_elbow_wrist_angle', 0))
+                                                                param_changes['elbow_wrist_line_angle'] = abs(current_elbow_wrist_max - earlier_elbow_wrist_max)
+                                                                
+                                                                # Shoulder-elbow angles (max of left/right)
+                                                                current_shoulder_elbow_max = max(current_features.get('left_shoulder_elbow_angle', 0), current_features.get('right_shoulder_elbow_angle', 0))
+                                                                earlier_shoulder_elbow_max = max(earlier_features.get('left_shoulder_elbow_angle', 0), earlier_features.get('right_shoulder_elbow_angle', 0))
+                                                                param_changes['shoulder_elbow_line_angle'] = abs(current_shoulder_elbow_max - earlier_shoulder_elbow_max)
+                                                                
+                                                                # Ankle coordinates (max of all coordinate changes)
+                                                                ankle_changes = [
+                                                                    abs(current_features.get('left_ankle_x', 0) - earlier_features.get('left_ankle_x', 0)),
+                                                                    abs(current_features.get('left_ankle_y', 0) - earlier_features.get('left_ankle_y', 0)),
+                                                                    abs(current_features.get('right_ankle_x', 0) - earlier_features.get('right_ankle_x', 0)),
+                                                                    abs(current_features.get('right_ankle_y', 0) - earlier_features.get('right_ankle_y', 0))
+                                                                ]
+                                                                param_changes['ankle_coordinates'] = max(ankle_changes)
+                                                                
+                                                                # Check which parameters exceed thresholds
+                                                                for param, change in param_changes.items():
+                                                                    if change > movement_threshold[param]:
+                                                                        triggered_params.append({
+                                                                            'param': param,
+                                                                            'change': change,
+                                                                            'threshold': movement_threshold[param]
+                                                                        })
+                                                                
+                                                                # Display movement analysis
+                                                                st.markdown(f"**Frame {frame_number} vs Frame {earlier_frame_number} (n+3 comparison)**")
+                                                                st.markdown(f"<p style='font-size:10px; margin:0;'><b>Comparison Time:</b> {timestamp:.3f}s vs {earlier_timestamp:.3f}s</p>", 
+                                                                           unsafe_allow_html=True)
+                                                                
+                                                                triggered_count = len(triggered_params)
+                                                                if triggered_count >= 3:
+                                                                    st.error(f"🚨 SHOT TRIGGER: {triggered_count}/9 parameters exceed thresholds")
+                                                                elif triggered_count > 0:
+                                                                    st.warning(f"ℹ️ {triggered_count}/9 parameters exceed thresholds")
+                                                                else:
+                                                                    st.success("✅ All parameters within normal range")
+                                                                
+                                                                # Show detailed parameter changes
+                                                                for param_info in triggered_params:
+                                                                    st.markdown(f"<p style='font-size:9px; margin:0; color:red;'><b>{param_info['param']}:</b> {param_info['change']:.2f} > {param_info['threshold']}</p>", 
+                                                                               unsafe_allow_html=True)
+                                                    
+                                                    else:
+                                                        st.info("No earlier frame available for comparison")
+                                                
+                                                else:
+                                                    st.warning("No pose detected in this frame")
+                                            
+                                            else:
+                                                st.error("Could not load frame")
+                                                
+                                        except Exception as e:
+                                            st.error(f"Error processing debug frame: {str(e)}")
+                else:
+                    st.info(f"Debug time range (3.2s - 3.5s) is outside video duration ({video_duration:.1f}s)")
+                
+                # Debug section 2: Show frames from 14.8 to 15.3 seconds (n+3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (14.8s - 15.3s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
                 
