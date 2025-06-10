@@ -787,7 +787,7 @@ if uploaded_file is not None:
                 else:
                     st.warning("No stable batting stances detected in the video. Try adjusting the detection parameters.")
                 
-                # Debug section: Show frames from 14.8 to 15.3 seconds
+                # Debug section: Show frames from 14.8 to 15.3 seconds (n+3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (14.8s - 15.3s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
                 
@@ -931,7 +931,8 @@ if uploaded_file is not None:
                                                             'hip_line_twist': 2,
                                                             'knee_to_ankle_angle': 5,
                                                             'knee_angle': 10,
-                                                            'elbow_wrist_line_angle': 15,
+                                                            'elbow_wrist_line_angle': 10,
+                                                            'shoulder_elbow_line_angle': 5,
                                                             'ankle_coordinates': 0.025
                                                         }
                                                         
