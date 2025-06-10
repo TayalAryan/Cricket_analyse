@@ -89,20 +89,31 @@ if uploaded_file is not None:
     
     # Save uploaded file to temporary location with cleanup
     try:
-        st.info(f"Processing video file: {uploaded_file.name} ({uploaded_file.size / (1024*1024):.1f} MB)")
+        file_size_mb = uploaded_file.size / (1024*1024)
+        st.info(f"Processing video file: {uploaded_file.name} ({file_size_mb:.1f} MB)")
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4', dir=None) as tmp_file:
-            # Write the complete file content
-            tmp_file.write(uploaded_file.getvalue())
-            video_path = tmp_file.name
-            st.session_state.temp_video_path = video_path
+        # Create a unique filename to avoid conflicts
+        import uuid
+        unique_id = str(uuid.uuid4())[:8]
+        file_extension = os.path.splitext(uploaded_file.name)[1] or '.mp4'
+        temp_filename = f"cricket_video_{unique_id}{file_extension}"
+        
+        # Use /tmp directory explicitly
+        video_path = os.path.join('/tmp', temp_filename)
+        
+        with open(video_path, 'wb') as f:
+            f.write(uploaded_file.getvalue())
+        
+        st.session_state.temp_video_path = video_path
+        st.success(f"File saved successfully: {file_size_mb:.1f} MB")
             
     except Exception as e:
         st.error(f"Failed to process video file: {str(e)}")
-        st.markdown("**Troubleshooting tips:**")
-        st.markdown("- Click the 'Reset Application' button above and try again")
-        st.markdown("- Ensure your video file is under 500MB")
-        st.markdown("- Try refreshing the browser page")
+        st.markdown("**Troubleshooting steps:**")
+        st.markdown("1. Click 'Reset Application' button above")
+        st.markdown("2. Refresh the browser page completely")
+        st.markdown("3. Try uploading again")
+        st.markdown(f"4. File size: {uploaded_file.size / (1024*1024):.1f} MB (limit: 1000 MB)")
         st.stop()
     
     # Initialize video processor
