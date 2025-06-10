@@ -1067,10 +1067,40 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                                 else:
                                                                     st.success("✅ All parameters within normal range")
                                                                 
-                                                                # Show detailed parameter changes
-                                                                for param_info in triggered_params:
-                                                                    st.markdown(f"<p style='font-size:9px; margin:0; color:red;'><b>{param_info['param']}:</b> {param_info['change']:.2f} > {param_info['threshold']}</p>", 
-                                                                               unsafe_allow_html=True)
+                                                                # Display movement parameters table
+                                                                movement_table = []
+                                                                time_span = skip_frames / fps
+                                                                
+                                                                for param, change in param_changes.items():
+                                                                    threshold = movement_threshold[param]
+                                                                    exceeds_threshold = change > threshold
+                                                                    
+                                                                    # Calculate velocity
+                                                                    velocity = change / time_span
+                                                                    
+                                                                    # Format display
+                                                                    display_name = param.replace('_', ' ').title()
+                                                                    if param == 'ankle_coordinates':
+                                                                        change_str = f"{change:.3f}"
+                                                                        velocity_str = f"{velocity:.3f}/s"
+                                                                        threshold_str = f"{threshold:.3f}"
+                                                                    else:
+                                                                        change_str = f"{change:.1f}°"
+                                                                        velocity_str = f"{velocity:.1f}°/s"
+                                                                        threshold_str = f"{threshold}°"
+                                                                    
+                                                                    status = "🔴" if exceeds_threshold else "🟢"
+                                                                    
+                                                                    movement_table.append({
+                                                                        'Parameter': display_name,
+                                                                        'Change': change_str,
+                                                                        'Velocity': velocity_str,
+                                                                        'Threshold': threshold_str,
+                                                                        'Status': status
+                                                                    })
+                                                                
+                                                                # Display table
+                                                                st.table(movement_table)
                                                     
                                                     else:
                                                         st.info("No earlier frame available for comparison")
