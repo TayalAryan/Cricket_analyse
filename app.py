@@ -20,6 +20,12 @@ st.set_page_config(
 st.title("🏏 Cricket Batsman Stance Detection")
 st.markdown("Upload a cricket video to detect stable batting stances. Configure the camera perspective based on which side the bowler is positioned.")
 
+# Add reset button at the top
+if st.button("🔄 Reset Application", help="Clear all data and start fresh"):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
+
 # Initialize session state
 if 'video_processor' not in st.session_state:
     st.session_state.video_processor = None
@@ -67,7 +73,11 @@ with st.sidebar:
     )
 
 # File upload
-uploaded_file = st.file_uploader("Choose a cricket video file", type=['mp4', 'avi', 'mov', 'mkv'])
+uploaded_file = st.file_uploader(
+    "Choose a cricket video file", 
+    type=['mp4', 'avi', 'mov', 'mkv'],
+    help="Upload a cricket video file (max 500MB). If upload fails, try the Reset Application button first."
+)
 
 if uploaded_file is not None:
     # Clean up any existing temporary files first
@@ -79,18 +89,20 @@ if uploaded_file is not None:
     
     # Save uploaded file to temporary location with cleanup
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4', dir='/tmp') as tmp_file:
-            # Write in chunks to handle large files
-            uploaded_file.seek(0)
-            while True:
-                chunk = uploaded_file.read(8192)  # 8KB chunks
-                if not chunk:
-                    break
-                tmp_file.write(chunk)
+        st.info(f"Processing video file: {uploaded_file.name} ({uploaded_file.size / (1024*1024):.1f} MB)")
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4', dir=None) as tmp_file:
+            # Write the complete file content
+            tmp_file.write(uploaded_file.getvalue())
             video_path = tmp_file.name
             st.session_state.temp_video_path = video_path
-    except OSError as e:
-        st.error("Video file too large for processing. Please use a smaller video file (under 100MB recommended).")
+            
+    except Exception as e:
+        st.error(f"Failed to process video file: {str(e)}")
+        st.markdown("**Troubleshooting tips:**")
+        st.markdown("- Click the 'Reset Application' button above and try again")
+        st.markdown("- Ensure your video file is under 500MB")
+        st.markdown("- Try refreshing the browser page")
         st.stop()
     
     # Initialize video processor
