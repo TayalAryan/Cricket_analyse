@@ -76,8 +76,30 @@ with st.sidebar:
 uploaded_file = st.file_uploader(
     "Choose a cricket video file", 
     type=['mp4', 'avi', 'mov', 'mkv'],
-    help="Upload a cricket video file (max 500MB). If upload fails, try the Reset Application button first."
+    help="Upload a cricket video file (max 1000MB). If upload fails, try the Reset Application button first.",
+    key="video_uploader"
 )
+
+# Add fallback option for upload issues
+with st.expander("🔧 Alternative: Use existing file (if upload fails)"):
+    st.markdown("**For troubleshooting upload issues:**")
+    existing_files = []
+    try:
+        import glob
+        existing_files = glob.glob('/tmp/cricket_video_*.mp4')
+    except:
+        pass
+    
+    if existing_files:
+        st.markdown(f"Found {len(existing_files)} existing video file(s):")
+        selected_file = st.selectbox("Select existing video:", existing_files)
+        if st.button("Use Selected File"):
+            st.session_state.temp_video_path = selected_file
+            st.session_state.video_processor = None  # Reset processor
+            st.success(f"Using existing file: {os.path.basename(selected_file)}")
+            st.rerun()
+    else:
+        st.info("No existing video files found in /tmp directory")
 
 if uploaded_file is not None:
     # Clean up any existing temporary files first
