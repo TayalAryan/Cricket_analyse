@@ -897,7 +897,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No stable batting stances detected in the video. Try adjusting the detection parameters.")
                 
-                # Debug section 1: Show frames from 3.2 to 3.5 seconds (n+3 frame comparison)
+                # Debug section 1: Show frames from 3.2 to 3.5 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (3.2s - 3.5s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
                 
@@ -1055,7 +1055,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                                         })
                                                                 
                                                                 # Display movement analysis
-                                                                st.markdown(f"**Frame {frame_number} vs Frame {earlier_frame_number} (n+3 comparison)**")
+                                                                st.markdown(f"**Frame {frame_number} vs Frame {earlier_frame_number} (n-3 comparison)**")
                                                                 st.markdown(f"<p style='font-size:10px; margin:0;'><b>Comparison Time:</b> {timestamp:.3f}s vs {earlier_timestamp:.3f}s</p>", 
                                                                            unsafe_allow_html=True)
                                                                 
@@ -1116,7 +1116,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.info(f"Debug time range (3.2s - 3.5s) is outside video duration ({video_duration:.1f}s)")
                 
-                # Debug section 2: Show frames from 14.8 to 15.3 seconds (n+3 frame comparison)
+                # Debug section 2: Show frames from 14.8 to 15.3 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (14.8s - 15.3s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
                 

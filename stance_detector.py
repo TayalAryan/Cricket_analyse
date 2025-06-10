@@ -549,23 +549,24 @@ class StanceDetector:
         }
         
         i = 0
-        frame_skip = 3  # Skip 2 frames, so compare with 3rd frame ahead (n+3)
+        frame_skip = 3  # Compare with 3rd frame before (n-3)
         cooldown_frames = int(1.0 * fps)  # 1 second cooldown = 30 frames at 30fps
         
-        while i < len(valid_frames) - min_duration_frames - frame_skip:
+        # Start from frame_skip to ensure we have earlier frames to compare with
+        while i + frame_skip < len(valid_frames) - min_duration_frames:
             # Define the 200ms window of frames to analyze
-            window_start_idx = i
-            window_end_idx = min(i + min_duration_frames, len(valid_frames) - frame_skip)
+            window_start_idx = i + frame_skip
+            window_end_idx = min(window_start_idx + min_duration_frames, len(valid_frames))
             
             qualifying_frames = []  # Frames that have 3+ parameters exceeding thresholds
             
             # Check each frame in the 200ms window
             for window_idx in range(window_start_idx, window_end_idx):
                 current_frame = valid_frames[window_idx]
-                compare_frame_idx = window_idx + frame_skip
+                compare_frame_idx = window_idx - frame_skip
                 
                 # Make sure comparison frame exists
-                if compare_frame_idx >= len(valid_frames):
+                if compare_frame_idx < 0:
                     continue
                     
                 compare_frame = valid_frames[compare_frame_idx]
