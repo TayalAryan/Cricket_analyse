@@ -551,23 +551,29 @@ class StanceDetector:
         i = 0
         frame_skip = 3  # Skip 2 frames, so compare with 3rd frame ahead (n+3)
         cooldown_frames = int(1.0 * fps)  # 1 second cooldown = 30 frames at 30fps
+        
         while i < len(valid_frames) - min_duration_frames - frame_skip:
-            current_frame = valid_frames[i]
+            # Define the 200ms window of frames to analyze
+            window_start_idx = i
+            window_end_idx = min(i + min_duration_frames, len(valid_frames) - frame_skip)
             
-            # Check all frames in 200ms window for movement detection
-            window_frames = []
-            movements_detected = []
+            qualifying_frames = []  # Frames that have 3+ parameters exceeding thresholds
             
-            # Collect all frames in the 200ms window (6 frames)
-            for j in range(i + frame_skip, min(i + min_duration_frames + frame_skip, len(valid_frames))):
-                if j < len(valid_frames):
-                    window_frames.append(valid_frames[j])
-            
-            # Check each frame in the window for significant movement
-            for compare_frame in window_frames:
+            # Check each frame in the 200ms window
+            for window_idx in range(window_start_idx, window_end_idx):
+                current_frame = valid_frames[window_idx]
+                compare_frame_idx = window_idx + frame_skip
+                
+                # Make sure comparison frame exists
+                if compare_frame_idx >= len(valid_frames):
+                    continue
+                    
+                compare_frame = valid_frames[compare_frame_idx]
+                
                 if current_frame not in param_data or compare_frame not in param_data:
                     continue
                 
+                # Check parameter changes for this specific frame pair (n vs n+3)
                 frame_movements = []
                 
                 for param in tracked_params:
@@ -629,36 +635,40 @@ class StanceDetector:
                             'threshold': movement_threshold[param]
                         })
                 
-                # If this frame has 3+ parameters exceeding thresholds, count it
+                # Step 1: Check if this individual frame has 3+ parameters exceeding thresholds
                 if len(frame_movements) >= 3:
-                    movements_detected.append({
-                        'frame': compare_frame,
-                        'timestamp': results[compare_frame]['timestamp'],
-                        'movements': frame_movements
+                    qualifying_frames.append({
+                        'frame': current_frame,
+                        'compare_frame': compare_frame,
+                        'timestamp': results[current_frame]['timestamp'],
+                        'compare_timestamp': results[compare_frame]['timestamp'],
+                        'movements': frame_movements,
+                        'parameter_count': len(frame_movements)
                     })
             
-            # Shot triggered if at least 4 frames in the 200ms window exceed movement threshold
-            min_trigger_frames = 4  # At least 4 out of 6 frames in window
-            if len(movements_detected) >= min_trigger_frames:
+            # Step 2: Check if we have at least 4 qualifying frames in the 200ms window
+            min_trigger_frames = 4  # At least 4 frames with 3+ parameters each
+            if len(qualifying_frames) >= min_trigger_frames:
                 # Found a potential shot trigger
-                trigger_start = movements_detected[0]['timestamp']
-                trigger_end = movements_detected[-1]['timestamp']
+                trigger_start = qualifying_frames[0]['timestamp']
+                trigger_end = qualifying_frames[-1]['timestamp']
                 duration = trigger_end - trigger_start
                 
-                # Calculate average parameters moved across trigger frames
-                total_params = sum(len(frame['movements']) for frame in movements_detected)
-                avg_params_moved = total_params / len(movements_detected) if movements_detected else 0
+                # Calculate average parameters moved across qualifying frames
+                total_params = sum(frame['parameter_count'] for frame in qualifying_frames)
+                avg_params_moved = total_params / len(qualifying_frames) if qualifying_frames else 0
                 
                 shot_triggers.append({
-                    'trigger_frame': movements_detected[0]['frame'],
+                    'trigger_frame': qualifying_frames[0]['frame'],
                     'trigger_time': trigger_start,
                     'end_time': trigger_end,
                     'duration': duration,
                     'parameters_moved': int(avg_params_moved),
-                    'trigger_frames_count': len(movements_detected),
-                    'total_window_frames': len(window_frames),
-                    'trigger_ratio': len(movements_detected) / len(window_frames) if window_frames else 0,
-                    'movement_details': movements_detected[0]['movements']
+                    'trigger_frames_count': len(qualifying_frames),
+                    'total_window_frames': window_end_idx - window_start_idx,
+                    'trigger_ratio': len(qualifying_frames) / (window_end_idx - window_start_idx) if (window_end_idx - window_start_idx) > 0 else 0,
+                    'movement_details': qualifying_frames[0]['movements'],
+                    'qualifying_frame_details': qualifying_frames
                 })
                 
                 # Skip ahead by 1 second (cooldown period) to avoid overlapping detections
