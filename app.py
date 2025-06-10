@@ -918,6 +918,13 @@ if uploaded_file is not None:
                                                                         abs(pose_data.get('right_ankle_y', 0) - earlier_pose_data.get('right_ankle_y', 0))
                                                                     )
                                                                 }
+                                                                
+                                                                # Add shoulder-elbow line parameter if not already present
+                                                                if 'shoulder_elbow_line_angle' not in movement_data:
+                                                                    movement_data['shoulder_elbow_line_angle'] = max(
+                                                                        abs(pose_data.get('left_shoulder_elbow_angle', 0) - earlier_pose_data.get('left_shoulder_elbow_angle', 0)),
+                                                                        abs(pose_data.get('right_shoulder_elbow_angle', 0) - earlier_pose_data.get('right_shoulder_elbow_angle', 0))
+                                                                    )
                                                     
                                                     # Show movement parameters
                                                     if movement_data:
@@ -976,9 +983,9 @@ if uploaded_file is not None:
                                                         
                                                         # Summary
                                                         if triggered_count >= 3:
-                                                            st.error(f"⚠️ POTENTIAL TRIGGER: {triggered_count}/8 parameters exceed thresholds")
+                                                            st.error(f"⚠️ POTENTIAL TRIGGER: {triggered_count}/9 parameters exceed thresholds")
                                                         elif triggered_count > 0:
-                                                            st.warning(f"ℹ️ {triggered_count}/8 parameters exceed thresholds")
+                                                            st.warning(f"ℹ️ {triggered_count}/9 parameters exceed thresholds")
                                                         else:
                                                             st.success("✅ All parameters within normal range")
                                                     
