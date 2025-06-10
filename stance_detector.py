@@ -553,7 +553,7 @@ class StanceDetector:
         
         frame_skip = 3  # Compare with 3rd frame before (n-3)
         cooldown_frames = int(1.0 * fps)  # 1 second cooldown = 30 frames at 30fps
-        min_trigger_frames = 4  # At least 4 frames with 3+ parameters each
+        min_trigger_frames = 3  # At least 3 frames with 3+ parameters each
         last_trigger_idx = -cooldown_frames  # Track last trigger to enforce cooldown
         
         # Process each possible 200ms window
