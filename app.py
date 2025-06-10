@@ -675,9 +675,14 @@ if uploaded_file is not None:
                                                         
                                                         # Display movement in table format
                                                         movement_table = []
+                                                        time_span = skip_frames / st.session_state.video_processor.get_fps()  # Time between compared frames
+                                                        
                                                         for param, change in movement_data.items():
                                                             threshold = thresholds[param]
                                                             exceeds_threshold = change > threshold
+                                                            
+                                                            # Calculate velocity (change per second)
+                                                            velocity = change / time_span
                                                             
                                                             # Format display name
                                                             display_name = param.replace('_', ' ').title()
@@ -685,16 +690,19 @@ if uploaded_file is not None:
                                                                 unit = 'norm'
                                                                 change_str = f"{change:.3f}"
                                                                 threshold_str = f"{threshold:.3f}"
+                                                                velocity_str = f"{velocity:.3f}/s"
                                                             else:
                                                                 unit = '°'
                                                                 change_str = f"{change:.1f}°"
                                                                 threshold_str = f"{threshold}°"
+                                                                velocity_str = f"{velocity:.1f}°/s"
                                                             
                                                             status = "🔴 TRIGGER" if exceeds_threshold else "🟢 Normal"
                                                             
                                                             movement_table.append({
                                                                 'Parameter': display_name,
                                                                 'Change': change_str,
+                                                                'Velocity': velocity_str,
                                                                 'Threshold': threshold_str,
                                                                 'Status': status
                                                             })
