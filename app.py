@@ -573,7 +573,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         if first_criteria.get('shoulder_twist_stable'): passed_criteria.append('Shoulder Twist')
                         if first_criteria.get('shoulder_elbow_stable'): passed_criteria.append('Shoulder-Elbow')
                         if first_criteria.get('camera_perspective_ok'): passed_criteria.append('Camera View')
-                        if first_criteria.get('elbow_knee_distance_ok'): passed_criteria.append('Elbow-Knee Dist')
+
                         
                         criteria_summary = ', '.join(passed_criteria) if passed_criteria else 'None'
                         
@@ -608,7 +608,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                         'Shoulder Twist': '✅' if criteria.get('shoulder_twist_stable') else '❌',
                                         'Shoulder-Elbow': '✅' if criteria.get('shoulder_elbow_stable') else '❌',
                                         'Camera View': '✅' if criteria.get('camera_perspective_ok') else '❌',
-                                        'Elbow-Knee': '✅' if criteria.get('elbow_knee_distance_ok') else '❌'
+
                                     })
                                 
                                 st.table(criteria_table)
@@ -1564,17 +1564,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                 shoulder_twist = current_pose_data.get('shoulder_line_twist', 0)
                                                 camera_perspective_ok = abs(shoulder_twist) < 45.0
                                                 
-                                                # 6. Elbow-Knee Distance (elbows not vertically close to knees)
-                                                left_elbow_y = current_pose_data.get('left_elbow_y', 0)
-                                                right_elbow_y = current_pose_data.get('right_elbow_y', 0)
-                                                left_knee_y = current_pose_data.get('left_knee_y', 0)
-                                                right_knee_y = current_pose_data.get('right_knee_y', 0)
-                                                
-                                                min_elbow_knee_distance = 0.1  # 10% of frame height
-                                                left_elbow_knee_distance = abs(left_elbow_y - left_knee_y)
-                                                right_elbow_knee_distance = abs(right_elbow_y - right_knee_y)
-                                                elbow_knee_distance_ok = (left_elbow_knee_distance > min_elbow_knee_distance and 
-                                                                        right_elbow_knee_distance > min_elbow_knee_distance)
+
                                                 
                                                 # Create detailed criteria table
                                                 criteria_table = [
@@ -1617,14 +1607,6 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                         'Threshold': "< 45.0°",
                                                         'Current': f"Twist: {shoulder_twist:.1f}°",
                                                         'Earlier': f"Twist: {earlier_pose_data.get('shoulder_line_twist', 0):.1f}°"
-                                                    },
-                                                    {
-                                                        'Criterion': 'Elbow-Knee Distance',
-                                                        'Status': '✅ PASS' if elbow_knee_distance_ok else '❌ FAIL',
-                                                        'Details': f"L: {left_elbow_knee_distance:.3f} | R: {right_elbow_knee_distance:.3f}",
-                                                        'Threshold': f"> {min_elbow_knee_distance:.1f}",
-                                                        'Current': f"L_elbow: {left_elbow_y:.3f}, L_knee: {left_knee_y:.3f}",
-                                                        'Earlier': f"L_elbow: {earlier_pose_data.get('left_elbow_y', 0):.3f}, L_knee: {earlier_pose_data.get('left_knee_y', 0):.3f}"
                                                     }
                                                 ]
                                                 
@@ -1633,18 +1615,18 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                 # Overall result
                                                 all_criteria_passed = all([
                                                     ankle_stability, hip_angle_stable, shoulder_twist_stable,
-                                                    shoulder_elbow_stable, camera_perspective_ok, elbow_knee_distance_ok
+                                                    shoulder_elbow_stable, camera_perspective_ok
                                                 ])
                                                 
                                                 passed_count = sum([
                                                     ankle_stability, hip_angle_stable, shoulder_twist_stable,
-                                                    shoulder_elbow_stable, camera_perspective_ok, elbow_knee_distance_ok
+                                                    shoulder_elbow_stable, camera_perspective_ok
                                                 ])
                                                 
                                                 if all_criteria_passed:
-                                                    st.success(f"🎯 **BATTING STANCE DETECTED** - All 6/6 criteria passed")
+                                                    st.success(f"🎯 **BATTING STANCE DETECTED** - All 5/5 criteria passed")
                                                 else:
-                                                    st.warning(f"⚠️ **Partial match** - {passed_count}/6 criteria passed")
+                                                    st.warning(f"⚠️ **Partial match** - {passed_count}/5 criteria passed")
                                                 
                                                 # Comparison frame info
                                                 st.caption(f"Comparing frame at {debug_time:.1f}s with frame at {earlier_time:.3f}s (n-5 comparison)")
