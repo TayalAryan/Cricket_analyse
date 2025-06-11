@@ -491,20 +491,6 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         )
                     )
                 
-                # Configure layout and axes
-                fig.update_layout(
-                        x=trigger['trigger_time'],
-                        line=dict(color="orange", width=2, dash="dash"),
-                        annotation_text=f"Shot Trigger {i+1}",
-                        annotation_position="bottom",
-                        annotation=dict(
-                            font=dict(color="orange", size=9),
-                            bgcolor="rgba(255,255,255,0.8)",
-                            bordercolor="orange",
-                            borderwidth=1
-                        )
-                    )
-                
                 # Highlight stable periods with light background
                 for period in stable_periods:
                     fig.add_vrect(
@@ -515,6 +501,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         line_width=0,
                     )
                 
+                # Configure layout and axes
                 fig.update_layout(
                     title="Cricket Stance Detection Timeline",
                     xaxis_title="Time (seconds)",
