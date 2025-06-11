@@ -38,6 +38,11 @@ class StanceDetector:
         self.pose_history = deque(maxlen=30)  # Store last 30 frames
         self.movement_history = deque(maxlen=30)
         
+        # Batting stance detection
+        self.stance_window_duration = 0.3  # 300ms window
+        self.last_stance_detected = None
+        self.stance_cooldown = 1.0  # 1 second skip after detecting stance
+        
         # Key pose landmarks for stance detection
         self.key_landmarks = [
             self.mp_pose.PoseLandmark.NOSE,
@@ -740,6 +745,152 @@ class StanceDetector:
                 last_trigger_idx = start_idx
         
         return shot_triggers
+    
+    def detect_batting_stance(self, results: List[Dict], fps: float) -> List[Dict]:
+        """
+        Detect "Batting stance taken" events using 300ms window with 6 stability criteria.
+        
+        Args:
+            results: List of frame analysis results
+            fps: Frames per second of the video
+            
+        Returns:
+            List of batting stance detection events
+        """
+        batting_stances = []
+        if not results or len(results) < 2:
+            return batting_stances
+        
+        # Calculate frames needed for 300ms window and n-3 comparison
+        window_frames = max(1, int(fps * self.stance_window_duration))  # ~300ms worth of frames
+        skip_frames = 3  # n-3 comparison
+        
+        # Cooldown tracking
+        last_stance_frame_idx = -1
+        cooldown_frames = int(fps * self.stance_cooldown)  # 1 second cooldown
+        
+        # Process each potential window start
+        for start_idx in range(len(results) - window_frames):
+            # Check cooldown
+            if last_stance_frame_idx >= 0 and start_idx - last_stance_frame_idx < cooldown_frames:
+                continue
+            
+            window_end_idx = start_idx + window_frames
+            window_qualified = True
+            criteria_details = []
+            
+            # Check each frame in the window against its n-3 frame
+            for current_idx in range(start_idx, window_end_idx):
+                compare_idx = current_idx - skip_frames
+                if compare_idx < 0:
+                    continue
+                
+                current_result = results[current_idx]
+                compare_result = results[compare_idx]
+                
+                # Skip if either frame lacks pose data
+                if (not current_result.get('pose_detected') or 
+                    not compare_result.get('pose_detected') or
+                    current_result.get('pose_confidence', 0) < self.confidence_threshold or
+                    compare_result.get('pose_confidence', 0) < self.confidence_threshold):
+                    continue
+                
+                current_features = current_result.get('pose_features', {})
+                compare_features = compare_result.get('pose_features', {})
+                
+                # Check all 6 criteria for this frame pair
+                frame_criteria = self._check_stance_criteria_frame(current_features, compare_features)
+                criteria_details.append({
+                    'frame_idx': current_idx,
+                    'timestamp': current_result.get('timestamp', 0),
+                    'criteria': frame_criteria
+                })
+                
+                # If any frame in window fails criteria, window is not qualified
+                if not all(frame_criteria.values()):
+                    window_qualified = False
+                    break
+            
+            # If entire window passed all criteria, mark as batting stance
+            if window_qualified and criteria_details:
+                start_timestamp = results[start_idx].get('timestamp', 0)
+                end_timestamp = results[window_end_idx - 1].get('timestamp', 0)
+                
+                batting_stances.append({
+                    'start_frame': start_idx,
+                    'end_frame': window_end_idx - 1,
+                    'start_timestamp': start_timestamp,
+                    'end_timestamp': end_timestamp,
+                    'duration': end_timestamp - start_timestamp,
+                    'criteria_details': criteria_details,
+                    'window_frames': len(criteria_details)
+                })
+                
+                last_stance_frame_idx = start_idx
+        
+        return batting_stances
+    
+    def _check_stance_criteria_frame(self, current_features: Dict, compare_features: Dict) -> Dict:
+        """
+        Check all 6 batting stance criteria for a single frame comparison.
+        
+        Args:
+            current_features: Current frame pose features
+            compare_features: Compare frame (n-3) pose features
+            
+        Returns:
+            Dictionary with boolean results for each criterion
+        """
+        criteria = {
+            'ankle_stability': False,
+            'hip_angle_stable': False,
+            'shoulder_twist_stable': False,
+            'shoulder_elbow_stable': False,
+            'camera_perspective_ok': False,
+            'elbow_knee_distance_ok': False
+        }
+        
+        # Criterion 1: Ankles at same coordinates (both left and right)
+        ankle_threshold = 0.01  # 1% movement in normalized coordinates
+        left_ankle_stable = (abs(current_features.get('left_ankle_x', 0) - compare_features.get('left_ankle_x', 0)) <= ankle_threshold and
+                           abs(current_features.get('left_ankle_y', 0) - compare_features.get('left_ankle_y', 0)) <= ankle_threshold)
+        right_ankle_stable = (abs(current_features.get('right_ankle_x', 0) - compare_features.get('right_ankle_x', 0)) <= ankle_threshold and
+                            abs(current_features.get('right_ankle_y', 0) - compare_features.get('right_ankle_y', 0)) <= ankle_threshold)
+        criteria['ankle_stability'] = left_ankle_stable and right_ankle_stable
+        
+        # Criterion 2: Hip line angle unchanged or changed less than 1 degree
+        hip_angle_change = abs(current_features.get('hip_line_angle', 0) - compare_features.get('hip_line_angle', 0))
+        criteria['hip_angle_stable'] = hip_angle_change < 1.0
+        
+        # Criterion 3: Shoulder line twist unchanged or changed less than 2 degrees
+        shoulder_twist_change = abs(current_features.get('shoulder_line_twist', 0) - compare_features.get('shoulder_line_twist', 0))
+        criteria['shoulder_twist_stable'] = shoulder_twist_change < 2.0
+        
+        # Criterion 4: Shoulder-elbow line angles (both left and right) unchanged or changed less than 2 degrees
+        left_shoulder_elbow_change = abs(current_features.get('left_shoulder_elbow_angle', 0) - compare_features.get('left_shoulder_elbow_angle', 0))
+        right_shoulder_elbow_change = abs(current_features.get('right_shoulder_elbow_angle', 0) - compare_features.get('right_shoulder_elbow_angle', 0))
+        criteria['shoulder_elbow_stable'] = left_shoulder_elbow_change < 2.0 and right_shoulder_elbow_change < 2.0
+        
+        # Criterion 5: Batsman back not fully or partially towards camera
+        # Check shoulder line twist - if > 45 degrees, back might be towards camera
+        shoulder_twist = current_features.get('shoulder_line_twist', 0)
+        criteria['camera_perspective_ok'] = abs(shoulder_twist) < 45.0
+        
+        # Criterion 6: Batsman's elbow not vertically close to knees
+        # Check vertical distance between elbows and knees
+        left_elbow_y = current_features.get('left_elbow_y', 0)
+        right_elbow_y = current_features.get('right_elbow_y', 0)
+        left_knee_y = current_features.get('left_knee_y', 0)
+        right_knee_y = current_features.get('right_knee_y', 0)
+        
+        # Minimum vertical distance threshold (in normalized coordinates)
+        min_elbow_knee_distance = 0.1  # 10% of frame height
+        left_elbow_knee_distance = abs(left_elbow_y - left_knee_y)
+        right_elbow_knee_distance = abs(right_elbow_y - right_knee_y)
+        criteria['elbow_knee_distance_ok'] = (left_elbow_knee_distance > min_elbow_knee_distance and 
+                                            right_elbow_knee_distance > min_elbow_knee_distance)
+        
+        return criteria
     
     def _calculate_angle(self, a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float]) -> float:
         """Calculate angle between three points."""

@@ -341,6 +341,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     
                     # Post-process results to find stable periods
                     st.session_state.stance_results = stance_detector.get_stable_periods(results)
+                    
+                    # Analyze shot triggers
+                    st.session_state.shot_triggers = stance_detector._analyze_shot_triggers(results)
+                    
+                    # Detect batting stance taken events
+                    video_fps = st.session_state.video_processor.get_fps()
+                    st.session_state.batting_stances = stance_detector.detect_batting_stance(results, video_fps)
+                    
                     st.session_state.analysis_complete = True
                     
                     progress_bar.progress(1.0)
@@ -450,10 +458,41 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             borderwidth=1
                         )
                     )
-                
-                # Mark shot trigger points with vertical lines
+
+                # Mark batting stance detection points
+                batting_stances = st.session_state.get('batting_stances', [])
+                for i, stance in enumerate(batting_stances):
+                    fig.add_vline(
+                        x=stance['start_timestamp'],
+                        line=dict(color="purple", width=3, dash="dot"),
+                        annotation_text=f"Batting Stance {i+1}",
+                        annotation_position="bottom",
+                        annotation=dict(
+                            font=dict(color="purple", size=10),
+                            bgcolor="rgba(255,255,255,0.8)",
+                            bordercolor="purple",
+                            borderwidth=1
+                        )
+                    )
+
+                # Mark shot trigger points
+                shot_triggers = st.session_state.get('shot_triggers', [])
                 for i, trigger in enumerate(shot_triggers):
                     fig.add_vline(
+                        x=trigger['trigger_time'],
+                        line=dict(color="orange", width=2, dash="dash"),
+                        annotation_text=f"Shot Trigger {i+1}",
+                        annotation_position="top right",
+                        annotation=dict(
+                            font=dict(color="orange", size=9),
+                            bgcolor="rgba(255,255,255,0.8)",
+                            bordercolor="orange",
+                            borderwidth=1
+                        )
+                    )
+                
+                # Configure layout and axes
+                fig.update_layout(
                         x=trigger['trigger_time'],
                         line=dict(color="orange", width=2, dash="dash"),
                         annotation_text=f"Shot Trigger {i+1}",
@@ -524,7 +563,75 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     
                     st.table(periods_data)
                 
+                # Batting Stance Detection Results
+                batting_stances = st.session_state.get('batting_stances', [])
+                if batting_stances:
+                    st.subheader("Batting Stance Taken")
+                    st.markdown("**Detected moments when batsman achieved stable batting stance with all 6 criteria**")
+                    
+                    stance_data = []
+                    for i, stance in enumerate(batting_stances):
+                        # Count frames that passed all criteria
+                        criteria_frames = len(stance.get('criteria_details', []))
+                        
+                        # Extract sample criteria details from first frame
+                        first_criteria = {}
+                        if stance.get('criteria_details'):
+                            first_criteria = stance['criteria_details'][0].get('criteria', {})
+                        
+                        # Create summary of passed criteria
+                        passed_criteria = []
+                        if first_criteria.get('ankle_stability'): passed_criteria.append('Ankle Stable')
+                        if first_criteria.get('hip_angle_stable'): passed_criteria.append('Hip Angle')
+                        if first_criteria.get('shoulder_twist_stable'): passed_criteria.append('Shoulder Twist')
+                        if first_criteria.get('shoulder_elbow_stable'): passed_criteria.append('Shoulder-Elbow')
+                        if first_criteria.get('camera_perspective_ok'): passed_criteria.append('Camera View')
+                        if first_criteria.get('elbow_knee_distance_ok'): passed_criteria.append('Elbow-Knee Dist')
+                        
+                        criteria_summary = ', '.join(passed_criteria) if passed_criteria else 'None'
+                        
+                        stance_data.append({
+                            'Stance #': i + 1,
+                            'Start Time (s)': f"{stance['start_timestamp']:.2f}",
+                            'End Time (s)': f"{stance['end_timestamp']:.2f}",
+                            'Duration (ms)': f"{stance['duration']*1000:.0f}",
+                            'Window Frames': criteria_frames,
+                            'Criteria Met': f"{len(passed_criteria)}/6",
+                            'Details': criteria_summary
+                        })
+                    
+                    st.table(stance_data)
+                    
+                    # Show detailed criteria for each batting stance
+                    with st.expander("Detailed Criteria Analysis"):
+                        for i, stance in enumerate(batting_stances):
+                            st.markdown(f"**Batting Stance #{i+1} at {stance['start_timestamp']:.2f}s**")
+                            
+                            # Show criteria details for each frame in the window
+                            criteria_details = stance.get('criteria_details', [])
+                            if criteria_details:
+                                criteria_table = []
+                                for detail in criteria_details[:5]:  # Show first 5 frames
+                                    criteria = detail.get('criteria', {})
+                                    criteria_table.append({
+                                        'Frame': detail.get('frame_idx', 0),
+                                        'Time (s)': f"{detail.get('timestamp', 0):.3f}",
+                                        'Ankle Stable': '✅' if criteria.get('ankle_stability') else '❌',
+                                        'Hip Angle': '✅' if criteria.get('hip_angle_stable') else '❌',
+                                        'Shoulder Twist': '✅' if criteria.get('shoulder_twist_stable') else '❌',
+                                        'Shoulder-Elbow': '✅' if criteria.get('shoulder_elbow_stable') else '❌',
+                                        'Camera View': '✅' if criteria.get('camera_perspective_ok') else '❌',
+                                        'Elbow-Knee': '✅' if criteria.get('elbow_knee_distance_ok') else '❌'
+                                    })
+                                
+                                st.table(criteria_table)
+                                if len(criteria_details) > 5:
+                                    st.caption(f"Showing first 5 frames of {len(criteria_details)} total frames")
+                            
+                            st.divider()
+
                 # Shot Trigger Analysis Results
+                shot_triggers = st.session_state.get('shot_triggers', [])
                 if shot_triggers:
                     st.subheader("Shot Trigger Analysis")
                     st.markdown("**Detected moments when batsman initiated shot-making movements**")
