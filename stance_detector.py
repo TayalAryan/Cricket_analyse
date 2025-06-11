@@ -873,9 +873,9 @@ class StanceDetector:
         hip_angle_change = abs(current_features.get('hip_line_angle', 0) - compare_features.get('hip_line_angle', 0))
         criteria['hip_angle_stable'] = hip_angle_change < 2.0
         
-        # Criterion 3: Shoulder line twist unchanged or changed less than 6 degrees
+        # Criterion 3: Shoulder line twist unchanged or changed less than 10 degrees
         shoulder_twist_change = abs(current_features.get('shoulder_line_twist', 0) - compare_features.get('shoulder_line_twist', 0))
-        criteria['shoulder_twist_stable'] = shoulder_twist_change < 6.0
+        criteria['shoulder_twist_stable'] = shoulder_twist_change < 10.0
         
         # Criterion 4: Shoulder-elbow line angles (both left and right) unchanged or changed less than 2 degrees
         left_shoulder_elbow_change = abs(current_features.get('left_shoulder_elbow_angle', 0) - compare_features.get('left_shoulder_elbow_angle', 0))
