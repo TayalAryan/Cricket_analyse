@@ -771,7 +771,7 @@ class StanceDetector:
         skip_after_detection = int(fps * 0.3)  # 300ms skip
         
         print(f"DEBUG: Processing {len(results)} results with window_frames={window_frames}, skip_after_detection={skip_after_detection}")
-        print(f"DEBUG: New logic - checking 3 key frames per window, requiring 2/3 to pass")
+        print(f"DEBUG: Majority voting - checking all 9 frames per window, requiring 5/9 to pass all criteria")
         
         # Process each potential window start
         for start_idx in range(len(results) - window_frames):
@@ -783,11 +783,10 @@ class StanceDetector:
             window_qualified = True
             criteria_details = []
             
-            # Check only 3 key frames within the window (start, middle, end) against n-5
-            key_frames = [start_idx, start_idx + window_frames//2, window_end_idx - 1]
+            # Check all frames in the window against n-5 for majority voting
             passed_frames = 0
             
-            for current_idx in key_frames:
+            for current_idx in range(start_idx, window_end_idx):
                 compare_idx = current_idx - skip_frames
                 if compare_idx < 0:
                     continue
@@ -819,8 +818,8 @@ class StanceDetector:
                 elif start_idx % 100 == 0:  # Debug every 100th window
                     print(f"DEBUG: Frame {current_idx} failed criteria: {frame_criteria}")
             
-            # Require at least 2 out of 3 key frames to pass all criteria
-            window_qualified = passed_frames >= 2
+            # Require at least 5 out of 9 frames to pass all criteria (majority voting)
+            window_qualified = passed_frames >= 5
             
             # If entire window passed all criteria, mark as batting stance
             if window_qualified and criteria_details:
@@ -870,9 +869,9 @@ class StanceDetector:
                             abs(current_features.get('right_ankle_y', 0) - compare_features.get('right_ankle_y', 0)) <= ankle_threshold)
         criteria['ankle_stability'] = left_ankle_stable and right_ankle_stable
         
-        # Criterion 2: Hip line angle unchanged or changed less than 1 degree
+        # Criterion 2: Hip line angle unchanged or changed less than 2 degrees
         hip_angle_change = abs(current_features.get('hip_line_angle', 0) - compare_features.get('hip_line_angle', 0))
-        criteria['hip_angle_stable'] = hip_angle_change < 1.0
+        criteria['hip_angle_stable'] = hip_angle_change < 2.0
         
         # Criterion 3: Shoulder line twist unchanged or changed less than 6 degrees
         shoulder_twist_change = abs(current_features.get('shoulder_line_twist', 0) - compare_features.get('shoulder_line_twist', 0))
