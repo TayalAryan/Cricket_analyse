@@ -771,6 +771,7 @@ class StanceDetector:
         skip_after_detection = int(fps * 0.3)  # 300ms skip
         
         print(f"DEBUG: Processing {len(results)} results with window_frames={window_frames}, skip_after_detection={skip_after_detection}")
+        print(f"DEBUG: New logic - checking 3 key frames per window, requiring 2/3 to pass")
         
         # Process each potential window start
         for start_idx in range(len(results) - window_frames):
@@ -782,8 +783,11 @@ class StanceDetector:
             window_qualified = True
             criteria_details = []
             
-            # Check each frame in the window against its n-3 frame
-            for current_idx in range(start_idx, window_end_idx):
+            # Check only 3 key frames within the window (start, middle, end) against n-5
+            key_frames = [start_idx, start_idx + window_frames//2, window_end_idx - 1]
+            passed_frames = 0
+            
+            for current_idx in key_frames:
                 compare_idx = current_idx - skip_frames
                 if compare_idx < 0:
                     continue
@@ -801,7 +805,7 @@ class StanceDetector:
                 current_features = current_result.get('pose_features', {})
                 compare_features = compare_result.get('pose_features', {})
                 
-                # Check all 6 criteria for this frame pair
+                # Check all 5 criteria for this frame pair
                 frame_criteria = self._check_stance_criteria_frame(current_features, compare_features)
                 criteria_details.append({
                     'frame_idx': current_idx,
@@ -809,12 +813,14 @@ class StanceDetector:
                     'criteria': frame_criteria
                 })
                 
-                # If any frame in window fails criteria, window is not qualified
-                if not all(frame_criteria.values()):
-                    window_qualified = False
-                    if start_idx % 100 == 0:  # Debug every 100th window
-                        print(f"DEBUG: Window {start_idx} failed criteria: {frame_criteria}")
-                    break
+                # Count frames that pass all criteria
+                if all(frame_criteria.values()):
+                    passed_frames += 1
+                elif start_idx % 100 == 0:  # Debug every 100th window
+                    print(f"DEBUG: Frame {current_idx} failed criteria: {frame_criteria}")
+            
+            # Require at least 2 out of 3 key frames to pass all criteria
+            window_qualified = passed_frames >= 2
             
             # If entire window passed all criteria, mark as batting stance
             if window_qualified and criteria_details:
