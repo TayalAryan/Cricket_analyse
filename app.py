@@ -1551,9 +1551,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                 right_ankle_stable = right_ankle_x_change <= ankle_threshold and right_ankle_y_change <= ankle_threshold
                                                 ankle_stability = left_ankle_stable and right_ankle_stable
                                                 
-                                                # 2. Hip Line Angle (< 1 degree change)
+                                                # 2. Hip Line Angle (< 2 degree change)
                                                 hip_angle_change = abs(current_pose_data.get('hip_line_angle', 0) - earlier_pose_data.get('hip_line_angle', 0))
-                                                hip_angle_stable = hip_angle_change < 1.0
+                                                hip_angle_stable = hip_angle_change < 2.0
                                                 
                                                 # 3. Shoulder Line Twist (< 6 degrees change)
                                                 shoulder_twist_change = abs(current_pose_data.get('shoulder_line_twist', 0) - earlier_pose_data.get('shoulder_line_twist', 0))
@@ -1584,7 +1584,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                         'Criterion': 'Hip Line Angle',
                                                         'Status': '✅ PASS' if hip_angle_stable else '❌ FAIL',
                                                         'Details': f"Change: {hip_angle_change:.1f}°",
-                                                        'Threshold': "< 1.0°",
+                                                        'Threshold': "< 2.0°",
                                                         'Current': f"{current_pose_data.get('hip_line_angle', 0):.1f}°",
                                                         'Earlier': f"{earlier_pose_data.get('hip_line_angle', 0):.1f}°"
                                                     },
