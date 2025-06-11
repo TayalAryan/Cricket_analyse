@@ -1517,10 +1517,17 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     debug_end_time = 10.3
                     debug_step = 0.1  # Check every 0.1 seconds
                     
-                    for debug_time in [10.0, 10.1, 10.2, 10.3]:
+                    # Generate time points every 0.033s (30fps) from 10.0 to 10.5 seconds
+                    debug_times = []
+                    current_time = 10.0
+                    while current_time <= 10.5:
+                        debug_times.append(current_time)
+                        current_time += (1.0 / fps)  # Add one frame duration
+                    
+                    for debug_time in debug_times:
                         if debug_time <= video_duration:
                             try:
-                                st.markdown(f"**Frame at {debug_time:.1f}s:**")
+                                st.markdown(f"**Frame at {debug_time:.3f}s:**")
                                 
                                 # Get current frame
                                 current_frame = st.session_state.video_processor.get_frame_at_time(debug_time)
