@@ -995,12 +995,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No stable batting stances detected in the video. Try adjusting the detection parameters.")
                 
-                # Debug section 1: Show frames from 3.2 to 3.5 seconds (n-3 frame comparison)
-                st.subheader("Debug: Shot Trigger Analysis (3.2s - 3.5s)")
+                # Debug section 1: Show frames from 0 to 1 seconds (n-3 frame comparison)
+                st.subheader("Debug: Shot Trigger Analysis (0s - 1s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
                 
-                debug_start_time_1 = 3.2
-                debug_end_time_1 = 3.5
+                debug_start_time_1 = 0.0
+                debug_end_time_1 = 1.0
                 video_duration = st.session_state.video_processor.get_duration()
                 
                 if debug_start_time_1 < video_duration and debug_end_time_1 <= video_duration:
@@ -1024,7 +1024,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     )
                     
                     # Process debug frames
-                    with st.spinner("Processing debug frames (3.2s-3.5s)..."):
+                    with st.spinner("Processing debug frames (0s-1s)..."):
                         cols_per_row = 2
                         for i in range(0, len(debug_timestamps_1), cols_per_row):
                             cols = st.columns(cols_per_row)
@@ -1496,14 +1496,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.info(f"Debug time range (14.8s - 15.3s) is outside video duration ({video_duration:.1f}s)")
 
-                # Debug Section 3: Batting Stance Detection (10.0s - 10.3s)
-                st.subheader("🔍 Debug Section: Batting Stance Detection (10.0s - 10.3s)")
-                st.markdown("**Detailed analysis of batting stance criteria with n-5 frame comparison**")
+                # Debug Section 3: Batting Stance Detection (42.0s - 42.5s)
+                st.subheader("🔍 Debug Section: Batting Stance Detection (42.0s - 42.5s)")
+                st.markdown("**Detailed analysis of batting stance criteria with n-7 frame comparison**")
                 
                 video_duration = st.session_state.video_processor.get_duration()
                 fps = st.session_state.video_processor.get_fps()
                 
-                if 10.0 <= video_duration and video_duration >= 10.3:
+                if 42.0 <= video_duration and video_duration >= 42.5:
                     # Initialize stance detector for debug analysis
                     debug_detector = StanceDetector(
                         stability_threshold=stability_threshold,
@@ -1513,14 +1513,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         batsman_height=batsman_height
                     )
                     
-                    debug_start_time = 10.0
-                    debug_end_time = 10.3
+                    debug_start_time = 42.0
+                    debug_end_time = 42.5
                     debug_step = 0.1  # Check every 0.1 seconds
                     
-                    # Generate time points every 0.033s (30fps) from 10.0 to 10.5 seconds
+                    # Generate time points every 0.033s (30fps) from 42.0 to 42.5 seconds
                     debug_times = []
-                    current_time = 10.0
-                    while current_time <= 10.5:
+                    current_time = 42.0
+                    while current_time <= 42.5:
                         debug_times.append(current_time)
                         current_time += (1.0 / fps)  # Add one frame duration
                     
@@ -1656,7 +1656,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             except Exception as e:
                                 st.error(f"Error processing batting stance debug frame at {debug_time:.1f}s: {str(e)}")
                 else:
-                    st.info(f"Debug time range (10.0s - 10.3s) is outside video duration ({video_duration:.1f}s)")
+                    st.info(f"Debug time range (42.0s - 42.5s) is outside video duration ({video_duration:.1f}s)")
             
             else:
                 st.warning("No analysis results available.")
