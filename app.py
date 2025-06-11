@@ -1500,6 +1500,15 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 fps = st.session_state.video_processor.get_fps()
                 
                 if 10.0 <= video_duration and video_duration >= 10.3:
+                    # Initialize stance detector for debug analysis
+                    debug_detector = StanceDetector(
+                        stability_threshold=stability_threshold,
+                        min_stability_duration=min_stability_duration,
+                        confidence_threshold=confidence_threshold,
+                        camera_perspective=camera_perspective,
+                        batsman_height=batsman_height
+                    )
+                    
                     debug_start_time = 10.0
                     debug_end_time = 10.3
                     debug_step = 0.1  # Check every 0.1 seconds
@@ -1512,7 +1521,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 # Get current frame
                                 current_frame = st.session_state.video_processor.get_frame_at_time(debug_time)
                                 if current_frame is not None:
-                                    current_pose_data = detector.detect_stance(current_frame, debug_time)[1]
+                                    current_pose_data = debug_detector.detect_stance(current_frame, debug_time)[1]
                                     
                                     # Get n-5 frame (5 frames earlier)
                                     skip_frames = 5
@@ -1521,7 +1530,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                     if earlier_time >= 0:
                                         earlier_frame = st.session_state.video_processor.get_frame_at_time(earlier_time)
                                         if earlier_frame is not None:
-                                            earlier_pose_data = detector.detect_stance(earlier_frame, earlier_time)[1]
+                                            earlier_pose_data = debug_detector.detect_stance(earlier_frame, earlier_time)[1]
                                             
                                             if current_pose_data and earlier_pose_data:
                                                 # Check all 6 batting stance criteria
