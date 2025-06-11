@@ -1491,6 +1491,170 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                             st.error(f"Error processing debug frame: {str(e)}")
                 else:
                     st.info(f"Debug time range (14.8s - 15.3s) is outside video duration ({video_duration:.1f}s)")
+
+                # Debug Section 3: Batting Stance Detection (10.0s - 10.3s)
+                st.subheader("🔍 Debug Section: Batting Stance Detection (10.0s - 10.3s)")
+                st.markdown("**Detailed analysis of batting stance criteria with n-5 frame comparison**")
+                
+                video_duration = st.session_state.video_processor.get_duration()
+                fps = st.session_state.video_processor.get_fps()
+                
+                if 10.0 <= video_duration and video_duration >= 10.3:
+                    debug_start_time = 10.0
+                    debug_end_time = 10.3
+                    debug_step = 0.1  # Check every 0.1 seconds
+                    
+                    for debug_time in [10.0, 10.1, 10.2, 10.3]:
+                        if debug_time <= video_duration:
+                            try:
+                                st.markdown(f"**Frame at {debug_time:.1f}s:**")
+                                
+                                # Get current frame
+                                current_frame = st.session_state.video_processor.get_frame_at_time(debug_time)
+                                if current_frame is not None:
+                                    current_pose_data = detector.detect_stance(current_frame, debug_time)[1]
+                                    
+                                    # Get n-5 frame (5 frames earlier)
+                                    skip_frames = 5
+                                    earlier_time = debug_time - (skip_frames / fps)
+                                    
+                                    if earlier_time >= 0:
+                                        earlier_frame = st.session_state.video_processor.get_frame_at_time(earlier_time)
+                                        if earlier_frame is not None:
+                                            earlier_pose_data = detector.detect_stance(earlier_frame, earlier_time)[1]
+                                            
+                                            if current_pose_data and earlier_pose_data:
+                                                # Check all 6 batting stance criteria
+                                                criteria_results = {}
+                                                
+                                                # 1. Ankle Stability (both left and right at same coordinates)
+                                                ankle_threshold = 0.01  # 1% movement
+                                                left_ankle_x_change = abs(current_pose_data.get('left_ankle_x', 0) - earlier_pose_data.get('left_ankle_x', 0))
+                                                left_ankle_y_change = abs(current_pose_data.get('left_ankle_y', 0) - earlier_pose_data.get('left_ankle_y', 0))
+                                                right_ankle_x_change = abs(current_pose_data.get('right_ankle_x', 0) - earlier_pose_data.get('right_ankle_x', 0))
+                                                right_ankle_y_change = abs(current_pose_data.get('right_ankle_y', 0) - earlier_pose_data.get('right_ankle_y', 0))
+                                                
+                                                left_ankle_stable = left_ankle_x_change <= ankle_threshold and left_ankle_y_change <= ankle_threshold
+                                                right_ankle_stable = right_ankle_x_change <= ankle_threshold and right_ankle_y_change <= ankle_threshold
+                                                ankle_stability = left_ankle_stable and right_ankle_stable
+                                                
+                                                # 2. Hip Line Angle (< 1 degree change)
+                                                hip_angle_change = abs(current_pose_data.get('hip_line_angle', 0) - earlier_pose_data.get('hip_line_angle', 0))
+                                                hip_angle_stable = hip_angle_change < 1.0
+                                                
+                                                # 3. Shoulder Line Twist (< 2 degrees change)
+                                                shoulder_twist_change = abs(current_pose_data.get('shoulder_line_twist', 0) - earlier_pose_data.get('shoulder_line_twist', 0))
+                                                shoulder_twist_stable = shoulder_twist_change < 2.0
+                                                
+                                                # 4. Shoulder-Elbow Line Angles (both < 2 degrees change)
+                                                left_shoulder_elbow_change = abs(current_pose_data.get('left_shoulder_elbow_angle', 0) - earlier_pose_data.get('left_shoulder_elbow_angle', 0))
+                                                right_shoulder_elbow_change = abs(current_pose_data.get('right_shoulder_elbow_angle', 0) - earlier_pose_data.get('right_shoulder_elbow_angle', 0))
+                                                shoulder_elbow_stable = left_shoulder_elbow_change < 2.0 and right_shoulder_elbow_change < 2.0
+                                                
+                                                # 5. Camera Perspective (back not towards camera)
+                                                shoulder_twist = current_pose_data.get('shoulder_line_twist', 0)
+                                                camera_perspective_ok = abs(shoulder_twist) < 45.0
+                                                
+                                                # 6. Elbow-Knee Distance (elbows not vertically close to knees)
+                                                left_elbow_y = current_pose_data.get('left_elbow_y', 0)
+                                                right_elbow_y = current_pose_data.get('right_elbow_y', 0)
+                                                left_knee_y = current_pose_data.get('left_knee_y', 0)
+                                                right_knee_y = current_pose_data.get('right_knee_y', 0)
+                                                
+                                                min_elbow_knee_distance = 0.1  # 10% of frame height
+                                                left_elbow_knee_distance = abs(left_elbow_y - left_knee_y)
+                                                right_elbow_knee_distance = abs(right_elbow_y - right_knee_y)
+                                                elbow_knee_distance_ok = (left_elbow_knee_distance > min_elbow_knee_distance and 
+                                                                        right_elbow_knee_distance > min_elbow_knee_distance)
+                                                
+                                                # Create detailed criteria table
+                                                criteria_table = [
+                                                    {
+                                                        'Criterion': 'Ankle Stability',
+                                                        'Status': '✅ PASS' if ankle_stability else '❌ FAIL',
+                                                        'Details': f"L: {left_ankle_x_change:.3f}, {left_ankle_y_change:.3f} | R: {right_ankle_x_change:.3f}, {right_ankle_y_change:.3f}",
+                                                        'Threshold': f"< {ankle_threshold:.3f}",
+                                                        'Current': f"L_ankle: ({current_pose_data.get('left_ankle_x', 0):.3f}, {current_pose_data.get('left_ankle_y', 0):.3f})",
+                                                        'Earlier': f"L_ankle: ({earlier_pose_data.get('left_ankle_x', 0):.3f}, {earlier_pose_data.get('left_ankle_y', 0):.3f})"
+                                                    },
+                                                    {
+                                                        'Criterion': 'Hip Line Angle',
+                                                        'Status': '✅ PASS' if hip_angle_stable else '❌ FAIL',
+                                                        'Details': f"Change: {hip_angle_change:.1f}°",
+                                                        'Threshold': "< 1.0°",
+                                                        'Current': f"{current_pose_data.get('hip_line_angle', 0):.1f}°",
+                                                        'Earlier': f"{earlier_pose_data.get('hip_line_angle', 0):.1f}°"
+                                                    },
+                                                    {
+                                                        'Criterion': 'Shoulder Twist',
+                                                        'Status': '✅ PASS' if shoulder_twist_stable else '❌ FAIL',
+                                                        'Details': f"Change: {shoulder_twist_change:.1f}°",
+                                                        'Threshold': "< 2.0°",
+                                                        'Current': f"{current_pose_data.get('shoulder_line_twist', 0):.1f}°",
+                                                        'Earlier': f"{earlier_pose_data.get('shoulder_line_twist', 0):.1f}°"
+                                                    },
+                                                    {
+                                                        'Criterion': 'Shoulder-Elbow Angles',
+                                                        'Status': '✅ PASS' if shoulder_elbow_stable else '❌ FAIL',
+                                                        'Details': f"L: {left_shoulder_elbow_change:.1f}° | R: {right_shoulder_elbow_change:.1f}°",
+                                                        'Threshold': "< 2.0°",
+                                                        'Current': f"L: {current_pose_data.get('left_shoulder_elbow_angle', 0):.1f}° | R: {current_pose_data.get('right_shoulder_elbow_angle', 0):.1f}°",
+                                                        'Earlier': f"L: {earlier_pose_data.get('left_shoulder_elbow_angle', 0):.1f}° | R: {earlier_pose_data.get('right_shoulder_elbow_angle', 0):.1f}°"
+                                                    },
+                                                    {
+                                                        'Criterion': 'Camera Perspective',
+                                                        'Status': '✅ PASS' if camera_perspective_ok else '❌ FAIL',
+                                                        'Details': f"Shoulder twist: {shoulder_twist:.1f}°",
+                                                        'Threshold': "< 45.0°",
+                                                        'Current': f"Twist: {shoulder_twist:.1f}°",
+                                                        'Earlier': f"Twist: {earlier_pose_data.get('shoulder_line_twist', 0):.1f}°"
+                                                    },
+                                                    {
+                                                        'Criterion': 'Elbow-Knee Distance',
+                                                        'Status': '✅ PASS' if elbow_knee_distance_ok else '❌ FAIL',
+                                                        'Details': f"L: {left_elbow_knee_distance:.3f} | R: {right_elbow_knee_distance:.3f}",
+                                                        'Threshold': f"> {min_elbow_knee_distance:.1f}",
+                                                        'Current': f"L_elbow: {left_elbow_y:.3f}, L_knee: {left_knee_y:.3f}",
+                                                        'Earlier': f"L_elbow: {earlier_pose_data.get('left_elbow_y', 0):.3f}, L_knee: {earlier_pose_data.get('left_knee_y', 0):.3f}"
+                                                    }
+                                                ]
+                                                
+                                                st.table(criteria_table)
+                                                
+                                                # Overall result
+                                                all_criteria_passed = all([
+                                                    ankle_stability, hip_angle_stable, shoulder_twist_stable,
+                                                    shoulder_elbow_stable, camera_perspective_ok, elbow_knee_distance_ok
+                                                ])
+                                                
+                                                passed_count = sum([
+                                                    ankle_stability, hip_angle_stable, shoulder_twist_stable,
+                                                    shoulder_elbow_stable, camera_perspective_ok, elbow_knee_distance_ok
+                                                ])
+                                                
+                                                if all_criteria_passed:
+                                                    st.success(f"🎯 **BATTING STANCE DETECTED** - All 6/6 criteria passed")
+                                                else:
+                                                    st.warning(f"⚠️ **Partial match** - {passed_count}/6 criteria passed")
+                                                
+                                                # Comparison frame info
+                                                st.caption(f"Comparing frame at {debug_time:.1f}s with frame at {earlier_time:.3f}s (n-5 comparison)")
+                                                
+                                            else:
+                                                st.warning("Pose not detected in one or both frames")
+                                        else:
+                                            st.warning(f"Could not load earlier frame at {earlier_time:.3f}s")
+                                    else:
+                                        st.info(f"Earlier frame time {earlier_time:.3f}s is before video start")
+                                else:
+                                    st.warning(f"Could not load frame at {debug_time:.1f}s")
+                                
+                                st.divider()
+                                
+                            except Exception as e:
+                                st.error(f"Error processing batting stance debug frame at {debug_time:.1f}s: {str(e)}")
+                else:
+                    st.info(f"Debug time range (10.0s - 10.3s) is outside video duration ({video_duration:.1f}s)")
             
             else:
                 st.warning("No analysis results available.")
