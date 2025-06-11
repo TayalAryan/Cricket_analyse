@@ -761,9 +761,9 @@ class StanceDetector:
         if not results or len(results) < 2:
             return batting_stances
         
-        # Calculate frames needed for 300ms window and n-3 comparison
+        # Calculate frames needed for 300ms window and n-5 comparison
         window_frames = max(1, int(fps * self.stance_window_duration))  # ~300ms worth of frames
-        skip_frames = 3  # n-3 comparison
+        skip_frames = 5  # n-5 comparison
         
         # Cooldown tracking
         last_stance_frame_idx = -1
