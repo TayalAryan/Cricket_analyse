@@ -765,14 +765,14 @@ class StanceDetector:
         window_frames = max(1, int(fps * self.stance_window_duration))  # ~300ms worth of frames
         skip_frames = 5  # n-5 comparison
         
-        # Cooldown tracking
+        # Cooldown tracking - 300ms skip after detection
         last_stance_frame_idx = -1
-        cooldown_frames = int(fps * self.stance_cooldown)  # 1 second cooldown
+        skip_after_detection = int(fps * 0.3)  # 300ms skip
         
         # Process each potential window start
         for start_idx in range(len(results) - window_frames):
-            # Check cooldown
-            if last_stance_frame_idx >= 0 and start_idx - last_stance_frame_idx < cooldown_frames:
+            # Check 300ms skip after detection
+            if last_stance_frame_idx >= 0 and start_idx - last_stance_frame_idx < skip_after_detection:
                 continue
             
             window_end_idx = start_idx + window_frames
