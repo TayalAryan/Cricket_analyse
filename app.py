@@ -1534,8 +1534,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 if current_frame is not None:
                                     current_pose_data = debug_detector.detect_stance(current_frame, debug_time)[1]
                                     
-                                    # Get n-5 frame (5 frames earlier)
-                                    skip_frames = 5
+                                    # Get n-7 frame (7 frames earlier)
+                                    skip_frames = 7
                                     earlier_time = debug_time - (skip_frames / fps)
                                     
                                     if earlier_time >= 0:

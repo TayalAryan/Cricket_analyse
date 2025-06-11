@@ -762,9 +762,9 @@ class StanceDetector:
             print(f"DEBUG: Not enough results for batting stance detection: {len(results) if results else 0}")
             return batting_stances
         
-        # Calculate frames needed for 300ms window and n-5 comparison
+        # Calculate frames needed for 300ms window and n-7 comparison
         window_frames = max(1, int(fps * self.stance_window_duration))  # ~300ms worth of frames
-        skip_frames = 5  # n-5 comparison
+        skip_frames = 7  # n-7 comparison
         
         # Cooldown tracking - 300ms skip after detection
         last_stance_frame_idx = -1
