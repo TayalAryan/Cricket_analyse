@@ -846,8 +846,7 @@ class StanceDetector:
             'hip_angle_stable': False,
             'shoulder_twist_stable': False,
             'shoulder_elbow_stable': False,
-            'camera_perspective_ok': False,
-            'elbow_knee_distance_ok': False
+            'camera_perspective_ok': False
         }
         
         # Criterion 1: Ankles at same coordinates (both left and right)
@@ -862,9 +861,9 @@ class StanceDetector:
         hip_angle_change = abs(current_features.get('hip_line_angle', 0) - compare_features.get('hip_line_angle', 0))
         criteria['hip_angle_stable'] = hip_angle_change < 1.0
         
-        # Criterion 3: Shoulder line twist unchanged or changed less than 2 degrees
+        # Criterion 3: Shoulder line twist unchanged or changed less than 6 degrees
         shoulder_twist_change = abs(current_features.get('shoulder_line_twist', 0) - compare_features.get('shoulder_line_twist', 0))
-        criteria['shoulder_twist_stable'] = shoulder_twist_change < 2.0
+        criteria['shoulder_twist_stable'] = shoulder_twist_change < 6.0
         
         # Criterion 4: Shoulder-elbow line angles (both left and right) unchanged or changed less than 2 degrees
         left_shoulder_elbow_change = abs(current_features.get('left_shoulder_elbow_angle', 0) - compare_features.get('left_shoulder_elbow_angle', 0))
@@ -875,20 +874,6 @@ class StanceDetector:
         # Check shoulder line twist - if > 45 degrees, back might be towards camera
         shoulder_twist = current_features.get('shoulder_line_twist', 0)
         criteria['camera_perspective_ok'] = abs(shoulder_twist) < 45.0
-        
-        # Criterion 6: Batsman's elbow not vertically close to knees
-        # Check vertical distance between elbows and knees
-        left_elbow_y = current_features.get('left_elbow_y', 0)
-        right_elbow_y = current_features.get('right_elbow_y', 0)
-        left_knee_y = current_features.get('left_knee_y', 0)
-        right_knee_y = current_features.get('right_knee_y', 0)
-        
-        # Minimum vertical distance threshold (in normalized coordinates)
-        min_elbow_knee_distance = 0.1  # 10% of frame height
-        left_elbow_knee_distance = abs(left_elbow_y - left_knee_y)
-        right_elbow_knee_distance = abs(right_elbow_y - right_knee_y)
-        criteria['elbow_knee_distance_ok'] = (left_elbow_knee_distance > min_elbow_knee_distance and 
-                                            right_elbow_knee_distance > min_elbow_knee_distance)
         
         return criteria
     

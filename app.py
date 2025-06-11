@@ -554,7 +554,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 batting_stances = st.session_state.get('batting_stances', [])
                 if batting_stances:
                     st.subheader("Batting Stance Taken")
-                    st.markdown("**Detected moments when batsman achieved stable batting stance with all 6 criteria**")
+                    st.markdown("**Detected moments when batsman achieved stable batting stance with all 5 criteria**")
                     
                     stance_data = []
                     for i, stance in enumerate(batting_stances):
@@ -1551,9 +1551,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                 hip_angle_change = abs(current_pose_data.get('hip_line_angle', 0) - earlier_pose_data.get('hip_line_angle', 0))
                                                 hip_angle_stable = hip_angle_change < 1.0
                                                 
-                                                # 3. Shoulder Line Twist (< 2 degrees change)
+                                                # 3. Shoulder Line Twist (< 6 degrees change)
                                                 shoulder_twist_change = abs(current_pose_data.get('shoulder_line_twist', 0) - earlier_pose_data.get('shoulder_line_twist', 0))
-                                                shoulder_twist_stable = shoulder_twist_change < 2.0
+                                                shoulder_twist_stable = shoulder_twist_change < 6.0
                                                 
                                                 # 4. Shoulder-Elbow Line Angles (both < 2 degrees change)
                                                 left_shoulder_elbow_change = abs(current_pose_data.get('left_shoulder_elbow_angle', 0) - earlier_pose_data.get('left_shoulder_elbow_angle', 0))
@@ -1598,7 +1598,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                                         'Criterion': 'Shoulder Twist',
                                                         'Status': '✅ PASS' if shoulder_twist_stable else '❌ FAIL',
                                                         'Details': f"Change: {shoulder_twist_change:.1f}°",
-                                                        'Threshold': "< 2.0°",
+                                                        'Threshold': "< 6.0°",
                                                         'Current': f"{current_pose_data.get('shoulder_line_twist', 0):.1f}°",
                                                         'Earlier': f"{earlier_pose_data.get('shoulder_line_twist', 0):.1f}°"
                                                     },
