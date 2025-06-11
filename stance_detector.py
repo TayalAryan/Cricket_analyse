@@ -759,6 +759,7 @@ class StanceDetector:
         """
         batting_stances = []
         if not results or len(results) < 2:
+            print(f"DEBUG: Not enough results for batting stance detection: {len(results) if results else 0}")
             return batting_stances
         
         # Calculate frames needed for 300ms window and n-5 comparison
@@ -768,6 +769,8 @@ class StanceDetector:
         # Cooldown tracking - 300ms skip after detection
         last_stance_frame_idx = -1
         skip_after_detection = int(fps * 0.3)  # 300ms skip
+        
+        print(f"DEBUG: Processing {len(results)} results with window_frames={window_frames}, skip_after_detection={skip_after_detection}")
         
         # Process each potential window start
         for start_idx in range(len(results) - window_frames):
@@ -809,6 +812,8 @@ class StanceDetector:
                 # If any frame in window fails criteria, window is not qualified
                 if not all(frame_criteria.values()):
                     window_qualified = False
+                    if start_idx % 100 == 0:  # Debug every 100th window
+                        print(f"DEBUG: Window {start_idx} failed criteria: {frame_criteria}")
                     break
             
             # If entire window passed all criteria, mark as batting stance
@@ -827,7 +832,9 @@ class StanceDetector:
                 })
                 
                 last_stance_frame_idx = start_idx
+                print(f"DEBUG: BATTING STANCE DETECTED at frame {start_idx}, timestamp {start_timestamp:.3f}s")
         
+        print(f"DEBUG: Total batting stances detected: {len(batting_stances)}")
         return batting_stances
     
     def _check_stance_criteria_frame(self, current_features: Dict, compare_features: Dict) -> Dict:

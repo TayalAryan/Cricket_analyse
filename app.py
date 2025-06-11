@@ -461,6 +461,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
 
                 # Mark batting stance detection points
                 batting_stances = st.session_state.get('batting_stances', [])
+                st.write(f"DEBUG: Found {len(batting_stances)} batting stances to display")
+                if batting_stances:
+                    st.write("DEBUG: Batting stance timestamps:", [s.get('start_timestamp', 'No timestamp') for s in batting_stances])
+                
                 for i, stance in enumerate(batting_stances):
                     fig.add_vline(
                         x=stance['start_timestamp'],
