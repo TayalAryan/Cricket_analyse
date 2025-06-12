@@ -188,6 +188,12 @@ class StanceDetector:
         shoulder_twist_hip = shoulder_line_angle - hip_line_angle
         features['shoulder_twist_hip'] = shoulder_twist_hip
         
+        # Calculate head position (difference in X coordinate between head and right foot)
+        head_x = nose.x
+        right_foot_x = right_ankle.x
+        head_position = head_x - right_foot_x
+        features['head_position'] = head_position
+        
         # 4. Knee bend angle
         left_knee_angle = self._calculate_angle(
             (left_hip.x, left_hip.y), 

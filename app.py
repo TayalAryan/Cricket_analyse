@@ -1045,6 +1045,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # 1.5. Shoulder twist relative to hip line
                         shoulder_twist_hip = biomech_data.get('shoulder_twist_hip', 0)
                         
+                        # 1.6. Head position (head X - right foot X)
+                        head_position = biomech_data.get('head_position', 0)
+                        
                         # 2. Left foot extension (distance between ankles)
                         left_ankle_x = biomech_data.get('left_ankle_x', 0)
                         left_ankle_y = biomech_data.get('left_ankle_y', 0)
@@ -1067,6 +1070,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'timestamp': timestamp,
                             'shoulder_angle': shoulder_angle,
                             'shoulder_twist_hip': shoulder_twist_hip,
+                            'head_position': head_position,
                             'foot_extension': foot_extension,
                             'weight_distribution': weight_distribution,
                             'cog_to_right_foot': cog_to_right_foot
@@ -1079,6 +1083,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     shoulder_angles = [d['shoulder_angle'] for d in cover_drive_data]
                     absolute_shoulder_angles = [abs(d['shoulder_angle']) for d in cover_drive_data]
                     shoulder_twist_hip = [d['shoulder_twist_hip'] for d in cover_drive_data]
+                    head_positions = [d['head_position'] for d in cover_drive_data]
                     foot_extensions = [d['foot_extension'] for d in cover_drive_data]
                     weight_distributions = [d['weight_distribution'] for d in cover_drive_data]
                     cog_distances = [d['cog_to_right_foot'] for d in cover_drive_data]
@@ -1111,6 +1116,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     # Calculate shoulder angles relative to first frame, other parameters normally
                     normalized_shoulder = normalize_shoulder_angles_relative_to_first(shoulder_angles)
                     normalized_shoulder_twist_hip = normalize_shoulder_angles_relative_to_first(shoulder_twist_hip)
+                    normalized_head_position = normalize_shoulder_angles_relative_to_first(head_positions)
                     normalized_abs_shoulder = normalize_to_scale(absolute_shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
@@ -1121,6 +1127,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     # Calculate relative shoulder angles and shoulder twist-hip values for CSV
                     relative_shoulder_angles = [shoulder_angles[i] - shoulder_angles[0] if shoulder_angles else 0 for i in range(len(shoulder_angles))]
                     relative_shoulder_twist_hip = [shoulder_twist_hip[i] - shoulder_twist_hip[0] if shoulder_twist_hip else 0 for i in range(len(shoulder_twist_hip))]
+                    relative_head_positions = [head_positions[i] - head_positions[0] if head_positions else 0 for i in range(len(head_positions))]
                     
                     # Create the line chart
                     fig = go.Figure()
@@ -1142,6 +1149,16 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         mode='lines+markers',
                         name='Shoulder Twist-Hip',
                         line=dict(color='darkblue', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
+                    # Add head position
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_head_position,
+                        mode='lines+markers',
+                        name='Head Position',
+                        line=dict(color='green', width=2),
                         marker=dict(size=4)
                     ))
                     
