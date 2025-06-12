@@ -1052,7 +1052,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         
                         # 2. Left foot extension (X-coordinate difference from right ankle)
                         left_ankle_x = biomech_data.get('left_ankle_x', 0)
+                        left_ankle_y = biomech_data.get('left_ankle_y', 0)
                         right_ankle_x = biomech_data.get('right_ankle_x', 0)
+                        right_ankle_y = biomech_data.get('right_ankle_y', 0)
                         
                         # Calculate X-coordinate difference from right ankle
                         foot_extension = left_ankle_x - right_ankle_x
