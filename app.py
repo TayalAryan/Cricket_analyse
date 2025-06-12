@@ -1083,8 +1083,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         min_val, max_val = min(values), max(values)
                         return [(v - min_val) / (max_val - min_val) * (target_max - target_min) + target_min for v in values]
                     
-                    def normalize_shoulder_angles_relative_to_first(angles, center=50, scale_range=40):
-                        """Calculate shoulder angles relative to first frame, then normalize for visualization"""
+                    def normalize_shoulder_angles_relative_to_first(angles, center=0, scale_range=40):
+                        """Calculate shoulder angles relative to first frame, with first frame at 0"""
                         if not angles:
                             return angles
                         
@@ -1092,14 +1092,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         reference_angle = angles[0]
                         relative_angles = [angle - reference_angle for angle in angles]
                         
-                        # Find maximum absolute relative change to scale appropriately
+                        # First frame will be exactly 0, others scaled relative to max change
                         max_abs = max(abs(angle) for angle in relative_angles) if relative_angles else 0
                         if max_abs == 0:
-                            return [center] * len(relative_angles)
+                            return relative_angles  # All zeros
                         
-                        # Scale factor to fit within the range while preserving direction
+                        # Scale factor to fit within reasonable range while preserving direction
                         scale_factor = scale_range / max_abs
-                        return [center + (angle * scale_factor) for angle in relative_angles]
+                        return [angle * scale_factor for angle in relative_angles]
                     
                     # Calculate shoulder angles relative to first frame, other parameters normally
                     normalized_shoulder = normalize_shoulder_angles_relative_to_first(shoulder_angles)
@@ -1168,7 +1168,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             dict(
                                 x=0.02, y=0.98,
                                 xref="paper", yref="paper",
-                                text="Shoulder Angle: 50=starting position, >50=more rightward tilt, <50=more leftward tilt",
+                                text="Shoulder Angle: 0=starting position, +values=rightward tilt, -values=leftward tilt",
                                 showarrow=False,
                                 font=dict(size=10, color="gray"),
                                 align="left"
@@ -1181,9 +1181,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     # Add explanation of relative measurement
                     st.info("""
                     **Shoulder Line Relative Measurement:**
-                    - **50 (center line)**: Starting shoulder position (first frame reference)
-                    - **Above 50**: More rightward tilt relative to starting position
-                    - **Below 50**: More leftward tilt relative to starting position
+                    - **0 (baseline)**: Starting shoulder position (first frame reference)
+                    - **Positive values**: More rightward tilt relative to starting position
+                    - **Negative values**: More leftward tilt relative to starting position
                     
                     This relative measurement clearly shows shoulder movement changes from the initial stance, helping identify preparation and execution phases.
                     """)
