@@ -1120,18 +1120,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         x=timestamps,
                         y=normalized_shoulder,
                         mode='lines+markers',
-                        name='Shoulder Line Angle (Relative)',
+                        name='Shoulder Line Angle',
                         line=dict(color='red', width=2),
-                        marker=dict(size=4)
-                    ))
-                    
-                    # Add absolute shoulder line angle
-                    fig.add_trace(go.Scatter(
-                        x=timestamps,
-                        y=normalized_abs_shoulder,
-                        mode='lines+markers',
-                        name='Shoulder Line Angle (Absolute)',
-                        line=dict(color='darkred', width=2, dash='dash'),
                         marker=dict(size=4)
                     ))
                     
