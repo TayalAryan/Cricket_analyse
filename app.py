@@ -995,6 +995,175 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No stable batting stances detected in the video. Try adjusting the detection parameters.")
                 
+                # Cover Drive Profile section
+                st.subheader("Cover Drive Profile")
+                st.markdown("**Normalized biomechanical parameters over time**")
+                
+                # Calculate Cover Drive Profile data
+                cover_drive_data = []
+                timestamps = []
+                
+                for result in all_results:
+                    if result.get('pose_data'):
+                        pose_data = result['pose_data']
+                        timestamp = result['timestamp']
+                        
+                        # 1. Shoulder line angle (with ground)
+                        shoulder_angle = pose_data.get('shoulder_line_angle', 0)
+                        
+                        # 2. Left foot extension (distance between ankles)
+                        left_ankle_x = pose_data.get('left_ankle_x', 0)
+                        left_ankle_y = pose_data.get('left_ankle_y', 0)
+                        right_ankle_x = pose_data.get('right_ankle_x', 0)
+                        right_ankle_y = pose_data.get('right_ankle_y', 0)
+                        
+                        # Calculate distance between ankles
+                        foot_extension = ((left_ankle_x - right_ankle_x)**2 + (left_ankle_y - right_ankle_y)**2)**0.5
+                        
+                        # 3. Body weight distribution (binary: left foot = 1, right foot = 0)
+                        # Use hip position relative to ankle positions to determine weight distribution
+                        left_hip_x = pose_data.get('left_hip_x', 0.5)
+                        right_hip_x = pose_data.get('right_hip_x', 0.5)
+                        hip_center_x = (left_hip_x + right_hip_x) / 2
+                        ankle_center_x = (left_ankle_x + right_ankle_x) / 2
+                        
+                        # If hip center is closer to left ankle, weight on left foot (1), else right foot (0)
+                        weight_distribution = 1 if hip_center_x < ankle_center_x else 0
+                        
+                        cover_drive_data.append({
+                            'timestamp': timestamp,
+                            'shoulder_angle': shoulder_angle,
+                            'foot_extension': foot_extension,
+                            'weight_distribution': weight_distribution
+                        })
+                        timestamps.append(timestamp)
+                
+                if cover_drive_data:
+                    # Extract data for normalization
+                    shoulder_angles = [d['shoulder_angle'] for d in cover_drive_data]
+                    foot_extensions = [d['foot_extension'] for d in cover_drive_data]
+                    weight_distributions = [d['weight_distribution'] for d in cover_drive_data]
+                    
+                    # Normalize values to 0-100 scale for visualization
+                    def normalize_to_scale(values, target_min=0, target_max=100):
+                        if not values or max(values) == min(values):
+                            return values
+                        min_val, max_val = min(values), max(values)
+                        return [(v - min_val) / (max_val - min_val) * (target_max - target_min) + target_min for v in values]
+                    
+                    # Normalize shoulder angles and foot extensions
+                    normalized_shoulder = normalize_to_scale(shoulder_angles)
+                    normalized_foot_ext = normalize_to_scale(foot_extensions)
+                    
+                    # Weight distribution is already binary (0/1), scale to 0-100
+                    normalized_weight = [w * 100 for w in weight_distributions]
+                    
+                    # Create the line chart
+                    fig = go.Figure()
+                    
+                    # Add shoulder line angle
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_shoulder,
+                        mode='lines+markers',
+                        name='Shoulder Line Angle',
+                        line=dict(color='red', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
+                    # Add foot extension
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_foot_ext,
+                        mode='lines+markers',
+                        name='Left Foot Extension',
+                        line=dict(color='orange', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
+                    # Add weight distribution (binary)
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_weight,
+                        mode='markers',
+                        name='Weight Distribution',
+                        marker=dict(
+                            size=8,
+                            color=['green' if w == 1 else 'blue' for w in weight_distributions],
+                            symbol='circle'
+                        ),
+                        hovertemplate='<b>Weight Distribution</b><br>Time: %{x:.2f}s<br>Foot: %{text}<extra></extra>',
+                        text=['Left Foot' if w == 1 else 'Right Foot' for w in weight_distributions]
+                    ))
+                    
+                    fig.update_layout(
+                        title="Cover Drive Profile - Normalized Parameters",
+                        xaxis_title="Time (seconds)",
+                        yaxis_title="Normalized Value (0-100)",
+                        hovermode='x unified',
+                        showlegend=True,
+                        height=500
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # CSV Download section
+                    st.subheader("Download Cover Drive Data")
+                    
+                    # Prepare CSV data with original (non-normalized) values
+                    csv_data = []
+                    for i, data in enumerate(cover_drive_data):
+                        csv_data.append({
+                            'Frame': i + 1,
+                            'Timestamp (s)': f"{data['timestamp']:.3f}",
+                            'Shoulder Line Angle (degrees)': f"{data['shoulder_angle']:.2f}",
+                            'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
+                            'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
+                            'Weight Distribution (binary)': data['weight_distribution'],
+                            'Normalized Shoulder Angle (0-100)': f"{normalized_shoulder[i]:.2f}",
+                            'Normalized Foot Extension (0-100)': f"{normalized_foot_ext[i]:.2f}",
+                            'Normalized Weight Distribution (0-100)': f"{normalized_weight[i]:.2f}"
+                        })
+                    
+                    # Convert to CSV string
+                    import io
+                    import csv
+                    
+                    output = io.StringIO()
+                    if csv_data:
+                        fieldnames = csv_data[0].keys()
+                        writer = csv.DictWriter(output, fieldnames=fieldnames)
+                        writer.writeheader()
+                        writer.writerows(csv_data)
+                        csv_string = output.getvalue()
+                        
+                        # Create download button
+                        st.download_button(
+                            label="📊 Download Cover Drive Profile CSV",
+                            data=csv_string,
+                            file_name=f"cover_drive_profile_{len(csv_data)}_frames.csv",
+                            mime="text/csv",
+                            help="Download detailed frame-by-frame cover drive analysis data"
+                        )
+                        
+                        # Show summary statistics
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            avg_shoulder = sum(shoulder_angles) / len(shoulder_angles)
+                            st.metric("Avg Shoulder Angle", f"{avg_shoulder:.1f}°")
+                        
+                        with col2:
+                            avg_extension = sum(foot_extensions) / len(foot_extensions)
+                            st.metric("Avg Foot Extension", f"{avg_extension:.3f}")
+                        
+                        with col3:
+                            left_foot_percentage = (sum(weight_distributions) / len(weight_distributions)) * 100
+                            st.metric("Left Foot Weight %", f"{left_foot_percentage:.0f}%")
+                
+                else:
+                    st.warning("No pose data available for Cover Drive Profile analysis")
+                
                 # Debug section 1: Show frames from 0 to 1 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (0s - 1s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
@@ -1003,16 +1172,19 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 debug_end_time_1 = 1.0
                 video_duration = st.session_state.video_processor.get_duration()
                 
-                if debug_start_time_1 < video_duration and debug_end_time_1 <= video_duration:
+                if debug_start_time_1 < video_duration:
                     # Get frames in the debug range
                     fps = st.session_state.video_processor.get_fps()
                     frame_interval = 1.0 / fps  # Show every frame
                     debug_timestamps_1 = []
                     
                     current_time = debug_start_time_1
-                    while current_time <= debug_end_time_1:
+                    while current_time <= min(debug_end_time_1, video_duration):
                         debug_timestamps_1.append(current_time)
                         current_time += frame_interval
+                    
+                    # Show debug info
+                    st.info(f"Video duration: {video_duration:.2f}s | FPS: {fps:.1f} | Analyzing {len(debug_timestamps_1)} frames from 0s to {min(debug_end_time_1, video_duration):.2f}s")
                     
                     # Create stance detector for debug analysis
                     debug_detector_1 = StanceDetector(
@@ -1245,7 +1417,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                         except Exception as e:
                                             st.error(f"Error processing debug frame: {str(e)}")
                 else:
-                    st.info(f"Debug time range (3.2s - 3.5s) is outside video duration ({video_duration:.1f}s)")
+                    st.info(f"Debug time range (0s - 1s) is outside video duration ({video_duration:.1f}s)")
                 
                 # Debug section 2: Show frames from 14.8 to 15.3 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (14.8s - 15.3s)")
