@@ -184,8 +184,8 @@ class StanceDetector:
             
         features['hip_line_angle'] = hip_line_angle
         
-        # Calculate shoulder twist relative to hip line
-        shoulder_twist_hip = shoulder_line_angle - hip_line_angle
+        # Calculate shoulder twist relative to hip line (will be updated after twist calculations)
+        shoulder_twist_hip = 0  # Placeholder, will be calculated after shoulder and hip twists
         features['shoulder_twist_hip'] = shoulder_twist_hip
         
         # Calculate head position (difference in X coordinate between head and right foot)
@@ -363,6 +363,11 @@ class StanceDetector:
         else:
             hip_line_twist = 0
         features['hip_line_twist'] = hip_line_twist
+        
+        # Update shoulder twist relative to hip twist (torso rotation)
+        # This measures how much the shoulders are rotated relative to the hips
+        shoulder_twist_hip = shoulder_line_twist - hip_line_twist
+        features['shoulder_twist_hip'] = shoulder_twist_hip
         
         # 14. Knee-to-ankle line angles with ground
         # Left knee-to-ankle angle with horizontal ground
