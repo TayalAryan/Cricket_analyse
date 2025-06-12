@@ -1050,14 +1050,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # 1.6. Head position (head X - right foot X)
                         head_position = biomech_data.get('head_position', 0)
                         
-                        # 2. Left foot extension (distance between ankles)
+                        # 2. Left foot extension (X-coordinate difference from right ankle)
                         left_ankle_x = biomech_data.get('left_ankle_x', 0)
-                        left_ankle_y = biomech_data.get('left_ankle_y', 0)
                         right_ankle_x = biomech_data.get('right_ankle_x', 0)
-                        right_ankle_y = biomech_data.get('right_ankle_y', 0)
                         
-                        # Calculate distance between ankles
-                        foot_extension = ((left_ankle_x - right_ankle_x)**2 + (left_ankle_y - right_ankle_y)**2)**0.5
+                        # Calculate X-coordinate difference from right ankle
+                        foot_extension = left_ankle_x - right_ankle_x
                         
                         # 3. Body weight distribution (binary: left foot = 1, right foot = 0)
                         # Since we don't have hip data in biomech_data, use ankle positioning for weight distribution
@@ -1253,9 +1251,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Absolute Shoulder Line Angle (degrees)': f"{absolute_shoulder_angles[i]:.2f}",
                             'Shoulder Twist-Hip (degrees)': f"{shoulder_twist_hip[i]:.2f}",
                             'Shoulder Twist-Hip Relative to First Frame (degrees)': f"{relative_shoulder_twist_hip[i]:.2f}",
-                            'Head Position (Euclidean distance from right foot)': f"{head_positions[i]:.4f}",
+                            'Head Position (X-coordinate difference from right foot)': f"{head_positions[i]:.4f}",
                             'Head Position Relative to First Frame': f"{relative_head_positions[i]:.4f}",
-                            'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
+                            'Left Foot Extension (X-coordinate difference from right foot)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
                             'Weight Distribution (binary)': data['weight_distribution'],
                             'Center of Gravity Distance from Right Foot': f"{data['cog_to_right_foot']:.4f}",
