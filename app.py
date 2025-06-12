@@ -343,6 +343,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 'right_ankle_y': right_ankle_y,
                                 'shoulder_line_angle': pose_data.get('shoulder_line_angle', 0),
                                 'hip_line_angle': pose_data.get('hip_line_angle', 0),
+                                'shoulder_twist_hip': pose_data.get('shoulder_twist_hip', 0),
+                                'head_position': pose_data.get('head_position', 0),
                                 'head_tilt_angle': pose_data.get('head_tilt_angle', 0),
                                 'left_knee_angle': pose_data.get('left_knee_angle', 170),
                                 'right_knee_angle': pose_data.get('right_knee_angle', 170),
@@ -1198,7 +1200,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     ))
                     
                     fig.update_layout(
-                        title="Cover Drive Profile - Biomechanical Parameters",
+                        title="Cover Drive Profile - 6 Key Biomechanical Parameters",
                         xaxis_title="Time (seconds)",
                         yaxis_title="Normalized Scale",
                         hovermode='x unified',
