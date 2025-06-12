@@ -1083,20 +1083,26 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         min_val, max_val = min(values), max(values)
                         return [(v - min_val) / (max_val - min_val) * (target_max - target_min) + target_min for v in values]
                     
-                    def normalize_shoulder_angles(angles, center=50, scale_range=40):
-                        """Normalize shoulder angles while preserving directional information"""
+                    def normalize_shoulder_angles_relative_to_first(angles, center=50, scale_range=40):
+                        """Calculate shoulder angles relative to first frame, then normalize for visualization"""
                         if not angles:
                             return angles
-                        # Find maximum absolute angle to scale appropriately
-                        max_abs = max(abs(angle) for angle in angles)
+                        
+                        # Use first frame as reference (0 degrees)
+                        reference_angle = angles[0]
+                        relative_angles = [angle - reference_angle for angle in angles]
+                        
+                        # Find maximum absolute relative change to scale appropriately
+                        max_abs = max(abs(angle) for angle in relative_angles) if relative_angles else 0
                         if max_abs == 0:
-                            return [center] * len(angles)
+                            return [center] * len(relative_angles)
+                        
                         # Scale factor to fit within the range while preserving direction
                         scale_factor = scale_range / max_abs
-                        return [center + (angle * scale_factor) for angle in angles]
+                        return [center + (angle * scale_factor) for angle in relative_angles]
                     
-                    # Normalize shoulder angles preserving direction, other parameters normally
-                    normalized_shoulder = normalize_shoulder_angles(shoulder_angles)
+                    # Calculate shoulder angles relative to first frame, other parameters normally
+                    normalized_shoulder = normalize_shoulder_angles_relative_to_first(shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
                     
@@ -1162,7 +1168,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             dict(
                                 x=0.02, y=0.98,
                                 xref="paper", yref="paper",
-                                text="Shoulder Angle: 50=level, >50=right shoulder lower (retracting), <50=left shoulder lower (forward motion)",
+                                text="Shoulder Angle: 50=starting position, >50=more rightward tilt, <50=more leftward tilt",
                                 showarrow=False,
                                 font=dict(size=10, color="gray"),
                                 align="left"
@@ -1172,31 +1178,36 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     
                     st.plotly_chart(fig, use_container_width=True)
                     
-                    # Add explanation of directional meaning
+                    # Add explanation of relative measurement
                     st.info("""
-                    **Shoulder Line Direction Interpretation:**
-                    - **50 (center line)**: Shoulders level with ground
-                    - **Above 50**: Right shoulder lower than left (typical during backward/preparation phase)
-                    - **Below 50**: Left shoulder lower than right (typical during forward/execution phase)
+                    **Shoulder Line Relative Measurement:**
+                    - **50 (center line)**: Starting shoulder position (first frame reference)
+                    - **Above 50**: More rightward tilt relative to starting position
+                    - **Below 50**: More leftward tilt relative to starting position
                     
-                    This directional information helps identify the transition from retracting motion to forward shot execution.
+                    This relative measurement clearly shows shoulder movement changes from the initial stance, helping identify preparation and execution phases.
                     """)
                     
                     # CSV Download section
                     st.subheader("Download Cover Drive Data")
                     
-                    # Prepare CSV data with original (non-normalized) values
+                    # Calculate relative shoulder angles for CSV
+                    reference_angle = shoulder_angles[0] if shoulder_angles else 0
+                    relative_shoulder_angles = [angle - reference_angle for angle in shoulder_angles]
+                    
+                    # Prepare CSV data with original and relative values
                     csv_data = []
                     for i, data in enumerate(cover_drive_data):
                         csv_data.append({
                             'Frame': i + 1,
                             'Timestamp (s)': f"{data['timestamp']:.3f}",
                             'Shoulder Line Angle (degrees)': f"{data['shoulder_angle']:.2f}",
+                            'Shoulder Angle Relative to First Frame (degrees)': f"{relative_shoulder_angles[i]:.2f}",
                             'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
                             'Weight Distribution (binary)': data['weight_distribution'],
                             'Center of Gravity Distance from Right Foot': f"{data['cog_to_right_foot']:.4f}",
-                            'Normalized Shoulder Angle (0-100)': f"{normalized_shoulder[i]:.2f}",
+                            'Normalized Shoulder Angle (Chart Scale)': f"{normalized_shoulder[i]:.2f}",
                             'Normalized Foot Extension (0-100)': f"{normalized_foot_ext[i]:.2f}",
                             'Normalized Weight Distribution (0-100)': f"{normalized_weight[i]:.2f}",
                             'Normalized CoG Distance (0-100)': f"{normalized_cog[i]:.2f}"
