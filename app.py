@@ -1083,8 +1083,20 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         min_val, max_val = min(values), max(values)
                         return [(v - min_val) / (max_val - min_val) * (target_max - target_min) + target_min for v in values]
                     
-                    # Normalize shoulder angles, foot extensions, and center of gravity distances
-                    normalized_shoulder = normalize_to_scale(shoulder_angles)
+                    def normalize_shoulder_angles(angles, center=50, scale_range=40):
+                        """Normalize shoulder angles while preserving directional information"""
+                        if not angles:
+                            return angles
+                        # Find maximum absolute angle to scale appropriately
+                        max_abs = max(abs(angle) for angle in angles)
+                        if max_abs == 0:
+                            return [center] * len(angles)
+                        # Scale factor to fit within the range while preserving direction
+                        scale_factor = scale_range / max_abs
+                        return [center + (angle * scale_factor) for angle in angles]
+                    
+                    # Normalize shoulder angles preserving direction, other parameters normally
+                    normalized_shoulder = normalize_shoulder_angles(shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
                     
@@ -1140,15 +1152,35 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     ))
                     
                     fig.update_layout(
-                        title="Cover Drive Profile - Normalized Parameters",
+                        title="Cover Drive Profile - Biomechanical Parameters",
                         xaxis_title="Time (seconds)",
-                        yaxis_title="Normalized Value (0-100)",
+                        yaxis_title="Normalized Scale",
                         hovermode='x unified',
                         showlegend=True,
-                        height=500
+                        height=500,
+                        annotations=[
+                            dict(
+                                x=0.02, y=0.98,
+                                xref="paper", yref="paper",
+                                text="Shoulder Angle: 50=level, >50=right shoulder lower (retracting), <50=left shoulder lower (forward motion)",
+                                showarrow=False,
+                                font=dict(size=10, color="gray"),
+                                align="left"
+                            )
+                        ]
                     )
                     
                     st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Add explanation of directional meaning
+                    st.info("""
+                    **Shoulder Line Direction Interpretation:**
+                    - **50 (center line)**: Shoulders level with ground
+                    - **Above 50**: Right shoulder lower than left (typical during backward/preparation phase)
+                    - **Below 50**: Left shoulder lower than right (typical during forward/execution phase)
+                    
+                    This directional information helps identify the transition from retracting motion to forward shot execution.
+                    """)
                     
                     # CSV Download section
                     st.subheader("Download Cover Drive Data")
