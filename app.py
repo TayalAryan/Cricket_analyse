@@ -1074,6 +1074,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     timestamps = [d['timestamp'] for d in cover_drive_data]
                     shoulder_angles = [d['shoulder_angle'] for d in cover_drive_data]
                     absolute_shoulder_angles = [abs(d['shoulder_angle']) for d in cover_drive_data]
+                    shoulder_twist_camera = [d['shoulder_angle'] for d in cover_drive_data]  # Same as shoulder_angles for camera twist
                     foot_extensions = [d['foot_extension'] for d in cover_drive_data]
                     weight_distributions = [d['weight_distribution'] for d in cover_drive_data]
                     cog_distances = [d['cog_to_right_foot'] for d in cover_drive_data]
@@ -1105,12 +1106,17 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     
                     # Calculate shoulder angles relative to first frame, other parameters normally
                     normalized_shoulder = normalize_shoulder_angles_relative_to_first(shoulder_angles)
+                    normalized_shoulder_twist = normalize_shoulder_angles_relative_to_first(shoulder_twist_camera)
                     normalized_abs_shoulder = normalize_to_scale(absolute_shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
                     
                     # Weight distribution is already binary (0/1), scale to 0-100
                     normalized_weight = [w * 100 for w in weight_distributions]
+                    
+                    # Calculate relative shoulder angles and shoulder twist-camera values for CSV
+                    relative_shoulder_angles = [shoulder_angles[i] - shoulder_angles[0] if shoulder_angles else 0 for i in range(len(shoulder_angles))]
+                    relative_shoulder_twist_camera = [shoulder_twist_camera[i] - shoulder_twist_camera[0] if shoulder_twist_camera else 0 for i in range(len(shoulder_twist_camera))]
                     
                     # Create the line chart
                     fig = go.Figure()
@@ -1122,6 +1128,16 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         mode='lines+markers',
                         name='Shoulder Line Angle',
                         line=dict(color='red', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
+                    # Add shoulder twist-camera
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_shoulder_twist,
+                        mode='lines+markers',
+                        name='Shoulder Twist-Camera',
+                        line=dict(color='darkblue', width=2),
                         marker=dict(size=4)
                     ))
                     
@@ -1207,6 +1223,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Shoulder Line Angle (degrees)': f"{data['shoulder_angle']:.2f}",
                             'Shoulder Angle Relative to First Frame (degrees)': f"{relative_shoulder_angles[i]:.2f}",
                             'Absolute Shoulder Line Angle (degrees)': f"{absolute_shoulder_angles[i]:.2f}",
+                            'Shoulder Twist-Camera (degrees)': f"{shoulder_twist_camera[i]:.2f}",
+                            'Shoulder Twist-Camera Relative to First Frame (degrees)': f"{relative_shoulder_twist_camera[i]:.2f}",
                             'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
                             'Weight Distribution (binary)': data['weight_distribution'],
