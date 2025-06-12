@@ -188,10 +188,12 @@ class StanceDetector:
         shoulder_twist_hip = 0  # Placeholder, will be calculated after shoulder and hip twists
         features['shoulder_twist_hip'] = shoulder_twist_hip
         
-        # Calculate head position (difference in X coordinate between head and right foot)
+        # Calculate head position (Euclidean distance between head and right foot)
         head_x = nose.x
+        head_y = nose.y
         right_foot_x = right_ankle.x
-        head_position = head_x - right_foot_x
+        right_foot_y = right_ankle.y
+        head_position = ((head_x - right_foot_x)**2 + (head_y - right_foot_y)**2)**0.5
         features['head_position'] = head_position
         
         # 4. Knee bend angle

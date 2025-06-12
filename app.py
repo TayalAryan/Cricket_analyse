@@ -1253,7 +1253,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Absolute Shoulder Line Angle (degrees)': f"{absolute_shoulder_angles[i]:.2f}",
                             'Shoulder Twist-Hip (degrees)': f"{shoulder_twist_hip[i]:.2f}",
                             'Shoulder Twist-Hip Relative to First Frame (degrees)': f"{relative_shoulder_twist_hip[i]:.2f}",
-                            'Head Position (head X - right foot X)': f"{head_positions[i]:.4f}",
+                            'Head Position (Euclidean distance from right foot)': f"{head_positions[i]:.4f}",
                             'Head Position Relative to First Frame': f"{relative_head_positions[i]:.4f}",
                             'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
