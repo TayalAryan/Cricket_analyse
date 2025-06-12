@@ -1135,12 +1135,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
-                    # Add shoulder twist-camera
+                    # Add shoulder twist-hip
                     fig.add_trace(go.Scatter(
                         x=timestamps,
-                        y=normalized_shoulder_twist,
+                        y=normalized_shoulder_twist_hip,
                         mode='lines+markers',
-                        name='Shoulder Twist-Camera',
+                        name='Shoulder Twist-Hip',
                         line=dict(color='darkblue', width=2),
                         marker=dict(size=4)
                     ))
@@ -1208,7 +1208,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     - **Positive values**: More rightward tilt relative to starting position
                     - **Negative values**: More leftward tilt relative to starting position
                     
-                    This relative measurement clearly shows shoulder movement changes from the initial stance, helping identify preparation and execution phases.
+                    **Shoulder Twist-Hip Analysis:**
+                    - Shows shoulder rotation relative to hip line orientation
+                    - First frame serves as reference baseline (0)
+                    - Indicates torso twist and body positioning changes
+                    
+                    These relative measurements clearly show biomechanical changes from the initial stance, helping identify preparation and execution phases.
                     """)
                     
                     # CSV Download section
@@ -1227,8 +1232,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Shoulder Line Angle (degrees)': f"{data['shoulder_angle']:.2f}",
                             'Shoulder Angle Relative to First Frame (degrees)': f"{relative_shoulder_angles[i]:.2f}",
                             'Absolute Shoulder Line Angle (degrees)': f"{absolute_shoulder_angles[i]:.2f}",
-                            'Shoulder Twist-Camera (degrees)': f"{shoulder_twist_camera[i]:.2f}",
-                            'Shoulder Twist-Camera Relative to First Frame (degrees)': f"{relative_shoulder_twist_camera[i]:.2f}",
+                            'Shoulder Twist-Hip (degrees)': f"{shoulder_twist_hip[i]:.2f}",
+                            'Shoulder Twist-Hip Relative to First Frame (degrees)': f"{relative_shoulder_twist_hip[i]:.2f}",
                             'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
                             'Weight Distribution (binary)': data['weight_distribution'],
