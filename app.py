@@ -1003,32 +1003,35 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 cover_drive_data = []
                 timestamps = []
                 
+                # Debug information
+                total_results = len(all_results)
+                results_with_biomech = sum(1 for r in all_results if r.get('biomech_data'))
+                results_with_confidence = sum(1 for r in all_results if r.get('pose_confidence', 0) > 0.5)
+                
+                st.info(f"Debug: Total frames: {total_results} | With biomech data: {results_with_biomech} | With confidence >0.5: {results_with_confidence}")
+                
                 for result in all_results:
-                    if result.get('pose_data'):
-                        pose_data = result['pose_data']
+                    if result.get('biomech_data') and result['pose_confidence'] > 0.5:
+                        biomech_data = result['biomech_data']
                         timestamp = result['timestamp']
                         
                         # 1. Shoulder line angle (with ground)
-                        shoulder_angle = pose_data.get('shoulder_line_angle', 0)
+                        shoulder_angle = biomech_data.get('shoulder_line_angle', 0)
                         
                         # 2. Left foot extension (distance between ankles)
-                        left_ankle_x = pose_data.get('left_ankle_x', 0)
-                        left_ankle_y = pose_data.get('left_ankle_y', 0)
-                        right_ankle_x = pose_data.get('right_ankle_x', 0)
-                        right_ankle_y = pose_data.get('right_ankle_y', 0)
+                        left_ankle_x = biomech_data.get('left_ankle_x', 0)
+                        left_ankle_y = biomech_data.get('left_ankle_y', 0)
+                        right_ankle_x = biomech_data.get('right_ankle_x', 0)
+                        right_ankle_y = biomech_data.get('right_ankle_y', 0)
                         
                         # Calculate distance between ankles
                         foot_extension = ((left_ankle_x - right_ankle_x)**2 + (left_ankle_y - right_ankle_y)**2)**0.5
                         
                         # 3. Body weight distribution (binary: left foot = 1, right foot = 0)
-                        # Use hip position relative to ankle positions to determine weight distribution
-                        left_hip_x = pose_data.get('left_hip_x', 0.5)
-                        right_hip_x = pose_data.get('right_hip_x', 0.5)
-                        hip_center_x = (left_hip_x + right_hip_x) / 2
-                        ankle_center_x = (left_ankle_x + right_ankle_x) / 2
-                        
-                        # If hip center is closer to left ankle, weight on left foot (1), else right foot (0)
-                        weight_distribution = 1 if hip_center_x < ankle_center_x else 0
+                        # Since we don't have hip data in biomech_data, use ankle positioning for weight distribution
+                        # If left ankle is more forward (lower y value), assume weight on left foot
+                        # This is a simplified approach based on typical batting stance dynamics
+                        weight_distribution = 1 if left_ankle_y < right_ankle_y else 0
                         
                         cover_drive_data.append({
                             'timestamp': timestamp,
