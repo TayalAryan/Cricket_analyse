@@ -169,6 +169,25 @@ class StanceDetector:
         features['shoulder_line_angle'] = shoulder_line_angle
         features['shoulder_line_good'] = -10 <= shoulder_line_angle <= 10
         
+        # Calculate hip line angle with ground (same method as shoulder line)
+        dx_hip = right_hip.x - left_hip.x
+        dy_hip = right_hip.y - left_hip.y
+        
+        # Calculate angle in degrees (0 = horizontal, positive = right hip lower)
+        hip_line_angle = math.degrees(math.atan2(dy_hip, dx_hip))
+        
+        # Normalize to -90 to 90 degrees for hip tilt measurement
+        if hip_line_angle > 90:
+            hip_line_angle = 180 - hip_line_angle
+        elif hip_line_angle < -90:
+            hip_line_angle = -180 - hip_line_angle
+            
+        features['hip_line_angle'] = hip_line_angle
+        
+        # Calculate shoulder twist relative to hip line
+        shoulder_twist_hip = shoulder_line_angle - hip_line_angle
+        features['shoulder_twist_hip'] = shoulder_twist_hip
+        
         # 4. Knee bend angle
         left_knee_angle = self._calculate_angle(
             (left_hip.x, left_hip.y), 
