@@ -315,16 +315,40 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # Store comprehensive biomechanical data for shot trigger analysis
                         biomech_data = None
                         if pose_data and pose_data.get('confidence', 0) > 0.5:
+                            # Calculate center of gravity from key body landmarks
+                            # Use weighted average of major body points
+                            left_hip_x = pose_data.get('left_hip_x', 0.5)
+                            left_hip_y = pose_data.get('left_hip_y', 0.5)
+                            right_hip_x = pose_data.get('right_hip_x', 0.5)
+                            right_hip_y = pose_data.get('right_hip_y', 0.5)
+                            left_shoulder_x = pose_data.get('left_shoulder_x', 0.5)
+                            left_shoulder_y = pose_data.get('left_shoulder_y', 0.3)
+                            right_shoulder_x = pose_data.get('right_shoulder_x', 0.5)
+                            right_shoulder_y = pose_data.get('right_shoulder_y', 0.3)
+                            
+                            # Center of gravity approximation using torso center
+                            # Weighted more towards hips (lower body mass)
+                            cog_x = (left_hip_x + right_hip_x + left_shoulder_x + right_shoulder_x) / 4
+                            cog_y = (left_hip_y * 0.6 + right_hip_y * 0.6 + left_shoulder_y * 0.4 + right_shoulder_y * 0.4) / 2
+                            
+                            # Calculate distance from center of gravity to right foot
+                            right_ankle_x = pose_data.get('right_ankle_x', 0)
+                            right_ankle_y = pose_data.get('right_ankle_y', 0)
+                            cog_to_right_foot = ((cog_x - right_ankle_x)**2 + (cog_y - right_ankle_y)**2)**0.5
+                            
                             biomech_data = {
                                 'left_ankle_x': pose_data.get('left_ankle_x', 0),
                                 'left_ankle_y': pose_data.get('left_ankle_y', 0),
-                                'right_ankle_x': pose_data.get('right_ankle_x', 0),
-                                'right_ankle_y': pose_data.get('right_ankle_y', 0),
+                                'right_ankle_x': right_ankle_x,
+                                'right_ankle_y': right_ankle_y,
                                 'shoulder_line_angle': pose_data.get('shoulder_line_angle', 0),
                                 'hip_line_angle': pose_data.get('hip_line_angle', 0),
                                 'head_tilt_angle': pose_data.get('head_tilt_angle', 0),
                                 'left_knee_angle': pose_data.get('left_knee_angle', 170),
-                                'right_knee_angle': pose_data.get('right_knee_angle', 170)
+                                'right_knee_angle': pose_data.get('right_knee_angle', 170),
+                                'center_of_gravity_x': cog_x,
+                                'center_of_gravity_y': cog_y,
+                                'cog_to_right_foot': cog_to_right_foot
                             }
                         
                         results.append({
@@ -1033,11 +1057,15 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # This is a simplified approach based on typical batting stance dynamics
                         weight_distribution = 1 if left_ankle_y < right_ankle_y else 0
                         
+                        # 4. Center of gravity distance from right foot
+                        cog_to_right_foot = biomech_data.get('cog_to_right_foot', 0)
+                        
                         cover_drive_data.append({
                             'timestamp': timestamp,
                             'shoulder_angle': shoulder_angle,
                             'foot_extension': foot_extension,
-                            'weight_distribution': weight_distribution
+                            'weight_distribution': weight_distribution,
+                            'cog_to_right_foot': cog_to_right_foot
                         })
                         timestamps.append(timestamp)
                 
@@ -1046,6 +1074,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     shoulder_angles = [d['shoulder_angle'] for d in cover_drive_data]
                     foot_extensions = [d['foot_extension'] for d in cover_drive_data]
                     weight_distributions = [d['weight_distribution'] for d in cover_drive_data]
+                    cog_distances = [d['cog_to_right_foot'] for d in cover_drive_data]
                     
                     # Normalize values to 0-100 scale for visualization
                     def normalize_to_scale(values, target_min=0, target_max=100):
@@ -1054,9 +1083,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         min_val, max_val = min(values), max(values)
                         return [(v - min_val) / (max_val - min_val) * (target_max - target_min) + target_min for v in values]
                     
-                    # Normalize shoulder angles and foot extensions
+                    # Normalize shoulder angles, foot extensions, and center of gravity distances
                     normalized_shoulder = normalize_to_scale(shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
+                    normalized_cog = normalize_to_scale(cog_distances)
                     
                     # Weight distribution is already binary (0/1), scale to 0-100
                     normalized_weight = [w * 100 for w in weight_distributions]
@@ -1099,6 +1129,16 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         text=['Left Foot' if w == 1 else 'Right Foot' for w in weight_distributions]
                     ))
                     
+                    # Add center of gravity distance from right foot
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_cog,
+                        mode='lines+markers',
+                        name='Center of Gravity Distance',
+                        line=dict(color='purple', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
                     fig.update_layout(
                         title="Cover Drive Profile - Normalized Parameters",
                         xaxis_title="Time (seconds)",
@@ -1123,9 +1163,11 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
                             'Weight Distribution (binary)': data['weight_distribution'],
+                            'Center of Gravity Distance from Right Foot': f"{data['cog_to_right_foot']:.4f}",
                             'Normalized Shoulder Angle (0-100)': f"{normalized_shoulder[i]:.2f}",
                             'Normalized Foot Extension (0-100)': f"{normalized_foot_ext[i]:.2f}",
-                            'Normalized Weight Distribution (0-100)': f"{normalized_weight[i]:.2f}"
+                            'Normalized Weight Distribution (0-100)': f"{normalized_weight[i]:.2f}",
+                            'Normalized CoG Distance (0-100)': f"{normalized_cog[i]:.2f}"
                         })
                     
                     # Convert to CSV string
@@ -1150,7 +1192,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         )
                         
                         # Show summary statistics
-                        col1, col2, col3 = st.columns(3)
+                        col1, col2, col3, col4 = st.columns(4)
                         
                         with col1:
                             avg_shoulder = sum(shoulder_angles) / len(shoulder_angles)
@@ -1163,6 +1205,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         with col3:
                             left_foot_percentage = (sum(weight_distributions) / len(weight_distributions)) * 100
                             st.metric("Left Foot Weight %", f"{left_foot_percentage:.0f}%")
+                        
+                        with col4:
+                            avg_cog_distance = sum(cog_distances) / len(cog_distances)
+                            st.metric("Avg CoG Distance", f"{avg_cog_distance:.3f}")
                 
                 else:
                     st.warning("No pose data available for Cover Drive Profile analysis")
