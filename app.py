@@ -1071,7 +1071,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 
                 if cover_drive_data:
                     # Extract data for normalization
+                    timestamps = [d['timestamp'] for d in cover_drive_data]
                     shoulder_angles = [d['shoulder_angle'] for d in cover_drive_data]
+                    absolute_shoulder_angles = [abs(d['shoulder_angle']) for d in cover_drive_data]
                     foot_extensions = [d['foot_extension'] for d in cover_drive_data]
                     weight_distributions = [d['weight_distribution'] for d in cover_drive_data]
                     cog_distances = [d['cog_to_right_foot'] for d in cover_drive_data]
@@ -1103,6 +1105,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     
                     # Calculate shoulder angles relative to first frame, other parameters normally
                     normalized_shoulder = normalize_shoulder_angles_relative_to_first(shoulder_angles)
+                    normalized_abs_shoulder = normalize_to_scale(absolute_shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
                     
@@ -1112,13 +1115,23 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     # Create the line chart
                     fig = go.Figure()
                     
-                    # Add shoulder line angle
+                    # Add shoulder line angle (relative to first frame)
                     fig.add_trace(go.Scatter(
                         x=timestamps,
                         y=normalized_shoulder,
                         mode='lines+markers',
-                        name='Shoulder Line Angle',
+                        name='Shoulder Line Angle (Relative)',
                         line=dict(color='red', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
+                    # Add absolute shoulder line angle
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_abs_shoulder,
+                        mode='lines+markers',
+                        name='Shoulder Line Angle (Absolute)',
+                        line=dict(color='darkred', width=2, dash='dash'),
                         marker=dict(size=4)
                     ))
                     
@@ -1203,6 +1216,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Timestamp (s)': f"{data['timestamp']:.3f}",
                             'Shoulder Line Angle (degrees)': f"{data['shoulder_angle']:.2f}",
                             'Shoulder Angle Relative to First Frame (degrees)': f"{relative_shoulder_angles[i]:.2f}",
+                            'Absolute Shoulder Line Angle (degrees)': f"{absolute_shoulder_angles[i]:.2f}",
                             'Left Foot Extension (normalized distance)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
                             'Weight Distribution (binary)': data['weight_distribution'],
