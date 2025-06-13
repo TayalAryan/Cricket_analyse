@@ -367,6 +367,11 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             right_ankle_y = pose_data.get('right_ankle_y', 0)
                             cog_to_right_foot = ((cog_x - right_ankle_x)**2 + (cog_y - right_ankle_y)**2)**0.5
                             
+                            # Calculate left foot-head gap (X coordinate distance)
+                            left_ankle_x = pose_data.get('left_ankle_x', 0)
+                            head_x = (left_shoulder_x + right_shoulder_x) / 2  # Use shoulder center as head X position
+                            left_foot_head_gap = abs(left_ankle_x - head_x)
+                            
                             biomech_data = {
                                 'left_ankle_x': pose_data.get('left_ankle_x', 0),
                                 'left_ankle_y': pose_data.get('left_ankle_y', 0),
@@ -388,7 +393,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 'stance_width': pose_data.get('stance_width', 0),
                                 'cog_distance_from_center': pose_data.get('cog_distance_from_center', 0),
                                 'balanced_threshold': pose_data.get('balanced_threshold', 0),
-                                'cog_method': pose_data.get('cog_method', 'fallback')
+                                'cog_method': pose_data.get('cog_method', 'fallback'),
+                                'left_foot_head_gap': left_foot_head_gap
                             }
                         
                         results.append({
@@ -1105,6 +1111,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # 4. Center of gravity distance from right foot
                         cog_to_right_foot = biomech_data.get('cog_to_right_foot', 0)
                         
+                        # 5. Left foot-head gap (X coordinate distance)
+                        left_foot_head_gap = biomech_data.get('left_foot_head_gap', 0)
+                        
                         cover_drive_data.append({
                             'timestamp': timestamp,
                             'shoulder_angle': shoulder_angle,
@@ -1112,7 +1121,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'head_position': head_position,
                             'foot_extension': foot_extension,
                             'weight_distribution': weight_distribution,
-                            'cog_to_right_foot': cog_to_right_foot
+                            'cog_to_right_foot': cog_to_right_foot,
+                            'left_foot_head_gap': left_foot_head_gap
                         })
                         timestamps.append(timestamp)
                 
@@ -1126,6 +1136,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     foot_extensions = [d['foot_extension'] for d in cover_drive_data]
                     weight_distributions = [d['weight_distribution'] for d in cover_drive_data]
                     cog_distances = [d['cog_to_right_foot'] for d in cover_drive_data]
+                    left_foot_head_gaps = [d['left_foot_head_gap'] for d in cover_drive_data]
                     
                     # Normalize values to 0-100 scale for visualization
                     def normalize_to_scale(values, target_min=0, target_max=100):
@@ -1159,6 +1170,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     normalized_abs_shoulder = normalize_to_scale(absolute_shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
+                    normalized_left_foot_head_gap = normalize_to_scale(left_foot_head_gaps)
                     
                     # Weight distribution is three-state (0=Right, 1=Left, 2=Balanced), scale to 0-100
                     normalized_weight = [w * 50 for w in weight_distributions]  # 0=0, 1=50, 2=100
