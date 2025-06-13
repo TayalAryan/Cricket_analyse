@@ -213,45 +213,16 @@ class StanceDetector:
         cog_x = cog_result['cog_x']
         cog_y = cog_result['cog_y']
         
-        # Calculate weight distribution based on CoG X-coordinate relative to feet
-        stance_width = abs(left_ankle.x - right_ankle.x)
-        stance_center_x = (left_ankle.x + right_ankle.x) / 2
-        cog_distance_from_center = cog_x - stance_center_x  # Signed distance (negative = left, positive = right)
+        # Calculate weight distribution - completely new implementation
+        weight_distribution_result = self._calculate_weight_distribution(cog_x, cog_y, left_ankle, right_ankle)
         
-        # Calculate balanced threshold as 15% of stance width
-        balanced_threshold = stance_width * self.balanced_threshold_percent
-        
-        # Determine weight distribution based on CoG X-position
-        if abs(cog_distance_from_center) <= balanced_threshold:
-            weight_distribution = "Balanced"  # CoG within 15% of stance center
-        elif cog_distance_from_center < 0:
-            weight_distribution = "Left Foot"  # CoG shifted toward left foot
-        else:
-            weight_distribution = "Right Foot"  # CoG shifted toward right foot
-        
-        # Also store numeric values for backward compatibility and chart plotting
-        if weight_distribution == "Right Foot":
-            weight_distribution_numeric = 0
-        elif weight_distribution == "Left Foot":
-            weight_distribution_numeric = 1
-        else:  # Balanced
-            weight_distribution_numeric = 2
-        
-        # Calculate distances for additional metrics
-        left_foot_distance = ((cog_x - left_ankle.x)**2 + (cog_y - left_ankle.y)**2)**0.5
-        right_foot_distance = ((cog_x - right_ankle.x)**2 + (cog_y - right_ankle.y)**2)**0.5
-        
-        features['weight_distribution'] = weight_distribution_numeric  # For compatibility
-        features['weight_distribution_text'] = weight_distribution
+        # Store original CoG and foot data for other calculations
         features['cog_x'] = cog_x
         features['cog_y'] = cog_y
-        features['left_foot_distance'] = left_foot_distance
-        features['right_foot_distance'] = right_foot_distance
-        features['stance_width'] = stance_width
-        features['cog_distance_from_center'] = abs(cog_distance_from_center)
-        features['cog_signed_distance'] = cog_distance_from_center
-        features['balanced_threshold'] = balanced_threshold
         features['cog_method'] = cog_result['method']
+        
+        # Add weight distribution results
+        features.update(weight_distribution_result)
         
         # 4. Knee bend angle
         left_knee_angle = self._calculate_angle(
@@ -1161,6 +1132,49 @@ class StanceDetector:
             'stability_percentage': len([r for r in results if r['is_stable_stance']]) / len(results) * 100 if results else 0
         }
     
+    def _calculate_weight_distribution(self, cog_x, cog_y, left_ankle, right_ankle):
+        """
+        Calculate weight distribution based on center of gravity position relative to feet.
+        Returns clean 3-state classification: Right Foot, Left Foot, or Balanced.
+        """
+        # Calculate stance geometry
+        stance_width = abs(left_ankle.x - right_ankle.x)
+        stance_center_x = (left_ankle.x + right_ankle.x) / 2
+        
+        # Calculate signed distance from CoG to stance center
+        # Negative = toward left foot, Positive = toward right foot
+        cog_offset_from_center = cog_x - stance_center_x
+        
+        # Define balanced zone as 15% of stance width on each side of center
+        balanced_threshold = stance_width * 0.15
+        
+        # Classify weight distribution
+        if abs(cog_offset_from_center) <= balanced_threshold:
+            weight_state = "Balanced"
+            weight_numeric = 2
+        elif cog_offset_from_center < 0:  # CoG shifted toward left foot
+            weight_state = "Left Foot"
+            weight_numeric = 1
+        else:  # CoG shifted toward right foot
+            weight_state = "Right Foot"
+            weight_numeric = 0
+        
+        # Calculate additional metrics for analysis
+        left_foot_distance = ((cog_x - left_ankle.x)**2 + (cog_y - left_ankle.y)**2)**0.5
+        right_foot_distance = ((cog_x - right_ankle.x)**2 + (cog_y - right_ankle.y)**2)**0.5
+        
+        return {
+            'weight_distribution': weight_numeric,
+            'weight_distribution_text': weight_state,
+            'stance_width': stance_width,
+            'stance_center_x': stance_center_x,
+            'cog_offset_from_center': cog_offset_from_center,
+            'balanced_threshold': balanced_threshold,
+            'left_foot_distance': left_foot_distance,
+            'right_foot_distance': right_foot_distance,
+            'cog_distance_from_center': abs(cog_offset_from_center)
+        }
+
     def _calculate_weighted_center_of_gravity(self, landmarks):
         """
         Calculate center of gravity using weighted body segments.
