@@ -213,33 +213,43 @@ class StanceDetector:
         cog_x = cog_result['cog_x']
         cog_y = cog_result['cog_y']
         
-        # Calculate distances from center of gravity to each foot
+        # Calculate weight distribution based on CoG X-coordinate relative to feet
+        stance_width = abs(left_ankle.x - right_ankle.x)
+        stance_center_x = (left_ankle.x + right_ankle.x) / 2
+        cog_distance_from_center = cog_x - stance_center_x  # Signed distance (negative = left, positive = right)
+        
+        # Calculate balanced threshold as 15% of stance width
+        balanced_threshold = stance_width * self.balanced_threshold_percent
+        
+        # Determine weight distribution based on CoG X-position
+        if abs(cog_distance_from_center) <= balanced_threshold:
+            weight_distribution = "Balanced"  # CoG within 15% of stance center
+        elif cog_distance_from_center < 0:
+            weight_distribution = "Left Foot"  # CoG shifted toward left foot
+        else:
+            weight_distribution = "Right Foot"  # CoG shifted toward right foot
+        
+        # Also store numeric values for backward compatibility and chart plotting
+        if weight_distribution == "Right Foot":
+            weight_distribution_numeric = 0
+        elif weight_distribution == "Left Foot":
+            weight_distribution_numeric = 1
+        else:  # Balanced
+            weight_distribution_numeric = 2
+        
+        # Calculate distances for additional metrics
         left_foot_distance = ((cog_x - left_ankle.x)**2 + (cog_y - left_ankle.y)**2)**0.5
         right_foot_distance = ((cog_x - right_ankle.x)**2 + (cog_y - right_ankle.y)**2)**0.5
         
-        # Calculate stance width and center for balanced classification
-        stance_width = abs(left_ankle.x - right_ankle.x)
-        stance_center_x = (left_ankle.x + right_ankle.x) / 2
-        cog_distance_from_center = abs(cog_x - stance_center_x)
-        
-        # Determine weight distribution: 0 = Right Foot, 1 = Left Foot, 2 = Balanced
-        # Balanced when CoG is within 15% of stance width from center
-        balanced_threshold = stance_width * self.balanced_threshold_percent
-        
-        if cog_distance_from_center <= balanced_threshold:
-            weight_distribution = 2  # Balanced (CoG within 15% of stance width from center)
-        elif left_foot_distance < right_foot_distance:
-            weight_distribution = 1  # Left Foot (CoG closer to left foot)
-        else:
-            weight_distribution = 0  # Right Foot (CoG closer to right foot)
-        
-        features['weight_distribution'] = weight_distribution
+        features['weight_distribution'] = weight_distribution_numeric  # For compatibility
+        features['weight_distribution_text'] = weight_distribution
         features['cog_x'] = cog_x
         features['cog_y'] = cog_y
         features['left_foot_distance'] = left_foot_distance
         features['right_foot_distance'] = right_foot_distance
         features['stance_width'] = stance_width
-        features['cog_distance_from_center'] = cog_distance_from_center
+        features['cog_distance_from_center'] = abs(cog_distance_from_center)
+        features['cog_signed_distance'] = cog_distance_from_center
         features['balanced_threshold'] = balanced_threshold
         features['cog_method'] = cog_result['method']
         
