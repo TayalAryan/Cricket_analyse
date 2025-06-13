@@ -212,12 +212,10 @@ class StanceDetector:
         stance_center_x = (left_ankle.x + right_ankle.x) / 2
         cog_distance_from_center = abs(cog_x - stance_center_x)
         
-        # Define balanced threshold as a small percentage of stance width
-        balanced_threshold = stance_width * 0.15  # 15% of stance width for balanced state
-        
         # Determine weight distribution: 0 = Right Foot, 1 = Left Foot, 2 = Balanced, 3 = In transition
-        if cog_distance_from_center <= balanced_threshold:
-            weight_distribution = 2  # Balanced (CoG centered between feet)
+        # Balanced only when CoG is exactly at center (equal distance from both feet)
+        if abs(left_foot_distance - right_foot_distance) < 0.001:  # Very small tolerance for floating point precision
+            weight_distribution = 2  # Balanced (CoG exactly centered between feet)
         elif left_foot_distance < right_foot_distance:
             weight_distribution = 1  # Left Foot (CoG closer to left foot)
         else:
@@ -245,7 +243,6 @@ class StanceDetector:
         features['right_foot_distance'] = right_foot_distance
         features['stance_width'] = stance_width
         features['cog_distance_from_center'] = cog_distance_from_center
-        features['balanced_threshold'] = balanced_threshold
         features['current_ankle_distance'] = current_ankle_distance
         features['cog_method'] = cog_result['method']
         
