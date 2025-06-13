@@ -229,7 +229,7 @@ class StanceDetector:
         features['right_foot_distance'] = right_foot_distance
         features['stance_width'] = stance_width
         features['cog_distance_from_center'] = cog_distance_from_center
-        features['current_ankle_distance'] = current_ankle_distance
+        features['balanced_threshold'] = balanced_threshold
         features['cog_method'] = cog_result['method']
         
         # 4. Knee bend angle

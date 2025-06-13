@@ -1285,7 +1285,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Head Position (X-coordinate difference from right foot)': f"{head_positions[i]:.4f}",
                             'Head Position Relative to First Frame': f"{relative_head_positions[i]:.4f}",
                             'Left Foot Extension (X-coordinate difference from right foot)': f"{data['foot_extension']:.4f}",
-                            'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else ('Balanced' if data['weight_distribution'] == 2 else ('In Transition' if data['weight_distribution'] == 3 else 'Right Foot')),
+                            'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else ('Balanced' if data['weight_distribution'] == 2 else 'Right Foot'),
                             'Weight Distribution (numeric)': data['weight_distribution'],
                             'Center of Gravity Distance from Right Foot': f"{data['cog_to_right_foot']:.4f}",
                             'Normalized Shoulder Angle (Chart Scale)': f"{normalized_shoulder[i]:.2f}",
