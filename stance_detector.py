@@ -194,6 +194,12 @@ class StanceDetector:
         head_position = head_x - right_foot_x
         features['head_position'] = head_position
         
+        # Calculate advanced weight distribution (left foot, right foot, transition)
+        weight_distribution = self._calculate_weight_distribution(landmarks)
+        features['weight_distribution'] = weight_distribution['state']
+        features['weight_confidence'] = weight_distribution['confidence']
+        features['weight_score'] = weight_distribution['score']
+        
         # 4. Knee bend angle
         left_knee_angle = self._calculate_angle(
             (left_hip.x, left_hip.y), 
