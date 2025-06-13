@@ -1189,6 +1189,16 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         text=['Left Foot' if w == 1 else 'Right Foot' for w in weight_distributions]
                     ))
                     
+                    # Add absolute shoulder line angle
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_abs_shoulder,
+                        mode='lines+markers',
+                        name='Absolute Shoulder Line Angle',
+                        line=dict(color='brown', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
                     # Add center of gravity distance from right foot
                     fig.add_trace(go.Scatter(
                         x=timestamps,
@@ -1200,7 +1210,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     ))
                     
                     fig.update_layout(
-                        title="Cover Drive Profile - 6 Key Biomechanical Parameters",
+                        title="Cover Drive Profile - 7 Key Biomechanical Parameters",
                         xaxis_title="Time (seconds)",
                         yaxis_title="Normalized Scale",
                         hovermode='x unified',
