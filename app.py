@@ -367,11 +367,16 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 'center_of_gravity_y': cog_y,
                                 'cog_to_right_foot': cog_to_right_foot,
                                 'weight_distribution': pose_data.get('weight_distribution', 0),
+                                'weight_distribution_text': pose_data.get('weight_distribution_text', 'Unknown'),
                                 'cog_x': pose_data.get('cog_x', cog_x),
                                 'cog_y': pose_data.get('cog_y', cog_y),
                                 'stance_width': pose_data.get('stance_width', 0),
+                                'stance_center_x': pose_data.get('stance_center_x', 0),
+                                'cog_offset_from_center': pose_data.get('cog_offset_from_center', 0),
                                 'cog_distance_from_center': pose_data.get('cog_distance_from_center', 0),
                                 'balanced_threshold': pose_data.get('balanced_threshold', 0),
+                                'left_foot_distance': pose_data.get('left_foot_distance', 0),
+                                'right_foot_distance': pose_data.get('right_foot_distance', 0),
                                 'cog_method': pose_data.get('cog_method', 'fallback'),
                                 'left_foot_head_gap': left_foot_head_gap
                             }
