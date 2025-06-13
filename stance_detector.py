@@ -194,11 +194,23 @@ class StanceDetector:
         head_position = head_x - right_foot_x
         features['head_position'] = head_position
         
-        # Calculate advanced weight distribution (left foot, right foot, transition)
-        weight_distribution = self._calculate_weight_distribution(landmarks)
-        features['weight_distribution'] = weight_distribution['state']
-        features['weight_confidence'] = weight_distribution['confidence']
-        features['weight_score'] = weight_distribution['score']
+        # Calculate sophisticated center of gravity using weighted body segments
+        cog_result = self._calculate_weighted_center_of_gravity(landmarks)
+        cog_x = cog_result['cog_x']
+        cog_y = cog_result['cog_y']
+        
+        # Calculate distances from center of gravity to each foot
+        left_foot_distance = ((cog_x - left_ankle.x)**2 + (cog_y - left_ankle.y)**2)**0.5
+        right_foot_distance = ((cog_x - right_ankle.x)**2 + (cog_y - right_ankle.y)**2)**0.5
+        
+        # Weight is on the foot that's closer to center of gravity
+        weight_on_left = left_foot_distance < right_foot_distance
+        features['weight_distribution'] = 1 if weight_on_left else 0
+        features['cog_x'] = cog_x
+        features['cog_y'] = cog_y
+        features['left_foot_distance'] = left_foot_distance
+        features['right_foot_distance'] = right_foot_distance
+        features['cog_method'] = cog_result['method']
         
         # 4. Knee bend angle
         left_knee_angle = self._calculate_angle(
@@ -1107,3 +1119,113 @@ class StanceDetector:
             'total_stable_time': sum(p['duration'] for p in stable_periods),
             'stability_percentage': len([r for r in results if r['is_stable_stance']]) / len(results) * 100 if results else 0
         }
+    
+    def _calculate_weighted_center_of_gravity(self, landmarks):
+        """
+        Calculate center of gravity using weighted body segments.
+        
+        Body segment weights:
+        - Head/Neck: 8%
+        - Torso: 50% 
+        - Arms: 12%
+        - Upper Legs: 20%
+        - Lower Legs: 10%
+        """
+        try:
+            import mediapipe as mp
+            
+            # Get landmark positions
+            left_shoulder = landmarks[mp.solutions.pose.PoseLandmark.LEFT_SHOULDER.value]
+            right_shoulder = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER.value]
+            left_hip = landmarks[mp.solutions.pose.PoseLandmark.LEFT_HIP.value]
+            right_hip = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_HIP.value]
+            left_knee = landmarks[mp.solutions.pose.PoseLandmark.LEFT_KNEE.value]
+            right_knee = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_KNEE.value]
+            left_ankle = landmarks[mp.solutions.pose.PoseLandmark.LEFT_ANKLE.value]
+            right_ankle = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_ANKLE.value]
+            
+            # Optional landmarks (may not always be available)
+            try:
+                left_elbow = landmarks[mp.solutions.pose.PoseLandmark.LEFT_ELBOW.value]
+                right_elbow = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_ELBOW.value]
+                left_wrist = landmarks[mp.solutions.pose.PoseLandmark.LEFT_WRIST.value]
+                right_wrist = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_WRIST.value]
+                has_arms = True
+            except:
+                has_arms = False
+            
+            # Initialize weighted segments
+            segments = []
+            
+            # 1. Head/Neck (8%) - Use shoulder center point as reference, estimate head 50 pixels above
+            shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
+            shoulder_center_y = (left_shoulder.y + right_shoulder.y) / 2
+            # Estimate head position 50 pixels above shoulders (in normalized coordinates ~0.05)
+            head_x = shoulder_center_x
+            head_y = shoulder_center_y - 0.05  # Move up in normalized coordinates
+            segments.append({'x': head_x, 'y': head_y, 'weight': 0.08})
+            
+            # 2. Torso (50%) - Average shoulder and hip positions
+            torso_x = (left_shoulder.x + right_shoulder.x + left_hip.x + right_hip.x) / 4
+            torso_y = (left_shoulder.y + right_shoulder.y + left_hip.y + right_hip.y) / 4
+            segments.append({'x': torso_x, 'y': torso_y, 'weight': 0.50})
+            
+            # 3. Arms (12%) - Use elbows when available, fall back to wrists
+            if has_arms:
+                # Use elbows for better arm positioning
+                arms_x = (left_elbow.x + right_elbow.x) / 2
+                arms_y = (left_elbow.y + right_elbow.y) / 2
+            else:
+                # Fallback to wrist positions if available, or shoulder positions
+                try:
+                    arms_x = (left_wrist.x + right_wrist.x) / 2
+                    arms_y = (left_wrist.y + right_wrist.y) / 2
+                except:
+                    # Ultimate fallback to shoulder positions
+                    arms_x = shoulder_center_x
+                    arms_y = shoulder_center_y
+            segments.append({'x': arms_x, 'y': arms_y, 'weight': 0.12})
+            
+            # 4. Upper Legs (20%) - Average hip and knee positions
+            upper_legs_x = (left_hip.x + right_hip.x + left_knee.x + right_knee.x) / 4
+            upper_legs_y = (left_hip.y + right_hip.y + left_knee.y + right_knee.y) / 4
+            segments.append({'x': upper_legs_x, 'y': upper_legs_y, 'weight': 0.20})
+            
+            # 5. Lower Legs (10%) - Average knee and ankle positions
+            lower_legs_x = (left_knee.x + right_knee.x + left_ankle.x + right_ankle.x) / 4
+            lower_legs_y = (left_knee.y + right_knee.y + left_ankle.y + right_ankle.y) / 4
+            segments.append({'x': lower_legs_x, 'y': lower_legs_y, 'weight': 0.10})
+            
+            # Calculate weighted center of gravity
+            total_weight = sum(segment['weight'] for segment in segments)
+            cog_x = sum(segment['x'] * segment['weight'] for segment in segments) / total_weight
+            cog_y = sum(segment['y'] * segment['weight'] for segment in segments) / total_weight
+            
+            return {
+                'cog_x': cog_x,
+                'cog_y': cog_y,
+                'method': 'weighted_segments'
+            }
+            
+        except Exception as e:
+            # Fallback method - simple hip center calculation
+            try:
+                import mediapipe as mp
+                left_hip = landmarks[mp.solutions.pose.PoseLandmark.LEFT_HIP.value]
+                right_hip = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_HIP.value]
+                
+                cog_x = (left_hip.x + right_hip.x) / 2
+                cog_y = (left_hip.y + right_hip.y) / 2
+                
+                return {
+                    'cog_x': cog_x,
+                    'cog_y': cog_y,
+                    'method': 'hip_center_fallback'
+                }
+            except:
+                # Ultimate fallback
+                return {
+                    'cog_x': 0.5,
+                    'cog_y': 0.5,
+                    'method': 'default_center'
+                }

@@ -1059,11 +1059,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # Calculate X-coordinate difference from right ankle
                         foot_extension = left_ankle_x - right_ankle_x
                         
-                        # 3. Body weight distribution (binary: left foot = 1, right foot = 0)
-                        # Since we don't have hip data in biomech_data, use ankle positioning for weight distribution
-                        # If left ankle is more forward (lower y value), assume weight on left foot
-                        # This is a simplified approach based on typical batting stance dynamics
-                        weight_distribution = 1 if left_ankle_y < right_ankle_y else 0
+                        # 3. Body weight distribution based on center of gravity proximity to feet
+                        # Get the weight distribution already calculated in stance detector
+                        weight_distribution = biomech_data.get('weight_distribution', 0)
                         
                         # 4. Center of gravity distance from right foot
                         cog_to_right_foot = biomech_data.get('cog_to_right_foot', 0)
