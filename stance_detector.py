@@ -6,7 +6,7 @@ import math
 from collections import deque
 
 class StanceDetector:
-    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.1, confidence_threshold: float = 0.5, camera_perspective: str = "right", batsman_height: float = 5.5):
+    def __init__(self, stability_threshold: float = 0.03, min_stability_duration: float = 0.1, confidence_threshold: float = 0.5, camera_perspective: str = "right", batsman_height: float = 5.5, cog_weights: dict = None):
         """
         Initialize the stance detector.
         
@@ -16,12 +16,23 @@ class StanceDetector:
             confidence_threshold: Minimum confidence for pose detection
             camera_perspective: Camera perspective - "right" (bowler on right) or "left" (bowler on left)
             batsman_height: Height of batsman in feet
+            cog_weights: Dictionary with body segment weights for CoG calculation
+                        Default: {'head': 0.08, 'torso': 0.56, 'arms': 0.0, 'upper_legs': 0.23, 'lower_legs': 0.13}
         """
         self.stability_threshold = stability_threshold
         self.min_stability_duration = min_stability_duration
         self.confidence_threshold = confidence_threshold
         self.camera_perspective = camera_perspective
         self.batsman_height = batsman_height
+        
+        # Set default CoG weights if not provided
+        self.cog_weights = cog_weights if cog_weights is not None else {
+            'head': 0.08,
+            'torso': 0.56,
+            'arms': 0.0,
+            'upper_legs': 0.23,
+            'lower_legs': 0.13
+        }
         
         # Initialize MediaPipe
         self.mp_pose = mp.solutions.pose
@@ -1144,11 +1155,12 @@ class StanceDetector:
         """
         Calculate center of gravity using weighted body segments.
         
-        Body segment weights and specifications:
-        - Head/Neck (8%): Uses shoulder center point as reference, estimates head position 50 pixels above shoulders
-        - Torso (56%): Averages shoulder and hip landmark positions, represents core body mass from shoulders to hips
-        - Upper Legs (23%): Averages hip and knee landmark positions, represents thigh mass from hips to knees
-        - Lower Legs (13%): Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
+        Body segment weights and specifications (configurable):
+        - Head/Neck: Uses shoulder center point as reference, estimates head position 50 pixels above shoulders
+        - Torso: Averages shoulder and hip landmark positions, represents core body mass from shoulders to hips
+        - Arms: Averages shoulder, elbow, and wrist landmark positions, represents arm mass from shoulders to wrists
+        - Upper Legs: Averages hip and knee landmark positions, represents thigh mass from hips to knees
+        - Lower Legs: Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
         
         Final CoG Formula:
         CoG_x = (Σ(segment_x × weight)) / total_weight
@@ -1185,28 +1197,38 @@ class StanceDetector:
             # Initialize weighted segments list
             segments = []
             
-            # 1. Head/Neck (8%) - Uses shoulder center point as reference, estimates head position 50 pixels above shoulders
+            # 1. Head/Neck - Uses shoulder center point as reference, estimates head position above shoulders
             shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
             shoulder_center_y = (left_shoulder.y + right_shoulder.y) / 2
-            # Estimate head position 50 pixels above shoulders (in normalized coordinates, approximately 0.05)
             head_x = shoulder_center_x
             head_y = shoulder_center_y - 0.05  # Move up in normalized coordinates
-            segments.append({'x': head_x, 'y': head_y, 'weight': 0.08})
+            if self.cog_weights.get('head', 0) > 0:
+                segments.append({'x': head_x, 'y': head_y, 'weight': self.cog_weights['head']})
             
-            # 2. Torso (56%) - Averages shoulder and hip landmark positions, represents core body mass
+            # 2. Torso - Averages shoulder and hip landmark positions, represents core body mass
             torso_x = (left_shoulder.x + right_shoulder.x + left_hip.x + right_hip.x) / 4
             torso_y = (left_shoulder.y + right_shoulder.y + left_hip.y + right_hip.y) / 4
-            segments.append({'x': torso_x, 'y': torso_y, 'weight': 0.56})
+            if self.cog_weights.get('torso', 0) > 0:
+                segments.append({'x': torso_x, 'y': torso_y, 'weight': self.cog_weights['torso']})
             
-            # 3. Upper Legs (23%) - Averages hip and knee landmark positions, represents thigh mass from hips to knees
+            # 3. Arms - Averages shoulder, elbow, and wrist landmark positions, represents arm mass
+            if has_elbows and has_wrists:
+                arms_x = (left_shoulder.x + right_shoulder.x + left_elbow.x + right_elbow.x + left_wrist.x + right_wrist.x) / 6
+                arms_y = (left_shoulder.y + right_shoulder.y + left_elbow.y + right_elbow.y + left_wrist.y + right_wrist.y) / 6
+                if self.cog_weights.get('arms', 0) > 0:
+                    segments.append({'x': arms_x, 'y': arms_y, 'weight': self.cog_weights['arms']})
+            
+            # 4. Upper Legs - Averages hip and knee landmark positions, represents thigh mass from hips to knees
             upper_legs_x = (left_hip.x + right_hip.x + left_knee.x + right_knee.x) / 4
             upper_legs_y = (left_hip.y + right_hip.y + left_knee.y + right_knee.y) / 4
-            segments.append({'x': upper_legs_x, 'y': upper_legs_y, 'weight': 0.23})
+            if self.cog_weights.get('upper_legs', 0) > 0:
+                segments.append({'x': upper_legs_x, 'y': upper_legs_y, 'weight': self.cog_weights['upper_legs']})
             
-            # 4. Lower Legs (13%) - Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
+            # 5. Lower Legs - Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
             lower_legs_x = (left_knee.x + right_knee.x + left_ankle.x + right_ankle.x) / 4
             lower_legs_y = (left_knee.y + right_knee.y + left_ankle.y + right_ankle.y) / 4
-            segments.append({'x': lower_legs_x, 'y': lower_legs_y, 'weight': 0.13})
+            if self.cog_weights.get('lower_legs', 0) > 0:
+                segments.append({'x': lower_legs_x, 'y': lower_legs_y, 'weight': self.cog_weights['lower_legs']})
             
             # Calculate weighted center of gravity using the formula: CoG = (Σ(segment × weight)) / total_weight
             total_weight = sum(segment['weight'] for segment in segments)
