@@ -1160,8 +1160,7 @@ class StanceDetector:
         
         Body segment weights and specifications:
         - Head/Neck (8%): Uses shoulder center point as reference, estimates head position 50 pixels above shoulders
-        - Torso (50%): Averages shoulder and hip landmark positions, represents core body mass from shoulders to hips
-        - Arms (12%): Uses elbow positions when available, falls back to wrists, averages both arms together
+        - Torso (62%): Averages shoulder and hip landmark positions, represents core body mass from shoulders to hips
         - Upper Legs (20%): Averages hip and knee landmark positions, represents thigh mass from hips to knees
         - Lower Legs (10%): Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
         
@@ -1208,25 +1207,10 @@ class StanceDetector:
             head_y = shoulder_center_y - 0.05  # Move up in normalized coordinates
             segments.append({'x': head_x, 'y': head_y, 'weight': 0.08})
             
-            # 2. Torso (50%) - Averages shoulder and hip landmark positions, represents core body mass
+            # 2. Torso (62%) - Averages shoulder and hip landmark positions, represents core body mass
             torso_x = (left_shoulder.x + right_shoulder.x + left_hip.x + right_hip.x) / 4
             torso_y = (left_shoulder.y + right_shoulder.y + left_hip.y + right_hip.y) / 4
-            segments.append({'x': torso_x, 'y': torso_y, 'weight': 0.50})
-            
-            # 3. Arms (12%) - Uses elbow positions when available, falls back to wrists, averages both arms together
-            if has_elbows:
-                # Use elbows for better arm positioning in batting stance
-                arms_x = (left_elbow.x + right_elbow.x) / 2
-                arms_y = (left_elbow.y + right_elbow.y) / 2
-            elif has_wrists:
-                # Fallback to wrist positions
-                arms_x = (left_wrist.x + right_wrist.x) / 2
-                arms_y = (left_wrist.y + right_wrist.y) / 2
-            else:
-                # Ultimate fallback to shoulder positions
-                arms_x = shoulder_center_x
-                arms_y = shoulder_center_y
-            segments.append({'x': arms_x, 'y': arms_y, 'weight': 0.12})
+            segments.append({'x': torso_x, 'y': torso_y, 'weight': 0.62})
             
             # 4. Upper Legs (20%) - Averages hip and knee landmark positions, represents thigh mass from hips to knees
             upper_legs_x = (left_hip.x + right_hip.x + left_knee.x + right_knee.x) / 4
