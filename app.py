@@ -2041,113 +2041,107 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
             st.subheader("🏏 Weight Distribution Debug (0.6s - 1.2s)")
             st.markdown("Analyze weight distribution classification and center of gravity calculations")
             
-            if results:
-                video_duration = len(results) / fps
-                debug_start_time = 0.6
-                debug_end_time = 1.2
+            video_duration = st.session_state.video_processor.get_duration()
+            debug_start_time = 0.6
+            debug_end_time = 1.2
+            
+            if debug_end_time <= video_duration:
+                # Filter results for the debug time range
+                debug_results = []
+                fps = st.session_state.video_processor.get_fps()
+                for result in all_results:
+                    frame_time = result['timestamp']
+                    if debug_start_time <= frame_time <= debug_end_time:
+                        debug_results.append(result)
                 
-                if debug_end_time <= video_duration:
-                    debug_start_frame = int(debug_start_time * fps)
-                    debug_end_frame = int(debug_end_time * fps)
+                if debug_results:
+                    st.info(f"Showing {len(debug_results)} frames from {debug_start_time}s to {debug_end_time}s")
                     
-                    # Filter results for the debug time range
-                    debug_results = []
-                    for i, result in enumerate(results):
-                        frame_time = i / fps
-                        if debug_start_time <= frame_time <= debug_end_time:
-                            debug_results.append((i, result, frame_time))
+                    # Create weight distribution summary table
+                    weight_summary = []
+                    for result in debug_results:
+                        biomech_data = result.get('biomech_data', {})
+                        weight_summary.append({
+                            'Frame': result['frame'],
+                            'Time (s)': f"{result['timestamp']:.3f}",
+                            'Weight Distribution': biomech_data.get('weight_distribution_text', 'Unknown'),
+                            'CoG X': f"{biomech_data.get('cog_x', 0):.4f}",
+                            'Stance Center X': f"{biomech_data.get('stance_center_x', 0):.4f}",
+                            'CoG Offset': f"{biomech_data.get('cog_offset_from_center', 0):.4f}",
+                            'Balanced Threshold': f"{biomech_data.get('balanced_threshold', 0):.4f}",
+                            'Stance Width': f"{biomech_data.get('stance_width', 0):.4f}"
+                        })
                     
-                    if debug_results:
-                        st.info(f"Showing {len(debug_results)} frames from {debug_start_time}s to {debug_end_time}s")
+                    st.dataframe(weight_summary, use_container_width=True)
+                    
+                    # Detailed frame analysis
+                    st.subheader("Frame-by-Frame Weight Distribution Analysis")
+                    
+                    for result in debug_results[:6]:  # Show first 6 frames in detail
+                        biomech_data = result.get('biomech_data', {})
+                        frame_idx = result['frame']
+                        frame_time = result['timestamp']
                         
-                        # Create weight distribution summary table
-                        weight_summary = []
-                        for frame_idx, result, frame_time in debug_results:
-                            pose_data = result.get('pose_data', {})
-                            weight_summary.append({
-                                'Frame': frame_idx,
-                                'Time (s)': f"{frame_time:.3f}",
-                                'Weight Distribution': pose_data.get('weight_distribution_text', 'Unknown'),
-                                'CoG X': f"{pose_data.get('cog_x', 0):.4f}",
-                                'Stance Center X': f"{pose_data.get('stance_center_x', 0):.4f}",
-                                'CoG Offset': f"{pose_data.get('cog_offset_from_center', 0):.4f}",
-                                'Balanced Threshold': f"{pose_data.get('balanced_threshold', 0):.4f}",
-                                'Stance Width': f"{pose_data.get('stance_width', 0):.4f}"
-                            })
-                        
-                        st.dataframe(weight_summary, use_container_width=True)
-                        
-                        # Detailed frame analysis
-                        st.subheader("Frame-by-Frame Weight Distribution Analysis")
-                        
-                        for frame_idx, result, frame_time in debug_results[:6]:  # Show first 6 frames in detail
-                            with st.expander(f"Frame {frame_idx} at {frame_time:.3f}s - Weight: {result.get('pose_data', {}).get('weight_distribution_text', 'Unknown')}"):
-                                pose_data = result.get('pose_data', {})
+                        with st.expander(f"Frame {frame_idx} at {frame_time:.3f}s - Weight: {biomech_data.get('weight_distribution_text', 'Unknown')}"):
+                            # Load and display frame
+                            frame = st.session_state.video_processor.get_frame_at_index(frame_idx)
+                            if frame is not None:
+                                # Convert to RGB and crop
+                                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                                if 'rectangle_coords' in st.session_state:
+                                    x1, y1, x2, y2 = st.session_state.rectangle_coords
+                                    frame_rgb = frame_rgb[y1:y2, x1:x2]
                                 
-                                # Load and display frame
-                                frame = video_processor.get_frame_at_index(frame_idx)
-                                if frame is not None:
-                                    # Convert to RGB and crop
-                                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                                    if 'rectangle_coords' in st.session_state:
-                                        x1, y1, x2, y2 = st.session_state.rectangle_coords
-                                        frame_rgb = frame_rgb[y1:y2, x1:x2]
-                                    
-                                    col1, col2 = st.columns([1, 1])
-                                    
-                                    with col1:
-                                        st.image(frame_rgb, caption=f"Frame {frame_idx}", use_column_width=True)
-                                    
-                                    with col2:
-                                        # Weight distribution details
-                                        st.markdown("**Weight Distribution Analysis:**")
-                                        
-                                        weight_state = pose_data.get('weight_distribution_text', 'Unknown')
-                                        if weight_state == 'Left Foot':
-                                            st.markdown("🔵 **Left Foot** - CoG shifted toward left foot")
-                                        elif weight_state == 'Right Foot':
-                                            st.markdown("🔴 **Right Foot** - CoG shifted toward right foot")
-                                        elif weight_state == 'Balanced':
-                                            st.markdown("🟢 **Balanced** - CoG within balanced zone")
-                                        else:
-                                            st.markdown(f"⚪ **{weight_state}**")
-                                        
-                                        # Technical details
-                                        st.markdown("**Technical Details:**")
-                                        st.text(f"Center of Gravity X: {pose_data.get('cog_x', 0):.4f}")
-                                        st.text(f"Stance Center X: {pose_data.get('stance_center_x', 0):.4f}")
-                                        st.text(f"CoG Offset from Center: {pose_data.get('cog_offset_from_center', 0):.4f}")
-                                        st.text(f"Balanced Threshold: {pose_data.get('balanced_threshold', 0):.4f}")
-                                        st.text(f"Stance Width: {pose_data.get('stance_width', 0):.4f}")
-                                        st.text(f"Left Foot Distance: {pose_data.get('left_foot_distance', 0):.4f}")
-                                        st.text(f"Right Foot Distance: {pose_data.get('right_foot_distance', 0):.4f}")
-                                        
-                                        # Classification logic explanation
-                                        cog_offset = pose_data.get('cog_offset_from_center', 0)
-                                        threshold = pose_data.get('balanced_threshold', 0)
-                                        
-                                        st.markdown("**Classification Logic:**")
-                                        if abs(cog_offset) <= threshold:
-                                            st.text(f"|{cog_offset:.4f}| ≤ {threshold:.4f} → Balanced")
-                                        elif cog_offset < 0:
-                                            st.text(f"{cog_offset:.4f} < 0 → Left Foot")
-                                        else:
-                                            st.text(f"{cog_offset:.4f} > 0 → Right Foot")
+                                col1, col2 = st.columns([1, 1])
                                 
-                                else:
-                                    st.warning(f"Could not load frame {frame_idx}")
+                                with col1:
+                                    st.image(frame_rgb, caption=f"Frame {frame_idx}", use_column_width=True)
                                 
-                                st.divider()
-                    else:
-                        st.warning(f"No frames found in time range {debug_start_time}s - {debug_end_time}s")
+                                with col2:
+                                    # Weight distribution details
+                                    st.markdown("**Weight Distribution Analysis:**")
+                                    
+                                    weight_state = biomech_data.get('weight_distribution_text', 'Unknown')
+                                    if weight_state == 'Left Foot':
+                                        st.markdown("🔵 **Left Foot** - CoG shifted toward left foot")
+                                    elif weight_state == 'Right Foot':
+                                        st.markdown("🔴 **Right Foot** - CoG shifted toward right foot")
+                                    elif weight_state == 'Balanced':
+                                        st.markdown("🟢 **Balanced** - CoG within balanced zone")
+                                    else:
+                                        st.markdown(f"⚪ **{weight_state}**")
+                                    
+                                    # Technical details
+                                    st.markdown("**Technical Details:**")
+                                    st.text(f"Center of Gravity X: {biomech_data.get('cog_x', 0):.4f}")
+                                    st.text(f"Stance Center X: {biomech_data.get('stance_center_x', 0):.4f}")
+                                    st.text(f"CoG Offset from Center: {biomech_data.get('cog_offset_from_center', 0):.4f}")
+                                    st.text(f"Balanced Threshold: {biomech_data.get('balanced_threshold', 0):.4f}")
+                                    st.text(f"Stance Width: {biomech_data.get('stance_width', 0):.4f}")
+                                    st.text(f"Left Foot Distance: {biomech_data.get('left_foot_distance', 0):.4f}")
+                                    st.text(f"Right Foot Distance: {biomech_data.get('right_foot_distance', 0):.4f}")
+                                    
+                                    # Classification logic explanation
+                                    cog_offset = biomech_data.get('cog_offset_from_center', 0)
+                                    threshold = biomech_data.get('balanced_threshold', 0)
+                                    
+                                    st.markdown("**Classification Logic:**")
+                                    if abs(cog_offset) <= threshold:
+                                        st.text(f"|{cog_offset:.4f}| ≤ {threshold:.4f} → Balanced")
+                                    elif cog_offset < 0:
+                                        st.text(f"{cog_offset:.4f} < 0 → Left Foot")
+                                    else:
+                                        st.text(f"{cog_offset:.4f} > 0 → Right Foot")
+                            
+                            else:
+                                st.warning(f"Could not load frame {frame_idx}")
+                            
+                            st.divider()
                 else:
-                    st.info(f"Debug time range ({debug_start_time}s - {debug_end_time}s) is outside video duration ({video_duration:.1f}s)")
-            
+                    st.warning(f"No frames found in time range {debug_start_time}s - {debug_end_time}s")
             else:
-                st.warning("No analysis results available.")
-            
+                st.info(f"Debug time range ({debug_start_time}s - {debug_end_time}s) is outside video duration ({video_duration:.1f}s)")
 
-            
             # Reset button
             if st.button("Analyze New Video"):
                 # Clear session state
