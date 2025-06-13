@@ -1271,8 +1271,18 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
+                    # Add left foot-head gap (8th parameter)
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_left_foot_head_gap,
+                        mode='lines+markers',
+                        name='Left Foot-Head Gap',
+                        line=dict(color='orange', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
                     fig.update_layout(
-                        title="Cover Drive Profile - 7 Key Biomechanical Parameters",
+                        title="Cover Drive Profile - 8 Key Biomechanical Parameters",
                         xaxis_title="Time (seconds)",
                         yaxis_title="Normalized Scale",
                         hovermode='x unified',
@@ -1331,10 +1341,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else ('Balanced' if data['weight_distribution'] == 2 else 'Right Foot'),
                             'Weight Distribution (numeric)': data['weight_distribution'],
                             'Center of Gravity Distance from Right Foot': f"{data['cog_to_right_foot']:.4f}",
+                            'Left Foot-Head Gap (X-coordinate distance)': f"{data['left_foot_head_gap']:.4f}",
                             'Normalized Shoulder Angle (Chart Scale)': f"{normalized_shoulder[i]:.2f}",
                             'Normalized Foot Extension (0-100)': f"{normalized_foot_ext[i]:.2f}",
                             'Normalized Weight Distribution (0-100)': f"{normalized_weight[i]:.2f}",
-                            'Normalized CoG Distance (0-100)': f"{normalized_cog[i]:.2f}"
+                            'Normalized CoG Distance (0-100)': f"{normalized_cog[i]:.2f}",
+                            'Normalized Left Foot-Head Gap (0-100)': f"{normalized_left_foot_head_gap[i]:.2f}"
                         })
                     
                     # Convert to CSV string
