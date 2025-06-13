@@ -72,34 +72,13 @@ with st.sidebar:
         help="Height of the batsman in feet. Used to adjust stance width criteria for younger players."
     )
     
-    # Body segment weights configuration
-    st.subheader("Center of Gravity Weights")
-    st.markdown("Configure body segment weights for CoG calculation:")
-    
-    col_w1, col_w2 = st.columns(2)
-    with col_w1:
-        head_weight = st.slider("Head/Neck (%)", 0, 20, 8, 1, help="Weight contribution of head/neck segment")
-        torso_weight = st.slider("Torso (%)", 40, 70, 56, 1, help="Weight contribution of torso segment")
-        arms_weight = st.slider("Arms (%)", 0, 20, 0, 1, help="Weight contribution of arms segment")
-    
-    with col_w2:
-        upper_legs_weight = st.slider("Upper Legs (%)", 15, 35, 23, 1, help="Weight contribution of upper legs segment")
-        lower_legs_weight = st.slider("Lower Legs (%)", 5, 25, 13, 1, help="Weight contribution of lower legs segment")
-    
-    # Calculate total weight and show warning if not 100%
-    total_weight = head_weight + torso_weight + arms_weight + upper_legs_weight + lower_legs_weight
-    if total_weight != 100:
-        st.warning(f"Total weight: {total_weight}% (should be 100%)")
-    else:
-        st.success(f"Total weight: {total_weight}%")
-    
-    # Convert percentages to decimals for the detector
+    # Fixed body segment weights for CoG calculation
     cog_weights = {
-        'head': head_weight / 100.0,
-        'torso': torso_weight / 100.0,
-        'arms': arms_weight / 100.0,
-        'upper_legs': upper_legs_weight / 100.0,
-        'lower_legs': lower_legs_weight / 100.0
+        'head': 0.08,      # 8%
+        'torso': 0.50,     # 50%
+        'arms': 0.12,      # 12%
+        'upper_legs': 0.20, # 20%
+        'lower_legs': 0.10  # 10%
     }
 
 # Enhanced file upload with multiple methods

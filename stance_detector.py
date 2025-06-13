@@ -17,7 +17,7 @@ class StanceDetector:
             camera_perspective: Camera perspective - "right" (bowler on right) or "left" (bowler on left)
             batsman_height: Height of batsman in feet
             cog_weights: Dictionary with body segment weights for CoG calculation
-                        Default: {'head': 0.08, 'torso': 0.56, 'arms': 0.0, 'upper_legs': 0.23, 'lower_legs': 0.13}
+                        Default: {'head': 0.08, 'torso': 0.50, 'arms': 0.12, 'upper_legs': 0.20, 'lower_legs': 0.10}
         """
         self.stability_threshold = stability_threshold
         self.min_stability_duration = min_stability_duration
@@ -28,10 +28,10 @@ class StanceDetector:
         # Set default CoG weights if not provided
         self.cog_weights = cog_weights if cog_weights is not None else {
             'head': 0.08,
-            'torso': 0.56,
-            'arms': 0.0,
-            'upper_legs': 0.23,
-            'lower_legs': 0.13
+            'torso': 0.50,
+            'arms': 0.12,
+            'upper_legs': 0.20,
+            'lower_legs': 0.10
         }
         
         # Initialize MediaPipe
