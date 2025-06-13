@@ -350,7 +350,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 'right_knee_angle': pose_data.get('right_knee_angle', 170),
                                 'center_of_gravity_x': cog_x,
                                 'center_of_gravity_y': cog_y,
-                                'cog_to_right_foot': cog_to_right_foot
+                                'cog_to_right_foot': cog_to_right_foot,
+                                'weight_distribution': pose_data.get('weight_distribution', 0),
+                                'cog_x': pose_data.get('cog_x', cog_x),
+                                'cog_y': pose_data.get('cog_y', cog_y),
+                                'stance_width': pose_data.get('stance_width', 0),
+                                'cog_distance_from_center': pose_data.get('cog_distance_from_center', 0),
+                                'balanced_threshold': pose_data.get('balanced_threshold', 0),
+                                'cog_method': pose_data.get('cog_method', 'fallback')
                             }
                         
                         results.append({
