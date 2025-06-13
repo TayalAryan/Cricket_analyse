@@ -1146,9 +1146,9 @@ class StanceDetector:
         
         Body segment weights and specifications:
         - Head/Neck (8%): Uses shoulder center point as reference, estimates head position 50 pixels above shoulders
-        - Torso (62%): Averages shoulder and hip landmark positions, represents core body mass from shoulders to hips
-        - Upper Legs (20%): Averages hip and knee landmark positions, represents thigh mass from hips to knees
-        - Lower Legs (10%): Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
+        - Torso (56%): Averages shoulder and hip landmark positions, represents core body mass from shoulders to hips
+        - Upper Legs (23%): Averages hip and knee landmark positions, represents thigh mass from hips to knees
+        - Lower Legs (13%): Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
         
         Final CoG Formula:
         CoG_x = (Σ(segment_x × weight)) / total_weight
@@ -1193,20 +1193,20 @@ class StanceDetector:
             head_y = shoulder_center_y - 0.05  # Move up in normalized coordinates
             segments.append({'x': head_x, 'y': head_y, 'weight': 0.08})
             
-            # 2. Torso (62%) - Averages shoulder and hip landmark positions, represents core body mass
+            # 2. Torso (56%) - Averages shoulder and hip landmark positions, represents core body mass
             torso_x = (left_shoulder.x + right_shoulder.x + left_hip.x + right_hip.x) / 4
             torso_y = (left_shoulder.y + right_shoulder.y + left_hip.y + right_hip.y) / 4
-            segments.append({'x': torso_x, 'y': torso_y, 'weight': 0.62})
+            segments.append({'x': torso_x, 'y': torso_y, 'weight': 0.56})
             
-            # 4. Upper Legs (20%) - Averages hip and knee landmark positions, represents thigh mass from hips to knees
+            # 3. Upper Legs (23%) - Averages hip and knee landmark positions, represents thigh mass from hips to knees
             upper_legs_x = (left_hip.x + right_hip.x + left_knee.x + right_knee.x) / 4
             upper_legs_y = (left_hip.y + right_hip.y + left_knee.y + right_knee.y) / 4
-            segments.append({'x': upper_legs_x, 'y': upper_legs_y, 'weight': 0.20})
+            segments.append({'x': upper_legs_x, 'y': upper_legs_y, 'weight': 0.23})
             
-            # 5. Lower Legs (10%) - Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
+            # 4. Lower Legs (13%) - Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
             lower_legs_x = (left_knee.x + right_knee.x + left_ankle.x + right_ankle.x) / 4
             lower_legs_y = (left_knee.y + right_knee.y + left_ankle.y + right_ankle.y) / 4
-            segments.append({'x': lower_legs_x, 'y': lower_legs_y, 'weight': 0.10})
+            segments.append({'x': lower_legs_x, 'y': lower_legs_y, 'weight': 0.13})
             
             # Calculate weighted center of gravity using the formula: CoG = (Σ(segment × weight)) / total_weight
             total_weight = sum(segment['weight'] for segment in segments)
