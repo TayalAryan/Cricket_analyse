@@ -1124,17 +1124,21 @@ class StanceDetector:
         """
         Calculate center of gravity using weighted body segments.
         
-        Body segment weights:
-        - Head/Neck: 8%
-        - Torso: 50% 
-        - Arms: 12%
-        - Upper Legs: 20%
-        - Lower Legs: 10%
+        Body segment weights and specifications:
+        - Head/Neck (8%): Uses shoulder center point as reference, estimates head position 50 pixels above shoulders
+        - Torso (50%): Averages shoulder and hip landmark positions, represents core body mass from shoulders to hips
+        - Arms (12%): Uses elbow positions when available, falls back to wrists, averages both arms together
+        - Upper Legs (20%): Averages hip and knee landmark positions, represents thigh mass from hips to knees
+        - Lower Legs (10%): Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
+        
+        Final CoG Formula:
+        CoG_x = (Σ(segment_x × weight)) / total_weight
+        CoG_y = (Σ(segment_y × weight)) / total_weight
         """
         try:
             import mediapipe as mp
             
-            # Get landmark positions
+            # Get core landmark positions (required)
             left_shoulder = landmarks[mp.solutions.pose.PoseLandmark.LEFT_SHOULDER.value]
             right_shoulder = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER.value]
             left_hip = landmarks[mp.solutions.pose.PoseLandmark.LEFT_HIP.value]
@@ -1144,59 +1148,63 @@ class StanceDetector:
             left_ankle = landmarks[mp.solutions.pose.PoseLandmark.LEFT_ANKLE.value]
             right_ankle = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_ANKLE.value]
             
-            # Optional landmarks (may not always be available)
+            # Check for arm landmarks availability
             try:
                 left_elbow = landmarks[mp.solutions.pose.PoseLandmark.LEFT_ELBOW.value]
                 right_elbow = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_ELBOW.value]
+                has_elbows = True
+            except:
+                has_elbows = False
+                
+            try:
                 left_wrist = landmarks[mp.solutions.pose.PoseLandmark.LEFT_WRIST.value]
                 right_wrist = landmarks[mp.solutions.pose.PoseLandmark.RIGHT_WRIST.value]
-                has_arms = True
+                has_wrists = True
             except:
-                has_arms = False
+                has_wrists = False
             
-            # Initialize weighted segments
+            # Initialize weighted segments list
             segments = []
             
-            # 1. Head/Neck (8%) - Use shoulder center point as reference, estimate head 50 pixels above
+            # 1. Head/Neck (8%) - Uses shoulder center point as reference, estimates head position 50 pixels above shoulders
             shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
             shoulder_center_y = (left_shoulder.y + right_shoulder.y) / 2
-            # Estimate head position 50 pixels above shoulders (in normalized coordinates ~0.05)
+            # Estimate head position 50 pixels above shoulders (in normalized coordinates, approximately 0.05)
             head_x = shoulder_center_x
             head_y = shoulder_center_y - 0.05  # Move up in normalized coordinates
             segments.append({'x': head_x, 'y': head_y, 'weight': 0.08})
             
-            # 2. Torso (50%) - Average shoulder and hip positions
+            # 2. Torso (50%) - Averages shoulder and hip landmark positions, represents core body mass
             torso_x = (left_shoulder.x + right_shoulder.x + left_hip.x + right_hip.x) / 4
             torso_y = (left_shoulder.y + right_shoulder.y + left_hip.y + right_hip.y) / 4
             segments.append({'x': torso_x, 'y': torso_y, 'weight': 0.50})
             
-            # 3. Arms (12%) - Use elbows when available, fall back to wrists
-            if has_arms:
-                # Use elbows for better arm positioning
+            # 3. Arms (12%) - Uses elbow positions when available, falls back to wrists, averages both arms together
+            if has_elbows:
+                # Use elbows for better arm positioning in batting stance
                 arms_x = (left_elbow.x + right_elbow.x) / 2
                 arms_y = (left_elbow.y + right_elbow.y) / 2
+            elif has_wrists:
+                # Fallback to wrist positions
+                arms_x = (left_wrist.x + right_wrist.x) / 2
+                arms_y = (left_wrist.y + right_wrist.y) / 2
             else:
-                # Fallback to wrist positions if available, or shoulder positions
-                try:
-                    arms_x = (left_wrist.x + right_wrist.x) / 2
-                    arms_y = (left_wrist.y + right_wrist.y) / 2
-                except:
-                    # Ultimate fallback to shoulder positions
-                    arms_x = shoulder_center_x
-                    arms_y = shoulder_center_y
+                # Ultimate fallback to shoulder positions
+                arms_x = shoulder_center_x
+                arms_y = shoulder_center_y
             segments.append({'x': arms_x, 'y': arms_y, 'weight': 0.12})
             
-            # 4. Upper Legs (20%) - Average hip and knee positions
+            # 4. Upper Legs (20%) - Averages hip and knee landmark positions, represents thigh mass from hips to knees
             upper_legs_x = (left_hip.x + right_hip.x + left_knee.x + right_knee.x) / 4
             upper_legs_y = (left_hip.y + right_hip.y + left_knee.y + right_knee.y) / 4
             segments.append({'x': upper_legs_x, 'y': upper_legs_y, 'weight': 0.20})
             
-            # 5. Lower Legs (10%) - Average knee and ankle positions
+            # 5. Lower Legs (10%) - Averages knee and ankle landmark positions, represents calf/shin mass from knees to ankles
             lower_legs_x = (left_knee.x + right_knee.x + left_ankle.x + right_ankle.x) / 4
             lower_legs_y = (left_knee.y + right_knee.y + left_ankle.y + right_ankle.y) / 4
             segments.append({'x': lower_legs_x, 'y': lower_legs_y, 'weight': 0.10})
             
-            # Calculate weighted center of gravity
+            # Calculate weighted center of gravity using the formula: CoG = (Σ(segment × weight)) / total_weight
             total_weight = sum(segment['weight'] for segment in segments)
             cog_x = sum(segment['x'] * segment['weight'] for segment in segments) / total_weight
             cog_y = sum(segment['y'] * segment['weight'] for segment in segments) / total_weight
@@ -1204,7 +1212,10 @@ class StanceDetector:
             return {
                 'cog_x': cog_x,
                 'cog_y': cog_y,
-                'method': 'weighted_segments'
+                'method': 'weighted_segments',
+                'segments_used': len(segments),
+                'has_elbows': has_elbows,
+                'has_wrists': has_wrists
             }
             
         except Exception as e:
@@ -1220,12 +1231,14 @@ class StanceDetector:
                 return {
                     'cog_x': cog_x,
                     'cog_y': cog_y,
-                    'method': 'hip_center_fallback'
+                    'method': 'hip_center_fallback',
+                    'error': str(e)
                 }
             except:
-                # Ultimate fallback
+                # Ultimate fallback to default center
                 return {
                     'cog_x': 0.5,
                     'cog_y': 0.5,
-                    'method': 'default_center'
+                    'method': 'default_center',
+                    'error': 'No landmarks available'
                 }
