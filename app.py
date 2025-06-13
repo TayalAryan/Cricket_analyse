@@ -1068,7 +1068,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         
                         # 3. Body weight distribution based on center of gravity proximity to feet
                         # Get the weight distribution already calculated in stance detector
-                        # 0 = Right Foot, 1 = Left Foot
+                        # 0 = Right Foot, 1 = Left Foot, 2 = Balanced
                         weight_distribution = biomech_data.get('weight_distribution', 0)
                         
                         # 4. Center of gravity distance from right foot
@@ -1129,8 +1129,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
                     
-                    # Weight distribution is binary (0=Right, 1=Left), scale to 0-100
-                    normalized_weight = [w * 100 for w in weight_distributions]  # 0=0, 1=100
+                    # Weight distribution is three-state (0=Right, 1=Left, 2=Balanced), scale to 0-100
+                    normalized_weight = [w * 50 for w in weight_distributions]  # 0=0, 1=50, 2=100
                     
                     # Calculate relative shoulder angles and shoulder twist-hip values for CSV
                     relative_shoulder_angles = [shoulder_angles[i] - shoulder_angles[0] if shoulder_angles else 0 for i in range(len(shoulder_angles))]
@@ -1180,16 +1180,19 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
-                    # Add weight distribution (binary: Right=0, Left=1)
+                    # Add weight distribution (three-state: Right=0, Left=1, Balanced=2)
                     weight_colors = []
                     weight_labels = []
                     for w in weight_distributions:
                         if w == 0:
                             weight_colors.append('red')
                             weight_labels.append('Right Foot')
-                        else:  # w == 1
+                        elif w == 1:
                             weight_colors.append('blue') 
                             weight_labels.append('Left Foot')
+                        else:  # w == 2
+                            weight_colors.append('green')
+                            weight_labels.append('Balanced')
                     
                     fig.add_trace(go.Scatter(
                         x=timestamps,
@@ -1201,7 +1204,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             color=weight_colors,
                             symbol='circle'
                         ),
-                        hovertemplate='<b>Weight Distribution</b><br>Time: %{x:.2f}s<br>Foot: %{text}<extra></extra>',
+                        hovertemplate='<b>Weight Distribution</b><br>Time: %{x:.2f}s<br>State: %{text}<extra></extra>',
                         text=weight_labels
                     ))
                     
@@ -1282,7 +1285,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Head Position (X-coordinate difference from right foot)': f"{head_positions[i]:.4f}",
                             'Head Position Relative to First Frame': f"{relative_head_positions[i]:.4f}",
                             'Left Foot Extension (X-coordinate difference from right foot)': f"{data['foot_extension']:.4f}",
-                            'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else 'Right Foot',
+                            'Weight Distribution': 'Left Foot' if data['weight_distribution'] == 1 else ('Balanced' if data['weight_distribution'] == 2 else 'Right Foot'),
                             'Weight Distribution (numeric)': data['weight_distribution'],
                             'Center of Gravity Distance from Right Foot': f"{data['cog_to_right_foot']:.4f}",
                             'Normalized Shoulder Angle (Chart Scale)': f"{normalized_shoulder[i]:.2f}",
