@@ -43,9 +43,8 @@ class StanceDetector:
         self.last_stance_detected = None
         self.stance_cooldown = 1.0  # 1 second skip after detecting stance
         
-        # Transition detection for balanced weight distribution
-        self.previous_ankle_distance = None
-        self.ankle_distance_threshold = 0.02  # 2% change threshold for transition detection
+        # Balanced state threshold - 15% of stance width
+        self.balanced_threshold_percent = 0.15  # 15% of stance width
         
         # Key pose landmarks for stance detection
         self.key_landmarks = [
@@ -212,29 +211,16 @@ class StanceDetector:
         stance_center_x = (left_ankle.x + right_ankle.x) / 2
         cog_distance_from_center = abs(cog_x - stance_center_x)
         
-        # Determine weight distribution: 0 = Right Foot, 1 = Left Foot, 2 = Balanced, 3 = In transition
-        # Balanced only when CoG is exactly at center (equal distance from both feet)
-        if abs(left_foot_distance - right_foot_distance) < 0.001:  # Very small tolerance for floating point precision
-            weight_distribution = 2  # Balanced (CoG exactly centered between feet)
+        # Determine weight distribution: 0 = Right Foot, 1 = Left Foot, 2 = Balanced
+        # Balanced when CoG is within 15% of stance width from center
+        balanced_threshold = stance_width * self.balanced_threshold_percent
+        
+        if cog_distance_from_center <= balanced_threshold:
+            weight_distribution = 2  # Balanced (CoG within 15% of stance width from center)
         elif left_foot_distance < right_foot_distance:
             weight_distribution = 1  # Left Foot (CoG closer to left foot)
         else:
             weight_distribution = 0  # Right Foot (CoG closer to right foot)
-        
-        # Check for transition state if weight distribution is balanced
-        current_ankle_distance = ((left_ankle.x - right_ankle.x)**2 + (left_ankle.y - right_ankle.y)**2)**0.5
-        
-        if weight_distribution == 2 and self.previous_ankle_distance is not None:
-            # Calculate relative change in ankle distance
-            distance_change = abs(current_ankle_distance - self.previous_ankle_distance)
-            relative_change = distance_change / self.previous_ankle_distance if self.previous_ankle_distance > 0 else 0
-            
-            # If ankle distance changed significantly while balanced, mark as "In transition"
-            if relative_change > self.ankle_distance_threshold:
-                weight_distribution = 3  # In transition
-        
-        # Store current ankle distance for next frame comparison
-        self.previous_ankle_distance = current_ankle_distance
         
         features['weight_distribution'] = weight_distribution
         features['cog_x'] = cog_x

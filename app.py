@@ -1068,7 +1068,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         
                         # 3. Body weight distribution based on center of gravity proximity to feet
                         # Get the weight distribution already calculated in stance detector
-                        # 0 = Right Foot, 1 = Left Foot, 2 = Balanced, 3 = In transition
+                        # 0 = Right Foot, 1 = Left Foot, 2 = Balanced
                         weight_distribution = biomech_data.get('weight_distribution', 0)
                         
                         # 4. Center of gravity distance from right foot
@@ -1129,8 +1129,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_cog = normalize_to_scale(cog_distances)
                     
-                    # Weight distribution is four-state (0=Right, 1=Left, 2=Balanced, 3=In transition), scale to 0-100
-                    normalized_weight = [w * 33.33 for w in weight_distributions]  # 0=0, 1=33, 2=67, 3=100
+                    # Weight distribution is three-state (0=Right, 1=Left, 2=Balanced), scale to 0-100
+                    normalized_weight = [w * 50 for w in weight_distributions]  # 0=0, 1=50, 2=100
                     
                     # Calculate relative shoulder angles and shoulder twist-hip values for CSV
                     relative_shoulder_angles = [shoulder_angles[i] - shoulder_angles[0] if shoulder_angles else 0 for i in range(len(shoulder_angles))]
@@ -1180,7 +1180,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
-                    # Add weight distribution (four-state: Right=0, Left=1, Balanced=2, In transition=3)
+                    # Add weight distribution (three-state: Right=0, Left=1, Balanced=2)
                     weight_colors = []
                     weight_labels = []
                     for w in weight_distributions:
@@ -1193,9 +1193,6 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         elif w == 2:
                             weight_colors.append('green')
                             weight_labels.append('Balanced')
-                        else:  # w == 3
-                            weight_colors.append('orange')
-                            weight_labels.append('In Transition')
                     
                     fig.add_trace(go.Scatter(
                         x=timestamps,
