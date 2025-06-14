@@ -1463,6 +1463,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             left_knee_angle = biomech_data.get('left_knee_angle', 0)
                             right_knee_angle = biomech_data.get('right_knee_angle', 0)
                             
+                            # Extract coordinates for debug output
+                            left_knee_x = biomech_data.get('left_knee_x', 0)
+                            left_knee_y = biomech_data.get('left_knee_y', 0)
+                            right_knee_x = biomech_data.get('right_knee_x', 0)
+                            right_knee_y = biomech_data.get('right_knee_y', 0)
+                            left_elbow_x = biomech_data.get('left_elbow_x', 0)
+                            left_elbow_y = biomech_data.get('left_elbow_y', 0)
+                            
                             # Debug output for first 3 frames to check data capture
                             if debug_frame_count < 3:
                                 print(f"DEBUG Frame {debug_frame_count}: hip_distance={hip_distance_from_pitch:.3f}, hip_twist={hip_line_twist:.3f}, head_distance={head_distance_from_pitch:.3f}, head_tilt={head_tilt:.3f}")
