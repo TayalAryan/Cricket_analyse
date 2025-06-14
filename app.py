@@ -339,6 +339,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             left_shoulder_y = pose_data.get('left_shoulder_y', 0.3)
                             right_shoulder_x = pose_data.get('right_shoulder_x', 0.5)
                             right_shoulder_y = pose_data.get('right_shoulder_y', 0.3)
+                            left_elbow_x = pose_data.get('left_elbow_x', 0)
+                            left_elbow_y = pose_data.get('left_elbow_y', 0)
+                            left_wrist_x = pose_data.get('left_wrist_x', 0)
+                            left_wrist_y = pose_data.get('left_wrist_y', 0)
                             
                             # Center of gravity approximation using torso center
                             # Weighted more towards hips (lower body mass)
@@ -368,6 +372,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 'left_shoulder_y': left_shoulder_y,
                                 'right_shoulder_x': right_shoulder_x,
                                 'right_shoulder_y': right_shoulder_y,
+                                'left_elbow_x': left_elbow_x,
+                                'left_elbow_y': left_elbow_y,
+                                'left_wrist_x': left_wrist_x,
+                                'left_wrist_y': left_wrist_y,
                                 'shoulder_line_angle': pose_data.get('shoulder_line_angle', 0),
                                 'hip_line_angle': pose_data.get('hip_line_angle', 0),
                                 'shoulder_twist_hip': pose_data.get('shoulder_twist_hip', 0),
