@@ -1533,96 +1533,123 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         left_knee_angles = [d['left_knee_angle'] for d in stability_data]
                         right_knee_angles = [d['right_knee_angle'] for d in stability_data]
                         
-                        # Add traces for each parameter
+                        # Normalize all parameters to 0-100 scale for better visualization
+                        def normalize_to_scale(values, target_min=0, target_max=100):
+                            """Normalize values to a target scale"""
+                            if not values or all(v == values[0] for v in values):
+                                return [50] * len(values)  # Return middle value if all same
+                            min_val = min(values)
+                            max_val = max(values)
+                            if max_val == min_val:
+                                return [50] * len(values)
+                            return [target_min + (target_max - target_min) * (v - min_val) / (max_val - min_val) for v in values]
+                        
+                        # Normalize all parameter arrays
+                        norm_shoulder_angles = normalize_to_scale(shoulder_angles)
+                        norm_abs_shoulder_angles = normalize_to_scale(abs_shoulder_angles)
+                        norm_shoulder_twist_hips = normalize_to_scale(shoulder_twist_hips)
+                        norm_hip_distances = normalize_to_scale(hip_distances)
+                        norm_hip_twists = normalize_to_scale(hip_twists)
+                        norm_head_distances = normalize_to_scale(head_distances)
+                        norm_head_tilts = normalize_to_scale(head_tilts)
+                        norm_left_shoulder_elbow_angles = normalize_to_scale(left_shoulder_elbow_angles)
+                        norm_left_elbow_wrist_angles = normalize_to_scale(left_elbow_wrist_angles)
+                        norm_left_wrist_distances = normalize_to_scale(left_wrist_distances)
+                        norm_right_ankle_distances = normalize_to_scale(right_ankle_distances)
+                        norm_left_ankle_distances = normalize_to_scale(left_ankle_distances)
+                        norm_left_knee_angles = normalize_to_scale(left_knee_angles)
+                        norm_right_knee_angles = normalize_to_scale(right_knee_angles)
+                        
+                        # Add traces for each parameter (using normalized values)
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=shoulder_angles,
+                            x=stability_timestamps, y=norm_shoulder_angles,
                             mode='lines+markers', name='Shoulder Line Angle',
                             line=dict(color='red', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=abs_shoulder_angles,
+                            x=stability_timestamps, y=norm_abs_shoulder_angles,
                             mode='lines+markers', name='Absolute Shoulder Line Angle',
                             line=dict(color='darkred', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=shoulder_twist_hips,
+                            x=stability_timestamps, y=norm_shoulder_twist_hips,
                             mode='lines+markers', name='Shoulder Twist-Hip',
                             line=dict(color='blue', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=hip_distances,
+                            x=stability_timestamps, y=norm_hip_distances,
                             mode='lines+markers', name='Hip Center Distance from Pitch End',
                             line=dict(color='green', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=hip_twists,
+                            x=stability_timestamps, y=norm_hip_twists,
                             mode='lines+markers', name='Hip Line Twist from Camera',
                             line=dict(color='purple', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=head_distances,
+                            x=stability_timestamps, y=norm_head_distances,
                             mode='lines+markers', name='Head Position from Pitch End',
                             line=dict(color='orange', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=head_tilts,
+                            x=stability_timestamps, y=norm_head_tilts,
                             mode='lines+markers', name='Head Tilt (vs Body Vertical Axis)',
                             line=dict(color='pink', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=left_shoulder_elbow_angles,
+                            x=stability_timestamps, y=norm_left_shoulder_elbow_angles,
                             mode='lines+markers', name='Left Shoulder-Elbow Line Angle',
                             line=dict(color='brown', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=left_elbow_wrist_angles,
+                            x=stability_timestamps, y=norm_left_elbow_wrist_angles,
                             mode='lines+markers', name='Left Elbow-Wrist Line Angle',
                             line=dict(color='gray', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=left_wrist_distances,
+                            x=stability_timestamps, y=norm_left_wrist_distances,
                             mode='lines+markers', name='Left Wrist Distance from Pitch End',
                             line=dict(color='cyan', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=right_ankle_distances,
+                            x=stability_timestamps, y=norm_right_ankle_distances,
                             mode='lines+markers', name='Right Ankle Distance from Pitch End',
                             line=dict(color='magenta', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=left_ankle_distances,
+                            x=stability_timestamps, y=norm_left_ankle_distances,
                             mode='lines+markers', name='Left Ankle Distance from Pitch End',
                             line=dict(color='lime', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=left_knee_angles,
+                            x=stability_timestamps, y=norm_left_knee_angles,
                             mode='lines+markers', name='Left Knee Angle',
                             line=dict(color='navy', width=2), marker=dict(size=3)
                         ))
                         
                         fig_stability.add_trace(go.Scatter(
-                            x=stability_timestamps, y=right_knee_angles,
+                            x=stability_timestamps, y=norm_right_knee_angles,
                             mode='lines+markers', name='Right Knee Angle',
                             line=dict(color='maroon', width=2), marker=dict(size=3)
                         ))
                         
                         # Update layout
                         fig_stability.update_layout(
-                            title="Stance Stability Check - Comprehensive Biomechanical Analysis",
+                            title="Stance Stability Check - Normalized Biomechanical Analysis",
                             xaxis_title="Time (seconds)",
-                            yaxis_title="Parameter Values (various units)",
+                            yaxis_title="Normalized Values (0-100 scale)",
                             height=600,
                             hovermode='x unified',
                             legend=dict(
@@ -1643,8 +1670,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         - Total frames analyzed: {len(stability_data)}
                         - Time range: {min(stability_timestamps):.2f}s to {max(stability_timestamps):.2f}s
                         - Pitch end reference: X=0, Y={pitch_end_y:.0f} (left edge, mid-height)
-                        - All distance measurements are in pixels
-                        - All angle measurements are in degrees
+                        - **All parameters normalized to 0-100 scale for visual comparison**
+                        - Original units: distances (pixels), angles (degrees)
+                        - Each parameter scaled independently: min value = 0, max value = 100
                         """)
                         
                     else:

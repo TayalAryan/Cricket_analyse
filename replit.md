@@ -96,6 +96,7 @@ This is a computer vision application built with Streamlit that analyzes cricket
 
 Changelog:
 - June 13, 2025. Initial setup
+- June 14, 2025. Added "Stance Stability Check" section with comprehensive 14-parameter biomechanical analysis chart
 
 ## User Preferences
 
