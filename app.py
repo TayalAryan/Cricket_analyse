@@ -1391,6 +1391,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     pitch_end_x = 0  # Left most point
                     pitch_end_y = video_height / 2  # Half way height
                     
+                    debug_frame_count = 0  # Counter for debug output
                     for result in all_results:
                         if result.get('biomech_data') and result['pose_confidence'] > 0.5:
                             biomech_data = result['biomech_data']
@@ -1517,12 +1518,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             )
                             
                             # Debug output for first 3 frames to check data capture
-                            if frame_idx < 3:
-                                print(f"DEBUG Frame {frame_idx}: hip_distance={hip_distance_from_pitch:.3f}, hip_twist={hip_line_twist:.3f}, head_distance={head_distance_from_pitch:.3f}, head_tilt={head_tilt:.3f}")
-                                print(f"DEBUG Frame {frame_idx}: left_shoulder_elbow={left_shoulder_elbow_angle:.3f}, left_elbow_wrist={left_elbow_wrist_angle:.3f}, left_wrist_distance={left_wrist_distance_from_pitch:.3f}")
-                                print(f"DEBUG Frame {frame_idx}: left_knee={left_knee_angle:.3f}, right_knee={right_knee_angle:.3f}")
-                                print(f"DEBUG Frame {frame_idx}: left_knee_pos=({left_knee_x:.1f},{left_knee_y:.1f}), right_knee_pos=({right_knee_x:.1f},{right_knee_y:.1f})")
-                                print(f"DEBUG Frame {frame_idx}: left_elbow_pos=({left_elbow_x:.1f},{left_elbow_y:.1f}), left_wrist_pos=({left_wrist_x:.1f},{left_wrist_y:.1f})")
+                            if debug_frame_count < 3:
+                                print(f"DEBUG Frame {debug_frame_count}: hip_distance={hip_distance_from_pitch:.3f}, hip_twist={hip_line_twist:.3f}, head_distance={head_distance_from_pitch:.3f}, head_tilt={head_tilt:.3f}")
+                                print(f"DEBUG Frame {debug_frame_count}: left_shoulder_elbow={left_shoulder_elbow_angle:.3f}, left_elbow_wrist={left_elbow_wrist_angle:.3f}, left_wrist_distance={left_wrist_distance_from_pitch:.3f}")
+                                print(f"DEBUG Frame {debug_frame_count}: left_knee={left_knee_angle:.3f}, right_knee={right_knee_angle:.3f}")
+                                print(f"DEBUG Frame {debug_frame_count}: left_knee_pos=({left_knee_x:.1f},{left_knee_y:.1f}), right_knee_pos=({right_knee_x:.1f},{right_knee_y:.1f})")
+                                print(f"DEBUG Frame {debug_frame_count}: left_elbow_pos=({left_elbow_x:.1f},{left_elbow_y:.1f}), left_wrist_pos=({left_wrist_x:.1f},{left_wrist_y:.1f})")
+                            
+                            debug_frame_count += 1
                             
                             stability_data.append({
                                 'timestamp': timestamp,
