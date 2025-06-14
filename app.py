@@ -1424,14 +1424,22 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             
                             # Calculate hip line twist from camera (angle connecting left-right hips)
                             # If batsman is perfectly facing camera, this should be zero
-                            if left_hip_x != right_hip_x:
+                            if debug_frame_count < 3:
+                                print(f"DEBUG Frame {debug_frame_count}: left_hip=({left_hip_x:.3f},{left_hip_y:.3f}), right_hip=({right_hip_x:.3f},{right_hip_y:.3f})")
+                            
+                            if left_hip_x != right_hip_x or left_hip_y != right_hip_y:
+                                # Calculate angle of hip line relative to horizontal (camera plane)
                                 hip_line_twist = math.degrees(math.atan2(right_hip_y - left_hip_y, right_hip_x - left_hip_x))
                                 # Normalize to show deviation from horizontal (camera-facing = 0)
                                 hip_line_twist = abs(hip_line_twist)
                                 if hip_line_twist > 90:
                                     hip_line_twist = 180 - hip_line_twist
+                                if debug_frame_count < 3:
+                                    print(f"DEBUG Frame {debug_frame_count}: calculated hip_twist={hip_line_twist:.3f} degrees")
                             else:
                                 hip_line_twist = 0
+                                if debug_frame_count < 3:
+                                    print(f"DEBUG Frame {debug_frame_count}: hip coordinates identical, twist=0")
                             
                             # Calculate head position from pitch end
                             left_shoulder_x = biomech_data.get('left_shoulder_x', 0)
