@@ -1075,7 +1075,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # 1.5. Shoulder twist relative to hip line
                         shoulder_twist_hip = biomech_data.get('shoulder_twist_hip', 0)
                         
-                        # 1.6. Head position (head X - right foot X)
+                        # 1.6. Head X from right foot (head X - right foot X)
                         head_position = biomech_data.get('head_position', 0)
                         
                         # 2. Left foot extension (X-coordinate difference from right ankle)
@@ -1187,12 +1187,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
-                    # Add head position
+                    # Add head X from right foot
                     fig.add_trace(go.Scatter(
                         x=timestamps,
                         y=normalized_head_position,
                         mode='lines+markers',
-                        name='Head Position',
+                        name='Head X from Right Foot',
                         line=dict(color='green', width=2),
                         marker=dict(size=4)
                     ))
@@ -1319,8 +1319,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Absolute Shoulder Line Angle (degrees)': f"{absolute_shoulder_angles[i]:.2f}",
                             'Shoulder Twist-Hip (degrees)': f"{shoulder_twist_hip[i]:.2f}",
                             'Shoulder Twist-Hip Relative to First Frame (degrees)': f"{relative_shoulder_twist_hip[i]:.2f}",
-                            'Head Position (X-coordinate difference from right foot)': f"{head_positions[i]:.4f}",
-                            'Head Position Relative to First Frame': f"{relative_head_positions[i]:.4f}",
+                            'Head X from Right Foot (X-coordinate difference from right foot)': f"{head_positions[i]:.4f}",
+                            'Head X from Right Foot Relative to First Frame': f"{relative_head_positions[i]:.4f}",
                             'Left Foot Extension (X-coordinate difference from right foot)': f"{data['foot_extension']:.4f}",
                             'Weight Distribution': data.get('weight_distribution_text', 'Unknown'),
                             'Weight Distribution (numeric)': data['weight_distribution'],
