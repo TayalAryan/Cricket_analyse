@@ -1158,10 +1158,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # Calculate X-coordinate difference from right ankle
                         foot_extension = left_ankle_x - right_ankle_x
                         
-                        # 3. Body weight distribution based on center of gravity proximity to feet
-                        # Get the weight distribution already calculated in stance detector
-                        # 0 = Right Foot, 1 = Left Foot, 2 = Balanced
-                        weight_distribution = biomech_data.get('weight_distribution', 0)
+                        # 3. Left wrist position (X coordinate difference from right foot)
+                        left_wrist_x = biomech_data.get('left_wrist_x', 0)
+                        left_wrist_position = left_wrist_x - right_ankle_x
                         
                         # 4. Center of gravity distance from right foot
                         cog_to_right_foot = biomech_data.get('cog_to_right_foot', 0)
@@ -1175,7 +1174,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'shoulder_twist_hip': shoulder_twist_hip,
                             'head_position': head_position,
                             'foot_extension': foot_extension,
-                            'weight_distribution': weight_distribution,
+                            'left_wrist_position': left_wrist_position,
                             'cog_to_right_foot': cog_to_right_foot,
                             'left_foot_head_gap': left_foot_head_gap
                         })
@@ -1189,7 +1188,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     shoulder_twist_hip = [d['shoulder_twist_hip'] for d in cover_drive_data]
                     head_positions = [d['head_position'] for d in cover_drive_data]
                     foot_extensions = [d['foot_extension'] for d in cover_drive_data]
-                    weight_distributions = [d['weight_distribution'] for d in cover_drive_data]
+                    left_wrist_positions = [d['left_wrist_position'] for d in cover_drive_data]
                     cog_distances = [d['cog_to_right_foot'] for d in cover_drive_data]
                     left_foot_head_gaps = [d['left_foot_head_gap'] for d in cover_drive_data]
                     
@@ -1224,11 +1223,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     normalized_head_position = normalize_shoulder_angles_relative_to_first(head_positions)
                     normalized_abs_shoulder = normalize_to_scale(absolute_shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
+                    normalized_left_wrist = normalize_to_scale(left_wrist_positions)
                     normalized_cog = normalize_to_scale(cog_distances)
                     normalized_left_foot_head_gap = normalize_to_scale(left_foot_head_gaps)
-                    
-                    # Weight distribution is three-state (0=Right, 1=Left, 2=Balanced), scale to 0-100
-                    normalized_weight = [w * 50 for w in weight_distributions]  # 0=0, 1=50, 2=100
                     
                     # Calculate relative shoulder angles and shoulder twist-hip values for CSV
                     relative_shoulder_angles = [shoulder_angles[i] - shoulder_angles[0] if shoulder_angles else 0 for i in range(len(shoulder_angles))]
@@ -1278,32 +1275,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
-                    # Add weight distribution (three-state: Right=0, Left=1, Balanced=2)
-                    weight_colors = []
-                    weight_labels = []
-                    for w in weight_distributions:
-                        if w == 0:
-                            weight_colors.append('red')
-                            weight_labels.append('Right Foot')
-                        elif w == 1:
-                            weight_colors.append('blue') 
-                            weight_labels.append('Left Foot')
-                        elif w == 2:
-                            weight_colors.append('green')
-                            weight_labels.append('Balanced')
-                    
+                    # Add left wrist position (X coordinate difference from right foot)
                     fig.add_trace(go.Scatter(
                         x=timestamps,
-                        y=normalized_weight,
-                        mode='markers',
-                        name='Weight Distribution',
-                        marker=dict(
-                            size=8,
-                            color=weight_colors,
-                            symbol='circle'
-                        ),
-                        hovertemplate='<b>Weight Distribution</b><br>Time: %{x:.2f}s<br>State: %{text}<extra></extra>',
-                        text=weight_labels
+                        y=normalized_left_wrist,
+                        mode='lines+markers',
+                        name='Left Wrist Position',
+                        line=dict(color='cyan', width=2),
+                        marker=dict(size=4)
                     ))
                     
                     # Add absolute shoulder line angle
