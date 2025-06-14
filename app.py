@@ -326,6 +326,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # Store comprehensive biomechanical data for shot trigger analysis
                         biomech_data = None
                         if pose_data and pose_data.get('confidence', 0) > 0.5:
+                            # Pass through all stance detector features directly
+                            biomech_data = pose_data.copy()
+                            
                             # Calculate center of gravity from key body landmarks
                             # Use weighted average of major body points
                             left_hip_x = pose_data.get('left_hip_x', 0.5)
@@ -1433,35 +1436,13 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             body_vertical_angle = math.degrees(math.atan2(hip_center_y - head_y, hip_center_x - head_x))
                             head_tilt = abs(body_vertical_angle - 90)  # Deviation from vertical (90 degrees)
                             
-                            # Calculate shoulder-elbow and elbow-wrist angles
-                            # Check if these landmarks exist in biomech_data, if not extract from pose_data
-                            if 'left_elbow_x' not in biomech_data:
-                                # Extract landmarks from the original pose data
-                                pose_landmarks = result.get('pose_landmarks')
-                                if pose_landmarks:
-                                    left_elbow_x = pose_landmarks.get('left_elbow', {}).get('x', 0)
-                                    left_elbow_y = pose_landmarks.get('left_elbow', {}).get('y', 0)
-                                    left_wrist_x = pose_landmarks.get('left_wrist', {}).get('x', 0)
-                                    left_wrist_y = pose_landmarks.get('left_wrist', {}).get('y', 0)
-                                else:
-                                    left_elbow_x = left_elbow_y = left_wrist_x = left_wrist_y = 0
-                            else:
-                                left_elbow_x = biomech_data.get('left_elbow_x', 0)
-                                left_elbow_y = biomech_data.get('left_elbow_y', 0)
-                                left_wrist_x = biomech_data.get('left_wrist_x', 0)
-                                left_wrist_y = biomech_data.get('left_wrist_y', 0)
+                            # Extract angles directly from stance detector calculations
+                            left_shoulder_elbow_angle = biomech_data.get('left_shoulder_elbow_angle', 0)
+                            left_elbow_wrist_angle = biomech_data.get('left_elbow_wrist_angle', 0)
                             
-                            # Left shoulder-elbow line angle with ground
-                            if left_shoulder_x != left_elbow_x:
-                                left_shoulder_elbow_angle = math.degrees(math.atan2(left_elbow_y - left_shoulder_y, left_elbow_x - left_shoulder_x))
-                            else:
-                                left_shoulder_elbow_angle = 0
-                            
-                            # Left elbow-wrist line angle with ground (only if landmarks are valid)
-                            if (left_elbow_x != 0 or left_elbow_y != 0) and (left_wrist_x != 0 or left_wrist_y != 0) and left_elbow_x != left_wrist_x:
-                                left_elbow_wrist_angle = math.degrees(math.atan2(left_wrist_y - left_elbow_y, left_wrist_x - left_elbow_x))
-                            else:
-                                left_elbow_wrist_angle = 0  # Invalid landmarks
+                            # Extract wrist coordinates for distance calculation
+                            left_wrist_x = biomech_data.get('left_wrist_x', 0)
+                            left_wrist_y = biomech_data.get('left_wrist_y', 0)
                             
                             # Left wrist distance from pitch end (only if landmark is valid)
                             if left_wrist_x != 0 or left_wrist_y != 0:
@@ -1478,47 +1459,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             left_ankle_distance_from_pitch = ((left_ankle_x - pitch_end_x)**2 + (left_ankle_y - pitch_end_y)**2)**0.5
                             right_ankle_distance_from_pitch = ((right_ankle_x - pitch_end_x)**2 + (right_ankle_y - pitch_end_y)**2)**0.5
                             
-                            # Calculate knee angles - extract from pose landmarks if not in biomech_data
-                            if 'left_knee_x' not in biomech_data:
-                                pose_landmarks = result.get('pose_landmarks')
-                                if pose_landmarks:
-                                    left_knee_x = pose_landmarks.get('left_knee', {}).get('x', 0)
-                                    left_knee_y = pose_landmarks.get('left_knee', {}).get('y', 0)
-                                    right_knee_x = pose_landmarks.get('right_knee', {}).get('x', 0)
-                                    right_knee_y = pose_landmarks.get('right_knee', {}).get('y', 0)
-                                else:
-                                    left_knee_x = left_knee_y = right_knee_x = right_knee_y = 0
-                            else:
-                                left_knee_x = biomech_data.get('left_knee_x', 0)
-                                left_knee_y = biomech_data.get('left_knee_y', 0)
-                                right_knee_x = biomech_data.get('right_knee_x', 0)
-                                right_knee_y = biomech_data.get('right_knee_y', 0)
-                            
-                            # Left knee angle (hip-knee-ankle)
-                            def calculate_angle_three_points(p1, p2, p3):
-                                """Calculate angle at p2 formed by p1-p2-p3"""
-                                v1 = (p1[0] - p2[0], p1[1] - p2[1])
-                                v2 = (p3[0] - p2[0], p3[1] - p2[1])
-                                dot_product = v1[0] * v2[0] + v1[1] * v2[1]
-                                mag1 = (v1[0]**2 + v1[1]**2)**0.5
-                                mag2 = (v2[0]**2 + v2[1]**2)**0.5
-                                if mag1 > 0 and mag2 > 0:
-                                    cos_angle = dot_product / (mag1 * mag2)
-                                    cos_angle = max(-1, min(1, cos_angle))  # Clamp to valid range
-                                    return math.degrees(math.acos(cos_angle))
-                                return 0
-                            
-                            left_knee_angle = calculate_angle_three_points(
-                                (left_hip_x, left_hip_y),
-                                (left_knee_x, left_knee_y),
-                                (left_ankle_x, left_ankle_y)
-                            )
-                            
-                            right_knee_angle = calculate_angle_three_points(
-                                (right_hip_x, right_hip_y),
-                                (right_knee_x, right_knee_y),
-                                (right_ankle_x, right_ankle_y)
-                            )
+                            # Extract knee angles directly from stance detector calculations
+                            left_knee_angle = biomech_data.get('left_knee_angle', 0)
+                            right_knee_angle = biomech_data.get('right_knee_angle', 0)
                             
                             # Debug output for first 3 frames to check data capture
                             if debug_frame_count < 3:
