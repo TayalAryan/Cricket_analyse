@@ -1080,6 +1080,50 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 st.subheader("Cover Drive Profile")
                 st.markdown("**Normalized biomechanical parameters over time**")
                 
+                # Time Marker Controls
+                st.markdown("**Mark Key Cricket Events (Optional)**")
+                col1, col2, col3 = st.columns(3)
+                
+                # Get video duration for slider limits
+                if st.session_state.get('video_processor') and all_results:
+                    video_duration = st.session_state.video_processor.get_duration()
+                    max_timestamp = min(video_duration, max([r.get('timestamp', 0) for r in all_results]) if all_results else video_duration)
+                else:
+                    max_timestamp = 10.0  # Default fallback
+                
+                with col1:
+                    trigger_time = st.slider(
+                        "🎯 Trigger Point", 
+                        min_value=0.0, 
+                        max_value=max_timestamp, 
+                        value=0.0, 
+                        step=0.1,
+                        help="Mark when the batsman triggers/initiates movement"
+                    )
+                    st.markdown(f"<small>Time: {trigger_time:.1f}s</small>", unsafe_allow_html=True)
+                
+                with col2:
+                    swing_start_time = st.slider(
+                        "🏏 Swing Start", 
+                        min_value=0.0, 
+                        max_value=max_timestamp, 
+                        value=max_timestamp * 0.3, 
+                        step=0.1,
+                        help="Mark when the bat swing begins"
+                    )
+                    st.markdown(f"<small>Time: {swing_start_time:.1f}s</small>", unsafe_allow_html=True)
+                
+                with col3:
+                    ball_contact_time = st.slider(
+                        "⚾ Ball Contact", 
+                        min_value=0.0, 
+                        max_value=max_timestamp, 
+                        value=max_timestamp * 0.6, 
+                        step=0.1,
+                        help="Mark when bat makes contact with ball"
+                    )
+                    st.markdown(f"<small>Time: {ball_contact_time:.1f}s</small>", unsafe_allow_html=True)
+                
                 # Calculate Cover Drive Profile data
                 cover_drive_data = []
                 timestamps = []
@@ -1291,6 +1335,49 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         line=dict(color='orange', width=2),
                         marker=dict(size=4)
                     ))
+                    
+                    # Add vertical lines for user-marked cricket events
+                    if trigger_time > 0:
+                        fig.add_vline(
+                            x=trigger_time,
+                            line=dict(color="red", width=3, dash="dash"),
+                            annotation_text="🎯 Trigger",
+                            annotation_position="top",
+                            annotation=dict(
+                                font=dict(color="red", size=12),
+                                bgcolor="rgba(255,255,255,0.9)",
+                                bordercolor="red",
+                                borderwidth=2
+                            )
+                        )
+                    
+                    if swing_start_time > 0:
+                        fig.add_vline(
+                            x=swing_start_time,
+                            line=dict(color="blue", width=3, dash="dash"),
+                            annotation_text="🏏 Swing Start",
+                            annotation_position="top",
+                            annotation=dict(
+                                font=dict(color="blue", size=12),
+                                bgcolor="rgba(255,255,255,0.9)",
+                                bordercolor="blue",
+                                borderwidth=2
+                            )
+                        )
+                    
+                    if ball_contact_time > 0:
+                        fig.add_vline(
+                            x=ball_contact_time,
+                            line=dict(color="green", width=3, dash="dash"),
+                            annotation_text="⚾ Ball Contact",
+                            annotation_position="top",
+                            annotation=dict(
+                                font=dict(color="green", size=12),
+                                bgcolor="rgba(255,255,255,0.9)",
+                                bordercolor="green",
+                                borderwidth=2
+                            )
+                        )
                     
                     fig.update_layout(
                         title="Cover Drive Profile - 8 Key Biomechanical Parameters",
