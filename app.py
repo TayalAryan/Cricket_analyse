@@ -423,6 +423,13 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
             # Display results
             st.subheader("Analysis Results")
             
+            # Add re-analyze button to clear cached data
+            if st.button("🔄 Re-analyze Video", help="Force re-analysis with updated calculations"):
+                # Clear all cached results
+                st.session_state.analysis_complete = False
+                st.session_state.stance_results = None
+                st.rerun()
+            
             if st.session_state.stance_results:
                 stable_periods = st.session_state.stance_results['stable_periods']
                 shot_triggers = st.session_state.stance_results.get('shot_triggers', [])
@@ -1503,6 +1510,11 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             left_ankle_distance_from_pitch = abs(left_ankle_x - pitch_end_x)  # X coordinate distance only
                             right_ankle_distance_from_pitch = abs(right_ankle_x - pitch_end_x)  # X coordinate distance only
                             
+                            # Debug ankle calculations
+                            if debug_frame_count < 3:
+                                print(f"DEBUG Frame {debug_frame_count}: left_ankle_x={left_ankle_x:.3f}, right_ankle_x={right_ankle_x:.3f}, pitch_end_x={pitch_end_x:.3f}")
+                                print(f"DEBUG Frame {debug_frame_count}: left_ankle_dist={left_ankle_distance_from_pitch:.3f}, right_ankle_dist={right_ankle_distance_from_pitch:.3f}")
+                            
                             # Extract knee angles directly from stance detector calculations
                             left_knee_angle = biomech_data.get('left_knee_angle', 0)
                             right_knee_angle = biomech_data.get('right_knee_angle', 0)
@@ -2427,7 +2439,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 col1, col2 = st.columns([1, 1])
                                 
                                 with col1:
-                                    st.image(frame_rgb, caption=f"Frame {frame_idx}", use_column_width=True)
+                                    st.image(frame_rgb, caption=f"Frame {frame_idx}", use_container_width=True)
                                 
                                 with col2:
                                     # Weight distribution details
