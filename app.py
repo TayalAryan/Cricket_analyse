@@ -1376,6 +1376,282 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No pose data available for Cover Drive Profile analysis")
                 
+                # Stance Stability Check section
+                st.subheader("Stance Stability Check")
+                st.markdown("**Comprehensive biomechanical parameter analysis over time**")
+                
+                if all_results:
+                    # Calculate stance stability data
+                    stability_data = []
+                    stability_timestamps = []
+                    
+                    # Get video dimensions for pitch end calculation
+                    video_height = st.session_state.video_processor.get_resolution()[1]
+                    pitch_end_x = 0  # Left most point
+                    pitch_end_y = video_height / 2  # Half way height
+                    
+                    for result in all_results:
+                        if result.get('biomech_data') and result['pose_confidence'] > 0.5:
+                            biomech_data = result['biomech_data']
+                            timestamp = result['timestamp']
+                            
+                            # Extract existing parameters from biomech_data
+                            shoulder_angle = biomech_data.get('shoulder_line_angle', 0)
+                            abs_shoulder_angle = abs(shoulder_angle)
+                            shoulder_twist_hip = biomech_data.get('shoulder_twist_hip', 0)
+                            
+                            # Calculate hip center distance from pitch end
+                            left_hip_x = biomech_data.get('left_hip_x', 0)
+                            right_hip_x = biomech_data.get('right_hip_x', 0)
+                            left_hip_y = biomech_data.get('left_hip_y', 0)
+                            right_hip_y = biomech_data.get('right_hip_y', 0)
+                            
+                            hip_center_x = (left_hip_x + right_hip_x) / 2
+                            hip_center_y = (left_hip_y + right_hip_y) / 2
+                            hip_distance_from_pitch = ((hip_center_x - pitch_end_x)**2 + (hip_center_y - pitch_end_y)**2)**0.5
+                            
+                            # Calculate hip line twist from camera (angle of hip line with horizontal)
+                            if left_hip_x != right_hip_x:
+                                hip_line_twist = math.degrees(math.atan2(right_hip_y - left_hip_y, right_hip_x - left_hip_x))
+                            else:
+                                hip_line_twist = 0
+                            
+                            # Calculate head position from pitch end
+                            left_shoulder_x = biomech_data.get('left_shoulder_x', 0)
+                            right_shoulder_x = biomech_data.get('right_shoulder_x', 0)
+                            left_shoulder_y = biomech_data.get('left_shoulder_y', 0)
+                            right_shoulder_y = biomech_data.get('right_shoulder_y', 0)
+                            
+                            head_x = (left_shoulder_x + right_shoulder_x) / 2
+                            head_y = (left_shoulder_y + right_shoulder_y) / 2
+                            head_distance_from_pitch = ((head_x - pitch_end_x)**2 + (head_y - pitch_end_y)**2)**0.5
+                            
+                            # Calculate head tilt (compared to body's vertical axis)
+                            # Use shoulder center to hip center as body vertical axis
+                            body_vertical_angle = math.degrees(math.atan2(hip_center_y - head_y, hip_center_x - head_x))
+                            head_tilt = abs(body_vertical_angle - 90)  # Deviation from vertical (90 degrees)
+                            
+                            # Calculate shoulder-elbow and elbow-wrist angles
+                            left_elbow_x = biomech_data.get('left_elbow_x', 0)
+                            left_elbow_y = biomech_data.get('left_elbow_y', 0)
+                            left_wrist_x = biomech_data.get('left_wrist_x', 0)
+                            left_wrist_y = biomech_data.get('left_wrist_y', 0)
+                            
+                            # Left shoulder-elbow line angle with ground
+                            if left_shoulder_x != left_elbow_x:
+                                left_shoulder_elbow_angle = math.degrees(math.atan2(left_elbow_y - left_shoulder_y, left_elbow_x - left_shoulder_x))
+                            else:
+                                left_shoulder_elbow_angle = 0
+                            
+                            # Left elbow-wrist line angle with ground
+                            if left_elbow_x != left_wrist_x:
+                                left_elbow_wrist_angle = math.degrees(math.atan2(left_wrist_y - left_elbow_y, left_wrist_x - left_elbow_x))
+                            else:
+                                left_elbow_wrist_angle = 0
+                            
+                            # Left wrist distance from pitch end
+                            left_wrist_distance_from_pitch = ((left_wrist_x - pitch_end_x)**2 + (left_wrist_y - pitch_end_y)**2)**0.5
+                            
+                            # Ankle distances from pitch end
+                            left_ankle_x = biomech_data.get('left_ankle_x', 0)
+                            left_ankle_y = biomech_data.get('left_ankle_y', 0)
+                            right_ankle_x = biomech_data.get('right_ankle_x', 0)
+                            right_ankle_y = biomech_data.get('right_ankle_y', 0)
+                            
+                            left_ankle_distance_from_pitch = ((left_ankle_x - pitch_end_x)**2 + (left_ankle_y - pitch_end_y)**2)**0.5
+                            right_ankle_distance_from_pitch = ((right_ankle_x - pitch_end_x)**2 + (right_ankle_y - pitch_end_y)**2)**0.5
+                            
+                            # Calculate knee angles
+                            left_knee_x = biomech_data.get('left_knee_x', 0)
+                            left_knee_y = biomech_data.get('left_knee_y', 0)
+                            right_knee_x = biomech_data.get('right_knee_x', 0)
+                            right_knee_y = biomech_data.get('right_knee_y', 0)
+                            
+                            # Left knee angle (hip-knee-ankle)
+                            def calculate_angle_three_points(p1, p2, p3):
+                                """Calculate angle at p2 formed by p1-p2-p3"""
+                                v1 = (p1[0] - p2[0], p1[1] - p2[1])
+                                v2 = (p3[0] - p2[0], p3[1] - p2[1])
+                                dot_product = v1[0] * v2[0] + v1[1] * v2[1]
+                                mag1 = (v1[0]**2 + v1[1]**2)**0.5
+                                mag2 = (v2[0]**2 + v2[1]**2)**0.5
+                                if mag1 > 0 and mag2 > 0:
+                                    cos_angle = dot_product / (mag1 * mag2)
+                                    cos_angle = max(-1, min(1, cos_angle))  # Clamp to valid range
+                                    return math.degrees(math.acos(cos_angle))
+                                return 0
+                            
+                            left_knee_angle = calculate_angle_three_points(
+                                (left_hip_x, left_hip_y),
+                                (left_knee_x, left_knee_y),
+                                (left_ankle_x, left_ankle_y)
+                            )
+                            
+                            right_knee_angle = calculate_angle_three_points(
+                                (right_hip_x, right_hip_y),
+                                (right_knee_x, right_knee_y),
+                                (right_ankle_x, right_ankle_y)
+                            )
+                            
+                            stability_data.append({
+                                'timestamp': timestamp,
+                                'shoulder_line_angle': shoulder_angle,
+                                'abs_shoulder_line_angle': abs_shoulder_angle,
+                                'shoulder_twist_hip': shoulder_twist_hip,
+                                'hip_distance_from_pitch': hip_distance_from_pitch,
+                                'hip_line_twist': hip_line_twist,
+                                'head_distance_from_pitch': head_distance_from_pitch,
+                                'head_tilt': head_tilt,
+                                'left_shoulder_elbow_angle': left_shoulder_elbow_angle,
+                                'left_elbow_wrist_angle': left_elbow_wrist_angle,
+                                'left_wrist_distance_from_pitch': left_wrist_distance_from_pitch,
+                                'right_ankle_distance_from_pitch': right_ankle_distance_from_pitch,
+                                'left_ankle_distance_from_pitch': left_ankle_distance_from_pitch,
+                                'left_knee_angle': left_knee_angle,
+                                'right_knee_angle': right_knee_angle
+                            })
+                            stability_timestamps.append(timestamp)
+                    
+                    if stability_data:
+                        # Create the stance stability chart
+                        fig_stability = go.Figure()
+                        
+                        # Extract data arrays for plotting
+                        shoulder_angles = [d['shoulder_line_angle'] for d in stability_data]
+                        abs_shoulder_angles = [d['abs_shoulder_line_angle'] for d in stability_data]
+                        shoulder_twist_hips = [d['shoulder_twist_hip'] for d in stability_data]
+                        hip_distances = [d['hip_distance_from_pitch'] for d in stability_data]
+                        hip_twists = [d['hip_line_twist'] for d in stability_data]
+                        head_distances = [d['head_distance_from_pitch'] for d in stability_data]
+                        head_tilts = [d['head_tilt'] for d in stability_data]
+                        left_shoulder_elbow_angles = [d['left_shoulder_elbow_angle'] for d in stability_data]
+                        left_elbow_wrist_angles = [d['left_elbow_wrist_angle'] for d in stability_data]
+                        left_wrist_distances = [d['left_wrist_distance_from_pitch'] for d in stability_data]
+                        right_ankle_distances = [d['right_ankle_distance_from_pitch'] for d in stability_data]
+                        left_ankle_distances = [d['left_ankle_distance_from_pitch'] for d in stability_data]
+                        left_knee_angles = [d['left_knee_angle'] for d in stability_data]
+                        right_knee_angles = [d['right_knee_angle'] for d in stability_data]
+                        
+                        # Add traces for each parameter
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=shoulder_angles,
+                            mode='lines+markers', name='Shoulder Line Angle',
+                            line=dict(color='red', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=abs_shoulder_angles,
+                            mode='lines+markers', name='Absolute Shoulder Line Angle',
+                            line=dict(color='darkred', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=shoulder_twist_hips,
+                            mode='lines+markers', name='Shoulder Twist-Hip',
+                            line=dict(color='blue', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=hip_distances,
+                            mode='lines+markers', name='Hip Center Distance from Pitch End',
+                            line=dict(color='green', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=hip_twists,
+                            mode='lines+markers', name='Hip Line Twist from Camera',
+                            line=dict(color='purple', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=head_distances,
+                            mode='lines+markers', name='Head Position from Pitch End',
+                            line=dict(color='orange', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=head_tilts,
+                            mode='lines+markers', name='Head Tilt (vs Body Vertical Axis)',
+                            line=dict(color='pink', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=left_shoulder_elbow_angles,
+                            mode='lines+markers', name='Left Shoulder-Elbow Line Angle',
+                            line=dict(color='brown', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=left_elbow_wrist_angles,
+                            mode='lines+markers', name='Left Elbow-Wrist Line Angle',
+                            line=dict(color='gray', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=left_wrist_distances,
+                            mode='lines+markers', name='Left Wrist Distance from Pitch End',
+                            line=dict(color='cyan', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=right_ankle_distances,
+                            mode='lines+markers', name='Right Ankle Distance from Pitch End',
+                            line=dict(color='magenta', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=left_ankle_distances,
+                            mode='lines+markers', name='Left Ankle Distance from Pitch End',
+                            line=dict(color='lime', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=left_knee_angles,
+                            mode='lines+markers', name='Left Knee Angle',
+                            line=dict(color='navy', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_stability.add_trace(go.Scatter(
+                            x=stability_timestamps, y=right_knee_angles,
+                            mode='lines+markers', name='Right Knee Angle',
+                            line=dict(color='maroon', width=2), marker=dict(size=3)
+                        ))
+                        
+                        # Update layout
+                        fig_stability.update_layout(
+                            title="Stance Stability Check - Comprehensive Biomechanical Analysis",
+                            xaxis_title="Time (seconds)",
+                            yaxis_title="Parameter Values (various units)",
+                            height=600,
+                            hovermode='x unified',
+                            legend=dict(
+                                orientation="v",
+                                yanchor="top",
+                                y=1,
+                                xanchor="left",
+                                x=1.02
+                            )
+                        )
+                        
+                        # Display the chart
+                        st.plotly_chart(fig_stability, use_container_width=True)
+                        
+                        # Show summary information
+                        st.info(f"""
+                        **Chart Information:**
+                        - Total frames analyzed: {len(stability_data)}
+                        - Time range: {min(stability_timestamps):.2f}s to {max(stability_timestamps):.2f}s
+                        - Pitch end reference: X=0, Y={pitch_end_y:.0f} (left edge, mid-height)
+                        - All distance measurements are in pixels
+                        - All angle measurements are in degrees
+                        """)
+                        
+                    else:
+                        st.warning("No pose data available for Stance Stability Check analysis")
+                
+                else:
+                    st.warning("No results available for Stance Stability Check analysis")
+                
                 # Debug section 1: Show frames from 0 to 1 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (0s - 1s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
