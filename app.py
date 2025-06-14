@@ -1457,14 +1457,17 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             else:
                                 left_shoulder_elbow_angle = 0
                             
-                            # Left elbow-wrist line angle with ground
-                            if left_elbow_x != left_wrist_x:
+                            # Left elbow-wrist line angle with ground (only if landmarks are valid)
+                            if (left_elbow_x != 0 or left_elbow_y != 0) and (left_wrist_x != 0 or left_wrist_y != 0) and left_elbow_x != left_wrist_x:
                                 left_elbow_wrist_angle = math.degrees(math.atan2(left_wrist_y - left_elbow_y, left_wrist_x - left_elbow_x))
                             else:
-                                left_elbow_wrist_angle = 0
+                                left_elbow_wrist_angle = 0  # Invalid landmarks
                             
-                            # Left wrist distance from pitch end
-                            left_wrist_distance_from_pitch = ((left_wrist_x - pitch_end_x)**2 + (left_wrist_y - pitch_end_y)**2)**0.5
+                            # Left wrist distance from pitch end (only if landmark is valid)
+                            if left_wrist_x != 0 or left_wrist_y != 0:
+                                left_wrist_distance_from_pitch = ((left_wrist_x - pitch_end_x)**2 + (left_wrist_y - pitch_end_y)**2)**0.5
+                            else:
+                                left_wrist_distance_from_pitch = 0  # Invalid landmark
                             
                             # Ankle distances from pitch end
                             left_ankle_x = biomech_data.get('left_ankle_x', 0)

@@ -224,22 +224,34 @@ class StanceDetector:
         # Add weight distribution results
         features.update(weight_distribution_result)
         
-        # 4. Knee bend angle
-        left_knee_angle = self._calculate_angle(
-            (left_hip.x, left_hip.y), 
-            (left_knee.x, left_knee.y), 
-            (left_ankle.x, left_ankle.y)
-        )
-        right_knee_angle = self._calculate_angle(
-            (right_hip.x, right_hip.y), 
-            (right_knee.x, right_knee.y), 
-            (right_ankle.x, right_ankle.y)
-        )
+        # 4. Knee bend angle - check if landmarks are valid
+        def is_valid_landmark(landmark):
+            """Check if landmark has valid coordinates (not 0,0)"""
+            return not (landmark.x == 0.0 and landmark.y == 0.0)
+        
+        if is_valid_landmark(left_knee):
+            left_knee_angle = self._calculate_angle(
+                (left_hip.x, left_hip.y), 
+                (left_knee.x, left_knee.y), 
+                (left_ankle.x, left_ankle.y)
+            )
+        else:
+            left_knee_angle = None  # Invalid landmark
+        
+        if is_valid_landmark(right_knee):
+            right_knee_angle = self._calculate_angle(
+                (right_hip.x, right_hip.y), 
+                (right_knee.x, right_knee.y), 
+                (right_ankle.x, right_ankle.y)
+            )
+        else:
+            right_knee_angle = None  # Invalid landmark
         
         # Knees should be slightly bent (160-175 degrees) - either knee bent is sufficient
-        features['knees_bent'] = (160 <= left_knee_angle <= 175) or (160 <= right_knee_angle <= 175)
-        features['left_knee_angle'] = left_knee_angle
-        features['right_knee_angle'] = right_knee_angle
+        valid_knee_angles = [angle for angle in [left_knee_angle, right_knee_angle] if angle is not None]
+        features['knees_bent'] = any(160 <= angle <= 175 for angle in valid_knee_angles) if valid_knee_angles else False
+        features['left_knee_angle'] = left_knee_angle if left_knee_angle is not None else 0.0
+        features['right_knee_angle'] = right_knee_angle if right_knee_angle is not None else 0.0
         
         # 4. Feet alignment (parallel)
         feet_y_diff = abs(left_ankle.y - right_ankle.y)
@@ -427,46 +439,58 @@ class StanceDetector:
         left_wrist = landmarks[self.mp_pose.PoseLandmark.LEFT_WRIST.value]
         right_wrist = landmarks[self.mp_pose.PoseLandmark.RIGHT_WRIST.value]
         
-        # Left elbow-to-wrist angle with horizontal
-        left_elbow_wrist_dx = left_wrist.x - left_elbow.x
-        left_elbow_wrist_dy = left_wrist.y - left_elbow.y
-        left_elbow_wrist_angle = math.degrees(math.atan2(left_elbow_wrist_dy, left_elbow_wrist_dx))
-        # Normalize to 0-180 degrees (angle magnitude)
-        left_elbow_wrist_angle = abs(left_elbow_wrist_angle)
-        if left_elbow_wrist_angle > 90:
-            left_elbow_wrist_angle = 180 - left_elbow_wrist_angle
-        features['left_elbow_wrist_angle'] = left_elbow_wrist_angle
+        # Left elbow-to-wrist angle with horizontal (with landmark validation)
+        if is_valid_landmark(left_elbow) and is_valid_landmark(left_wrist):
+            left_elbow_wrist_dx = left_wrist.x - left_elbow.x
+            left_elbow_wrist_dy = left_wrist.y - left_elbow.y
+            left_elbow_wrist_angle = math.degrees(math.atan2(left_elbow_wrist_dy, left_elbow_wrist_dx))
+            # Normalize to 0-180 degrees (angle magnitude)
+            left_elbow_wrist_angle = abs(left_elbow_wrist_angle)
+            if left_elbow_wrist_angle > 90:
+                left_elbow_wrist_angle = 180 - left_elbow_wrist_angle
+        else:
+            left_elbow_wrist_angle = None  # Invalid landmarks
+        features['left_elbow_wrist_angle'] = left_elbow_wrist_angle if left_elbow_wrist_angle is not None else 0.0
         
-        # Right elbow-to-wrist angle with horizontal
-        right_elbow_wrist_dx = right_wrist.x - right_elbow.x
-        right_elbow_wrist_dy = right_wrist.y - right_elbow.y
-        right_elbow_wrist_angle = math.degrees(math.atan2(right_elbow_wrist_dy, right_elbow_wrist_dx))
-        # Normalize to 0-180 degrees (angle magnitude)
-        right_elbow_wrist_angle = abs(right_elbow_wrist_angle)
-        if right_elbow_wrist_angle > 90:
-            right_elbow_wrist_angle = 180 - right_elbow_wrist_angle
-        features['right_elbow_wrist_angle'] = right_elbow_wrist_angle
+        # Right elbow-to-wrist angle with horizontal (with landmark validation)
+        if is_valid_landmark(right_elbow) and is_valid_landmark(right_wrist):
+            right_elbow_wrist_dx = right_wrist.x - right_elbow.x
+            right_elbow_wrist_dy = right_wrist.y - right_elbow.y
+            right_elbow_wrist_angle = math.degrees(math.atan2(right_elbow_wrist_dy, right_elbow_wrist_dx))
+            # Normalize to 0-180 degrees (angle magnitude)
+            right_elbow_wrist_angle = abs(right_elbow_wrist_angle)
+            if right_elbow_wrist_angle > 90:
+                right_elbow_wrist_angle = 180 - right_elbow_wrist_angle
+        else:
+            right_elbow_wrist_angle = None  # Invalid landmarks
+        features['right_elbow_wrist_angle'] = right_elbow_wrist_angle if right_elbow_wrist_angle is not None else 0.0
         
         # 16. Shoulder-to-elbow line angles
-        # Left shoulder-to-elbow angle with horizontal
-        left_shoulder_elbow_dx = left_elbow.x - left_shoulder.x
-        left_shoulder_elbow_dy = left_elbow.y - left_shoulder.y
-        left_shoulder_elbow_angle = math.degrees(math.atan2(left_shoulder_elbow_dy, left_shoulder_elbow_dx))
-        # Normalize to 0-180 degrees (angle magnitude)
-        left_shoulder_elbow_angle = abs(left_shoulder_elbow_angle)
-        if left_shoulder_elbow_angle > 90:
-            left_shoulder_elbow_angle = 180 - left_shoulder_elbow_angle
-        features['left_shoulder_elbow_angle'] = left_shoulder_elbow_angle
+        # Left shoulder-to-elbow angle with horizontal (with landmark validation)
+        if is_valid_landmark(left_elbow):
+            left_shoulder_elbow_dx = left_elbow.x - left_shoulder.x
+            left_shoulder_elbow_dy = left_elbow.y - left_shoulder.y
+            left_shoulder_elbow_angle = math.degrees(math.atan2(left_shoulder_elbow_dy, left_shoulder_elbow_dx))
+            # Normalize to 0-180 degrees (angle magnitude)
+            left_shoulder_elbow_angle = abs(left_shoulder_elbow_angle)
+            if left_shoulder_elbow_angle > 90:
+                left_shoulder_elbow_angle = 180 - left_shoulder_elbow_angle
+        else:
+            left_shoulder_elbow_angle = None  # Invalid landmark
+        features['left_shoulder_elbow_angle'] = left_shoulder_elbow_angle if left_shoulder_elbow_angle is not None else 0.0
         
-        # Right shoulder-to-elbow angle with horizontal
-        right_shoulder_elbow_dx = right_elbow.x - right_shoulder.x
-        right_shoulder_elbow_dy = right_elbow.y - right_shoulder.y
-        right_shoulder_elbow_angle = math.degrees(math.atan2(right_shoulder_elbow_dy, right_shoulder_elbow_dx))
-        # Normalize to 0-180 degrees (angle magnitude)
-        right_shoulder_elbow_angle = abs(right_shoulder_elbow_angle)
-        if right_shoulder_elbow_angle > 90:
-            right_shoulder_elbow_angle = 180 - right_shoulder_elbow_angle
-        features['right_shoulder_elbow_angle'] = right_shoulder_elbow_angle
+        # Right shoulder-to-elbow angle with horizontal (with landmark validation)
+        if is_valid_landmark(right_elbow):
+            right_shoulder_elbow_dx = right_elbow.x - right_shoulder.x
+            right_shoulder_elbow_dy = right_elbow.y - right_shoulder.y
+            right_shoulder_elbow_angle = math.degrees(math.atan2(right_shoulder_elbow_dy, right_shoulder_elbow_dx))
+            # Normalize to 0-180 degrees (angle magnitude)
+            right_shoulder_elbow_angle = abs(right_shoulder_elbow_angle)
+            if right_shoulder_elbow_angle > 90:
+                right_shoulder_elbow_angle = 180 - right_shoulder_elbow_angle
+        else:
+            right_shoulder_elbow_angle = None  # Invalid landmark
+        features['right_shoulder_elbow_angle'] = right_shoulder_elbow_angle if right_shoulder_elbow_angle is not None else 0.0
         
         return features
     
