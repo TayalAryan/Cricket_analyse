@@ -1400,7 +1400,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             biomech_data = result['biomech_data']
                             timestamp = result['timestamp']
                             
-                            # Extract existing parameters from biomech_data
+                            # Extract existing parameters from biomech_data (same as Cover Drive Profile)
                             shoulder_angle = biomech_data.get('shoulder_line_angle', 0)
                             abs_shoulder_angle = abs(shoulder_angle)
                             shoulder_twist_hip = biomech_data.get('shoulder_twist_hip', 0)
@@ -1415,9 +1415,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             hip_center_y = (left_hip_y + right_hip_y) / 2
                             hip_distance_from_pitch = ((hip_center_x - pitch_end_x)**2 + (hip_center_y - pitch_end_y)**2)**0.5
                             
-                            # Calculate hip line twist from camera (angle of hip line with horizontal)
+                            # Calculate hip line twist from camera (angle connecting left-right hips)
+                            # If batsman is perfectly facing camera, this should be zero
                             if left_hip_x != right_hip_x:
                                 hip_line_twist = math.degrees(math.atan2(right_hip_y - left_hip_y, right_hip_x - left_hip_x))
+                                # Normalize to show deviation from horizontal (camera-facing = 0)
+                                hip_line_twist = abs(hip_line_twist)
+                                if hip_line_twist > 90:
+                                    hip_line_twist = 180 - hip_line_twist
                             else:
                                 hip_line_twist = 0
                             
@@ -1431,14 +1436,53 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             head_y = (left_shoulder_y + right_shoulder_y) / 2
                             head_distance_from_pitch = ((head_x - pitch_end_x)**2 + (head_y - pitch_end_y)**2)**0.5
                             
-                            # Calculate head tilt (compared to body's vertical axis)
-                            # Use shoulder center to hip center as body vertical axis
-                            body_vertical_angle = math.degrees(math.atan2(hip_center_y - head_y, hip_center_x - head_x))
-                            head_tilt = abs(body_vertical_angle - 90)  # Deviation from vertical (90 degrees)
+                            # Calculate head tilt - angle neck-head line makes with hip-shoulder center line
+                            # Shoulder center coordinates
+                            shoulder_center_x = (left_shoulder_x + right_shoulder_x) / 2
+                            shoulder_center_y = (left_shoulder_y + right_shoulder_y) / 2
                             
-                            # Extract angles directly from stance detector calculations
-                            left_shoulder_elbow_angle = biomech_data.get('left_shoulder_elbow_angle', 0)
-                            left_elbow_wrist_angle = biomech_data.get('left_elbow_wrist_angle', 0)
+                            # Head position (estimate above shoulders)
+                            head_x = shoulder_center_x
+                            head_y = shoulder_center_y - 0.1  # Estimate head position above shoulders
+                            
+                            # Body vertical line from hip center to shoulder center
+                            body_line_angle = math.degrees(math.atan2(shoulder_center_y - hip_center_y, shoulder_center_x - hip_center_x))
+                            
+                            # Neck-head line angle
+                            neck_head_angle = math.degrees(math.atan2(head_y - shoulder_center_y, head_x - shoulder_center_x))
+                            
+                            # Head tilt is the angle difference
+                            head_tilt = abs(neck_head_angle - body_line_angle)
+                            if head_tilt > 90:
+                                head_tilt = 180 - head_tilt
+                            
+                            # Calculate Left Shoulder-elbow line angle (angle with ground)
+                            left_shoulder_x = biomech_data.get('left_shoulder_x', 0)
+                            left_shoulder_y = biomech_data.get('left_shoulder_y', 0)
+                            left_elbow_x = biomech_data.get('left_elbow_x', 0)
+                            left_elbow_y = biomech_data.get('left_elbow_y', 0)
+                            
+                            if (left_shoulder_x != 0 or left_shoulder_y != 0) and (left_elbow_x != 0 or left_elbow_y != 0):
+                                left_shoulder_elbow_angle = math.degrees(math.atan2(left_elbow_y - left_shoulder_y, left_elbow_x - left_shoulder_x))
+                                # Normalize to 0-180 degrees
+                                left_shoulder_elbow_angle = abs(left_shoulder_elbow_angle)
+                                if left_shoulder_elbow_angle > 90:
+                                    left_shoulder_elbow_angle = 180 - left_shoulder_elbow_angle
+                            else:
+                                left_shoulder_elbow_angle = 0
+                            
+                            # Calculate Left Elbow-wrist line angle (angle with ground)
+                            left_wrist_x = biomech_data.get('left_wrist_x', 0)
+                            left_wrist_y = biomech_data.get('left_wrist_y', 0)
+                            
+                            if (left_elbow_x != 0 or left_elbow_y != 0) and (left_wrist_x != 0 or left_wrist_y != 0):
+                                left_elbow_wrist_angle = math.degrees(math.atan2(left_wrist_y - left_elbow_y, left_wrist_x - left_elbow_x))
+                                # Normalize to 0-180 degrees
+                                left_elbow_wrist_angle = abs(left_elbow_wrist_angle)
+                                if left_elbow_wrist_angle > 90:
+                                    left_elbow_wrist_angle = 180 - left_elbow_wrist_angle
+                            else:
+                                left_elbow_wrist_angle = 0
                             
                             # Extract wrist coordinates for distance calculation
                             left_wrist_x = biomech_data.get('left_wrist_x', 0)
