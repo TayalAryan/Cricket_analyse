@@ -1433,10 +1433,22 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             head_tilt = abs(body_vertical_angle - 90)  # Deviation from vertical (90 degrees)
                             
                             # Calculate shoulder-elbow and elbow-wrist angles
-                            left_elbow_x = biomech_data.get('left_elbow_x', 0)
-                            left_elbow_y = biomech_data.get('left_elbow_y', 0)
-                            left_wrist_x = biomech_data.get('left_wrist_x', 0)
-                            left_wrist_y = biomech_data.get('left_wrist_y', 0)
+                            # Check if these landmarks exist in biomech_data, if not extract from pose_data
+                            if 'left_elbow_x' not in biomech_data:
+                                # Extract landmarks from the original pose data
+                                pose_landmarks = result.get('pose_landmarks')
+                                if pose_landmarks:
+                                    left_elbow_x = pose_landmarks.get('left_elbow', {}).get('x', 0)
+                                    left_elbow_y = pose_landmarks.get('left_elbow', {}).get('y', 0)
+                                    left_wrist_x = pose_landmarks.get('left_wrist', {}).get('x', 0)
+                                    left_wrist_y = pose_landmarks.get('left_wrist', {}).get('y', 0)
+                                else:
+                                    left_elbow_x = left_elbow_y = left_wrist_x = left_wrist_y = 0
+                            else:
+                                left_elbow_x = biomech_data.get('left_elbow_x', 0)
+                                left_elbow_y = biomech_data.get('left_elbow_y', 0)
+                                left_wrist_x = biomech_data.get('left_wrist_x', 0)
+                                left_wrist_y = biomech_data.get('left_wrist_y', 0)
                             
                             # Left shoulder-elbow line angle with ground
                             if left_shoulder_x != left_elbow_x:
@@ -1462,11 +1474,21 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             left_ankle_distance_from_pitch = ((left_ankle_x - pitch_end_x)**2 + (left_ankle_y - pitch_end_y)**2)**0.5
                             right_ankle_distance_from_pitch = ((right_ankle_x - pitch_end_x)**2 + (right_ankle_y - pitch_end_y)**2)**0.5
                             
-                            # Calculate knee angles
-                            left_knee_x = biomech_data.get('left_knee_x', 0)
-                            left_knee_y = biomech_data.get('left_knee_y', 0)
-                            right_knee_x = biomech_data.get('right_knee_x', 0)
-                            right_knee_y = biomech_data.get('right_knee_y', 0)
+                            # Calculate knee angles - extract from pose landmarks if not in biomech_data
+                            if 'left_knee_x' not in biomech_data:
+                                pose_landmarks = result.get('pose_landmarks')
+                                if pose_landmarks:
+                                    left_knee_x = pose_landmarks.get('left_knee', {}).get('x', 0)
+                                    left_knee_y = pose_landmarks.get('left_knee', {}).get('y', 0)
+                                    right_knee_x = pose_landmarks.get('right_knee', {}).get('x', 0)
+                                    right_knee_y = pose_landmarks.get('right_knee', {}).get('y', 0)
+                                else:
+                                    left_knee_x = left_knee_y = right_knee_x = right_knee_y = 0
+                            else:
+                                left_knee_x = biomech_data.get('left_knee_x', 0)
+                                left_knee_y = biomech_data.get('left_knee_y', 0)
+                                right_knee_x = biomech_data.get('right_knee_x', 0)
+                                right_knee_y = biomech_data.get('right_knee_y', 0)
                             
                             # Left knee angle (hip-knee-ankle)
                             def calculate_angle_three_points(p1, p2, p3):
@@ -1493,6 +1515,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 (right_knee_x, right_knee_y),
                                 (right_ankle_x, right_ankle_y)
                             )
+                            
+                            # Debug output for first 3 frames to check data capture
+                            if frame_idx < 3:
+                                print(f"DEBUG Frame {frame_idx}: hip_distance={hip_distance_from_pitch:.3f}, hip_twist={hip_line_twist:.3f}, head_distance={head_distance_from_pitch:.3f}, head_tilt={head_tilt:.3f}")
+                                print(f"DEBUG Frame {frame_idx}: left_shoulder_elbow={left_shoulder_elbow_angle:.3f}, left_elbow_wrist={left_elbow_wrist_angle:.3f}, left_wrist_distance={left_wrist_distance_from_pitch:.3f}")
+                                print(f"DEBUG Frame {frame_idx}: left_knee={left_knee_angle:.3f}, right_knee={right_knee_angle:.3f}")
+                                print(f"DEBUG Frame {frame_idx}: left_knee_pos=({left_knee_x:.1f},{left_knee_y:.1f}), right_knee_pos=({right_knee_x:.1f},{right_knee_y:.1f})")
+                                print(f"DEBUG Frame {frame_idx}: left_elbow_pos=({left_elbow_x:.1f},{left_elbow_y:.1f}), left_wrist_pos=({left_wrist_x:.1f},{left_wrist_y:.1f})")
                             
                             stability_data.append({
                                 'timestamp': timestamp,
