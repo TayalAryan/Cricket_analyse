@@ -1389,10 +1389,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     stability_data = []
                     stability_timestamps = []
                     
-                    # Get video dimensions for pitch end calculation
-                    video_height = st.session_state.video_processor.get_resolution()[1]
-                    pitch_end_x = 0  # Left most point
-                    pitch_end_y = video_height / 2  # Half way height
+                    # Get ROI coordinates for pitch end calculation
+                    x1, y1, x2, y2 = st.session_state.rectangle_coords
+                    pitch_end_x = x1  # Left edge of ROI rectangle
+                    pitch_end_y = (y1 + y2) / 2  # Middle height of ROI rectangle
                     
                     debug_frame_count = 0  # Counter for debug output
                     for result in all_results:
@@ -1690,7 +1690,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         **Charts Information:**
                         - Total frames analyzed: {len(stability_data)}
                         - Time range: {min(stability_timestamps):.2f}s to {max(stability_timestamps):.2f}s
-                        - Pitch end reference: X=0, Y={pitch_end_y:.0f} (left edge, mid-height)
+                        - Pitch end reference: X={pitch_end_x:.0f}, Y={pitch_end_y:.0f} (left edge of ROI, mid-height)
                         - **Angles Chart**: All angular measurements in degrees
                         - **Distances Chart**: All distance measurements in pixels
                         - Parameters with zero values indicate missing pose landmark data
