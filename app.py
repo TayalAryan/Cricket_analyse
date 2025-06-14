@@ -1500,8 +1500,8 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             right_ankle_x = biomech_data.get('right_ankle_x', 0)
                             right_ankle_y = biomech_data.get('right_ankle_y', 0)
                             
-                            left_ankle_distance_from_pitch = ((left_ankle_x - pitch_end_x)**2 + (left_ankle_y - pitch_end_y)**2)**0.5
-                            right_ankle_distance_from_pitch = ((right_ankle_x - pitch_end_x)**2 + (right_ankle_y - pitch_end_y)**2)**0.5
+                            left_ankle_distance_from_pitch = abs(left_ankle_x - pitch_end_x)  # X coordinate distance only
+                            right_ankle_distance_from_pitch = abs(right_ankle_x - pitch_end_x)  # X coordinate distance only
                             
                             # Extract knee angles directly from stance detector calculations
                             left_knee_angle = biomech_data.get('left_knee_angle', 0)
