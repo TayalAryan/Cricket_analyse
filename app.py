@@ -1534,31 +1534,55 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         right_knee_angles = [d['right_knee_angle'] for d in stability_data]
                         
                         # Normalize all parameters to 0-100 scale for better visualization
-                        def normalize_to_scale(values, target_min=0, target_max=100):
-                            """Normalize values to a target scale"""
-                            if not values or all(v == values[0] for v in values):
-                                return [50] * len(values)  # Return middle value if all same
-                            min_val = min(values)
-                            max_val = max(values)
-                            if max_val == min_val:
-                                return [50] * len(values)
-                            return [target_min + (target_max - target_min) * (v - min_val) / (max_val - min_val) for v in values]
+                        def normalize_to_scale_enhanced(values, target_min=0, target_max=100):
+                            """Enhanced normalization that preserves variability even for small ranges"""
+                            if not values:
+                                return []
+                            
+                            # Convert to list if needed and handle edge cases
+                            values_list = list(values)
+                            if len(values_list) == 1:
+                                return [50]
+                            
+                            min_val = min(values_list)
+                            max_val = max(values_list)
+                            range_val = max_val - min_val
+                            
+                            # If range is very small but not zero, amplify the differences
+                            if range_val == 0:
+                                return [50] * len(values_list)
+                            elif range_val < 0.001:  # Very small range - use relative differences
+                                mean_val = sum(values_list) / len(values_list)
+                                # Scale deviations from mean more aggressively
+                                normalized = []
+                                for v in values_list:
+                                    deviation = (v - mean_val) / range_val
+                                    # Amplify small deviations to use more of the 0-100 range
+                                    scaled_deviation = deviation * 40  # Use 80% of range (±40 from center)
+                                    normalized_val = 50 + scaled_deviation
+                                    # Clamp to bounds
+                                    normalized_val = max(target_min, min(target_max, normalized_val))
+                                    normalized.append(normalized_val)
+                                return normalized
+                            else:
+                                # Standard normalization for normal ranges
+                                return [target_min + (target_max - target_min) * (v - min_val) / range_val for v in values_list]
                         
-                        # Normalize all parameter arrays
+                        # Normalize all parameter arrays using enhanced normalization for problematic parameters
                         norm_shoulder_angles = normalize_to_scale(shoulder_angles)
                         norm_abs_shoulder_angles = normalize_to_scale(abs_shoulder_angles)
                         norm_shoulder_twist_hips = normalize_to_scale(shoulder_twist_hips)
-                        norm_hip_distances = normalize_to_scale(hip_distances)
-                        norm_hip_twists = normalize_to_scale(hip_twists)
-                        norm_head_distances = normalize_to_scale(head_distances)
-                        norm_head_tilts = normalize_to_scale(head_tilts)
-                        norm_left_shoulder_elbow_angles = normalize_to_scale(left_shoulder_elbow_angles)
-                        norm_left_elbow_wrist_angles = normalize_to_scale(left_elbow_wrist_angles)
-                        norm_left_wrist_distances = normalize_to_scale(left_wrist_distances)
+                        norm_hip_distances = normalize_to_scale_enhanced(hip_distances)
+                        norm_hip_twists = normalize_to_scale_enhanced(hip_twists)
+                        norm_head_distances = normalize_to_scale_enhanced(head_distances)
+                        norm_head_tilts = normalize_to_scale_enhanced(head_tilts)
+                        norm_left_shoulder_elbow_angles = normalize_to_scale_enhanced(left_shoulder_elbow_angles)
+                        norm_left_elbow_wrist_angles = normalize_to_scale_enhanced(left_elbow_wrist_angles)
+                        norm_left_wrist_distances = normalize_to_scale_enhanced(left_wrist_distances)
                         norm_right_ankle_distances = normalize_to_scale(right_ankle_distances)
                         norm_left_ankle_distances = normalize_to_scale(left_ankle_distances)
-                        norm_left_knee_angles = normalize_to_scale(left_knee_angles)
-                        norm_right_knee_angles = normalize_to_scale(right_knee_angles)
+                        norm_left_knee_angles = normalize_to_scale_enhanced(left_knee_angles)
+                        norm_right_knee_angles = normalize_to_scale_enhanced(right_knee_angles)
                         
                         # Add traces for each parameter (using normalized values)
                         fig_stability.add_trace(go.Scatter(
