@@ -1697,6 +1697,52 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         st.plotly_chart(fig_angles, use_container_width=True)
                         st.plotly_chart(fig_distances, use_container_width=True)
                         
+                        # CSV Download for Distance Chart Parameters
+                        if st.button("📊 Download Distance Chart Data as CSV"):
+                            import pandas as pd
+                            import io
+                            
+                            # Create comprehensive dataset with all distance parameters
+                            csv_data = []
+                            x1, y1, x2, y2 = st.session_state.rectangle_coords
+                            
+                            for i, data in enumerate(stability_data):
+                                csv_row = {
+                                    'frame_index': i,
+                                    'timestamp_seconds': stability_timestamps[i],
+                                    'roi_left_edge_x': x1,
+                                    'roi_top_edge_y': y1, 
+                                    'roi_right_edge_x': x2,
+                                    'roi_bottom_edge_y': y2,
+                                    'pitch_end_reference_x': pitch_end_x,
+                                    'pitch_end_reference_y': pitch_end_y,
+                                    'hip_distance_from_pitch': data['hip_distance_from_pitch'],
+                                    'head_distance_from_pitch': data['head_distance_from_pitch'],
+                                    'left_wrist_distance_from_pitch': data['left_wrist_distance_from_pitch'],
+                                    'left_ankle_distance_from_pitch': data['left_ankle_distance_from_pitch'],
+                                    'right_ankle_distance_from_pitch': data['right_ankle_distance_from_pitch']
+                                }
+                                csv_data.append(csv_row)
+                            
+                            # Create DataFrame and CSV
+                            df = pd.DataFrame(csv_data)
+                            csv_buffer = io.StringIO()
+                            df.to_csv(csv_buffer, index=False)
+                            csv_string = csv_buffer.getvalue()
+                            
+                            # Create download button
+                            st.download_button(
+                                label="💾 Download CSV File",
+                                data=csv_string,
+                                file_name=f"cricket_stance_distances_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                mime="text/csv",
+                                help="Downloads distance chart data with ROI coordinates and all distance measurements"
+                            )
+                            
+                            # Show preview of data
+                            st.markdown("**Data Preview (first 5 rows):**")
+                            st.dataframe(df.head(), use_container_width=True)
+                        
                         # Show summary information
                         st.info(f"""
                         **Charts Information:**
