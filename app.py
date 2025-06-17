@@ -1139,6 +1139,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 
                 st.info(f"Debug: Total frames: {total_results} | With biomech data: {results_with_biomech} | With confidence >0.5: {results_with_confidence}")
                 
+                # Initialize previous frame coordinates for speed calculations
+                prev_left_wrist_x = None
+                prev_left_wrist_y = None
+                
                 for result in all_results:
                     if result.get('biomech_data') and result['pose_confidence'] > 0.5:
                         biomech_data = result['biomech_data']
@@ -1445,13 +1449,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'Head X from Right Foot (X-coordinate difference from right foot)': f"{head_positions[i]:.4f}",
                             'Head X from Right Foot Relative to First Frame': f"{relative_head_positions[i]:.4f}",
                             'Left Foot Extension (X-coordinate difference from right foot)': f"{data['foot_extension']:.4f}",
-                            'Weight Distribution': data.get('weight_distribution_text', 'Unknown'),
-                            'Weight Distribution (numeric)': data['weight_distribution'],
+                            'Left Wrist Position (X difference from right foot)': f"{data['left_wrist_position']:.4f}",
+                            'Left Wrist Speed (pixels per frame)': f"{data['left_wrist_speed']:.4f}",
                             'Center of Gravity Distance from Right Foot': f"{data['cog_to_right_foot']:.4f}",
                             'Left Foot-Head Gap (X-coordinate distance)': f"{data['left_foot_head_gap']:.4f}",
                             'Normalized Shoulder Angle (Chart Scale)': f"{normalized_shoulder[i]:.2f}",
                             'Normalized Foot Extension (0-100)': f"{normalized_foot_ext[i]:.2f}",
-                            'Normalized Weight Distribution (0-100)': f"{normalized_weight[i]:.2f}",
+                            'Normalized Left Wrist Position (0-100)': f"{normalized_left_wrist[i]:.2f}",
+                            'Normalized Left Wrist Speed (0-100)': f"{normalized_left_wrist_speed[i]:.2f}",
                             'Normalized CoG Distance (0-100)': f"{normalized_cog[i]:.2f}",
                             'Normalized Left Foot-Head Gap (0-100)': f"{normalized_left_foot_head_gap[i]:.2f}"
                         })
