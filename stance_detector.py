@@ -492,6 +492,18 @@ class StanceDetector:
             right_shoulder_elbow_angle = None  # Invalid landmark
         features['right_shoulder_elbow_angle'] = right_shoulder_elbow_angle if right_shoulder_elbow_angle is not None else 0.0
         
+        # Store wrist coordinates for Cover Drive Profile analysis
+        features['left_wrist_x'] = left_wrist.x if is_valid_landmark(left_wrist) else 0.0
+        features['left_wrist_y'] = left_wrist.y if is_valid_landmark(left_wrist) else 0.0
+        features['right_wrist_x'] = right_wrist.x if is_valid_landmark(right_wrist) else 0.0
+        features['right_wrist_y'] = right_wrist.y if is_valid_landmark(right_wrist) else 0.0
+        
+        # Store elbow coordinates for completeness
+        features['left_elbow_x'] = left_elbow.x if is_valid_landmark(left_elbow) else 0.0
+        features['left_elbow_y'] = left_elbow.y if is_valid_landmark(left_elbow) else 0.0
+        features['right_elbow_x'] = right_elbow.x if is_valid_landmark(right_elbow) else 0.0
+        features['right_elbow_y'] = right_elbow.y if is_valid_landmark(right_elbow) else 0.0
+        
         return features
     
     def _analyze_ankle_movement(self, results: List[Dict], start_frame: int, end_frame: int) -> Dict:

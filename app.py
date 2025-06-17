@@ -1190,12 +1190,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'speed': left_wrist_speed
                         })
                         
-                        # Debug: Check if wrist coordinates are valid
-                        if left_wrist_x == 0 and left_wrist_y == 0:
-                            # Skip frames with invalid wrist detection
-                            continue
-                        
-                        # Update previous frame coordinates for next iteration
+                        # Update previous frame coordinates for next iteration (allow 0,0 coordinates)
                         prev_left_wrist_x = left_wrist_x
                         prev_left_wrist_y = left_wrist_y
                         
