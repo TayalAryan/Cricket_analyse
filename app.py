@@ -1142,6 +1142,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 # Initialize previous frame coordinates for speed calculations
                 prev_left_wrist_x = None
                 prev_left_wrist_y = None
+                debug_wrist_speeds = []
                 
                 for result in all_results:
                     if result.get('biomech_data') and result['pose_confidence'] > 0.5:
@@ -1178,6 +1179,21 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             dx = left_wrist_x - prev_left_wrist_x
                             dy = left_wrist_y - prev_left_wrist_y
                             left_wrist_speed = (dx**2 + dy**2)**0.5
+                        
+                        # Debug: Track wrist speed values
+                        debug_wrist_speeds.append({
+                            'timestamp': timestamp,
+                            'left_wrist_x': left_wrist_x,
+                            'left_wrist_y': left_wrist_y,
+                            'prev_x': prev_left_wrist_x,
+                            'prev_y': prev_left_wrist_y,
+                            'speed': left_wrist_speed
+                        })
+                        
+                        # Debug: Check if wrist coordinates are valid
+                        if left_wrist_x == 0 and left_wrist_y == 0:
+                            # Skip frames with invalid wrist detection
+                            continue
                         
                         # Update previous frame coordinates for next iteration
                         prev_left_wrist_x = left_wrist_x
@@ -1494,12 +1510,28 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             st.metric("Avg Foot Extension", f"{avg_extension:.3f}")
                         
                         with col3:
-                            left_foot_percentage = (sum(weight_distributions) / len(weight_distributions)) * 100
-                            st.metric("Left Foot Weight %", f"{left_foot_percentage:.0f}%")
+                            avg_left_wrist_speed = sum(left_wrist_speeds) / len(left_wrist_speeds) if left_wrist_speeds else 0
+                            st.metric("Avg Left Wrist Speed", f"{avg_left_wrist_speed:.2f}")
                         
                         with col4:
                             avg_cog_distance = sum(cog_distances) / len(cog_distances)
                             st.metric("Avg CoG Distance", f"{avg_cog_distance:.3f}")
+                    
+                    # Debug: Show wrist speed calculation details
+                    if debug_wrist_speeds:
+                        st.subheader("🔧 Left Wrist Speed Debug Info")
+                        st.write(f"Total frames processed: {len(debug_wrist_speeds)}")
+                        
+                        # Show first 5 frames for debugging
+                        debug_df = debug_wrist_speeds[:5]
+                        for i, frame_debug in enumerate(debug_df):
+                            st.write(f"Frame {i+1}: X={frame_debug['left_wrist_x']:.2f}, Y={frame_debug['left_wrist_y']:.2f}, PrevX={frame_debug['prev_x']}, PrevY={frame_debug['prev_y']}, Speed={frame_debug['speed']:.2f}")
+                        
+                        # Check if all speeds are 0
+                        non_zero_speeds = [d['speed'] for d in debug_wrist_speeds if d['speed'] > 0]
+                        st.write(f"Non-zero speeds found: {len(non_zero_speeds)} out of {len(debug_wrist_speeds)}")
+                        if non_zero_speeds:
+                            st.write(f"Max speed: {max(non_zero_speeds):.2f}, Min speed: {min(non_zero_speeds):.2f}")
                 
                 else:
                     st.warning("No pose data available for Cover Drive Profile analysis")
