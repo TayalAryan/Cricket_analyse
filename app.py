@@ -1128,6 +1128,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 cover_drive_data = []
                 timestamps = []
                 
+                # Store previous frame wrist coordinates for speed calculation
+                prev_left_wrist_x = None
+                prev_left_wrist_y = None
+                
                 # Debug information
                 total_results = len(all_results)
                 results_with_biomech = sum(1 for r in all_results if r.get('biomech_data'))
@@ -1160,12 +1164,25 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         
                         # 3. Left wrist position (X coordinate difference from right foot)
                         left_wrist_x = biomech_data.get('left_wrist_x', 0)
+                        left_wrist_y = biomech_data.get('left_wrist_y', 0)
                         left_wrist_position = left_wrist_x - right_ankle_x
                         
-                        # 4. Center of gravity distance from right foot
+                        # 4. Left wrist speed (Euclidean distance from previous frame)
+                        left_wrist_speed = 0
+                        if prev_left_wrist_x is not None and prev_left_wrist_y is not None:
+                            # Calculate Euclidean distance between current and previous wrist position
+                            dx = left_wrist_x - prev_left_wrist_x
+                            dy = left_wrist_y - prev_left_wrist_y
+                            left_wrist_speed = (dx**2 + dy**2)**0.5
+                        
+                        # Update previous frame coordinates for next iteration
+                        prev_left_wrist_x = left_wrist_x
+                        prev_left_wrist_y = left_wrist_y
+                        
+                        # 5. Center of gravity distance from right foot
                         cog_to_right_foot = biomech_data.get('cog_to_right_foot', 0)
                         
-                        # 5. Left foot-head gap (X coordinate distance)
+                        # 6. Left foot-head gap (X coordinate distance)
                         left_foot_head_gap = biomech_data.get('left_foot_head_gap', 0)
                         
                         cover_drive_data.append({
@@ -1175,6 +1192,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             'head_position': head_position,
                             'foot_extension': foot_extension,
                             'left_wrist_position': left_wrist_position,
+                            'left_wrist_speed': left_wrist_speed,
                             'cog_to_right_foot': cog_to_right_foot,
                             'left_foot_head_gap': left_foot_head_gap
                         })
@@ -1189,6 +1207,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     head_positions = [d['head_position'] for d in cover_drive_data]
                     foot_extensions = [d['foot_extension'] for d in cover_drive_data]
                     left_wrist_positions = [d['left_wrist_position'] for d in cover_drive_data]
+                    left_wrist_speeds = [d['left_wrist_speed'] for d in cover_drive_data]
                     cog_distances = [d['cog_to_right_foot'] for d in cover_drive_data]
                     left_foot_head_gaps = [d['left_foot_head_gap'] for d in cover_drive_data]
                     
@@ -1224,6 +1243,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     normalized_abs_shoulder = normalize_to_scale(absolute_shoulder_angles)
                     normalized_foot_ext = normalize_to_scale(foot_extensions)
                     normalized_left_wrist = normalize_to_scale(left_wrist_positions)
+                    normalized_left_wrist_speed = normalize_to_scale(left_wrist_speeds)
                     normalized_cog = normalize_to_scale(cog_distances)
                     normalized_left_foot_head_gap = normalize_to_scale(left_foot_head_gaps)
                     
@@ -1282,6 +1302,16 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         mode='lines+markers',
                         name='Left Wrist Position',
                         line=dict(color='cyan', width=2),
+                        marker=dict(size=4)
+                    ))
+                    
+                    # Add left wrist speed (Euclidean distance between frames)
+                    fig.add_trace(go.Scatter(
+                        x=timestamps,
+                        y=normalized_left_wrist_speed,
+                        mode='lines+markers',
+                        name='Left Wrist Speed',
+                        line=dict(color='magenta', width=2),
                         marker=dict(size=4)
                     ))
                     
