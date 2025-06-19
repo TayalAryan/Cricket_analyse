@@ -2,7 +2,7 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["freetype", "gcc", "gcc-unwrapped", "lcms2", "libGL", "libGLU", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib", "libstdcxx5", "glibc"]
+packages = ["freetype", "gcc", "gcc-unwrapped", "glibc", "glibcLocales", "lcms2", "libGL", "libGLU", "libgcc", "libimagequant", "libjpeg", "libstdcxx5", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib", "gcc11"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -30,7 +30,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "streamlit run app.py --server.port 5000"
+args = "./start_app.sh"
 waitForPort = 5000
 
 [[workflows.workflow]]
