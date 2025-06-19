@@ -2,7 +2,7 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["binutils", "coreutils", "freetype", "gcc", "gcc-unwrapped", "gcc11", "glibc", "glibcLocales", "lcms2", "libGL", "libGLU", "libgcc", "libimagequant", "libjpeg", "libstdcxx5", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib", "mesa", "libglvnd"]
+packages = ["binutils", "coreutils", "freetype", "gcc", "gcc-unwrapped", "gcc11", "glibc", "glibcLocales", "lcms2", "libGL", "libGLU", "libgcc", "libglvnd", "libimagequant", "libjpeg", "libstdcxx5", "libtiff", "libwebp", "libxcrypt", "mesa", "openjpeg", "tcl", "tk", "zlib"]
 
 [deployment]
 deploymentTarget = "autoscale"
