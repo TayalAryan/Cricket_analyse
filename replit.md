@@ -97,6 +97,23 @@ This is a computer vision application built with Streamlit that analyzes cricket
 Changelog:
 - June 13, 2025. Initial setup
 - June 14, 2025. Added "Stance Stability Check" section with comprehensive 14-parameter biomechanical analysis chart
+- June 19, 2025. Fixed critical wrist coordinate extraction bug in stance_detector.py
+- June 19, 2025. **BLOCKED**: OpenCV libGL.so.1 dependency issue preventing application startup - support ticket created
+
+## Current Status
+
+**Application Status**: BLOCKED - Dependency Issue
+- Core functionality complete with critical bug fixes applied
+- OpenCV VideoCapture dependency preventing application startup
+- All code ready for deployment once system dependencies resolved
+- Support ticket submitted for libGL.so.1 library configuration
+
+**Ready Components**:
+- ✓ Wrist coordinate extraction bug fixed in stance detection
+- ✓ Comprehensive biomechanical analysis with 14 parameters
+- ✓ Interactive Streamlit interface with video upload
+- ✓ Stance stability detection with 300ms window analysis
+- ✓ Shot trigger analysis and directional movement tracking
 
 ## User Preferences
 
