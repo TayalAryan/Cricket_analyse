@@ -2,7 +2,7 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["binutils", "coreutils", "freetype", "gcc", "gcc-unwrapped", "gcc11", "glibc", "glibcLocales", "lcms2", "libGL", "libGLU", "libgcc", "libimagequant", "libjpeg", "libstdcxx5", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+packages = ["binutils", "coreutils", "freetype", "gcc", "gcc-unwrapped", "gcc11", "glibc", "glibcLocales", "lcms2", "libGL", "libGLU", "libgcc", "libimagequant", "libjpeg", "libstdcxx5", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib", "mesa", "libglvnd"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -30,7 +30,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "LD_LIBRARY_PATH=\"/nix/store/*/lib:/nix/store/*/lib64:$LD_LIBRARY_PATH\" streamlit run app.py --server.port 5000"
+args = "LD_LIBRARY_PATH=\"/nix/store/22nxhmsfcv2q2rpkmfvzwg2w5z1l231z-gcc-13.3.0-lib/lib:/nix/store/*/lib:/nix/store/*/lib64:$LD_LIBRARY_PATH\" streamlit run app.py --server.port 5000"
 waitForPort = 5000
 
 [[workflows.workflow]]
