@@ -658,6 +658,23 @@ wheels = [
 ]
 
 [[package]]
+name = "opencv-python-headless"
+version = "4.9.0.80"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/b2/c308bc696bf5d75304175c62222ec8af9a6d5cfe36c14f19f15ea9d1a132/opencv-python-headless-4.9.0.80.tar.gz", hash = "sha256:71a4cd8cf7c37122901d8e81295db7fb188730e33a0e40039a4e59c1030b0958", size = 92910044 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/42/da433fca5733a3ce7e88dd0d4018f70dcffaf48770b5142250815f4faddb/opencv_python_headless-4.9.0.80-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:2ea8a2edc4db87841991b2fbab55fc07b97ecb602e0f47d5d485bd75cee17c1a", size = 55689478 },
+    { url = "https://files.pythonhosted.org/packages/32/0c/a59f2a40d6058ee8126668dc5dff6977c913f6ecd21dbd15b41563409a18/opencv_python_headless-4.9.0.80-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:e0ee54e27be493e8f7850847edae3128e18b540dac1d7b2e4001b8944e11e1c6", size = 35354670 },
+    { url = "https://files.pythonhosted.org/packages/36/37/225a1f8be42610ffecf677558311ab0f9dfdc63537c250a2bce76762a380/opencv_python_headless-4.9.0.80-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:57ce2865e8fec431c6f97a81e9faaf23fa5be61011d0a75ccf47a3c0d65fa73d", size = 28954368 },
+    { url = "https://files.pythonhosted.org/packages/71/19/3c65483a80a1d062d46ae20faf5404712d25cb1dfdcaf371efbd67c38544/opencv_python_headless-4.9.0.80-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:976656362d68d9f40a5c66f83901430538002465f7db59142784f3893918f3df", size = 49591873 },
+    { url = "https://files.pythonhosted.org/packages/10/98/300382ff6ddff3a487e808c8a76362e430f5016002fcbefb3b3117aad32b/opencv_python_headless-4.9.0.80-cp37-abi3-win32.whl", hash = "sha256:11e3849d83e6651d4e7699aadda9ec7ed7c38957cbbcb99db074f2a2d2de9670", size = 28488841 },
+    { url = "https://files.pythonhosted.org/packages/20/44/458a0a135866f5e08266566b32ad9a182a7a059a894effe6c41a9c841ff1/opencv_python_headless-4.9.0.80-cp37-abi3-win_amd64.whl", hash = "sha256:a8056c2cb37cd65dfcdf4153ca16f7362afcf3a50d600d6bb69c660fc61ee29c", size = 38536073 },
+]
+
+[[package]]
 name = "opt-einsum"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -919,6 +936,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "mediapipe" },
     { name = "numpy" },
+    { name = "opencv-python-headless" },
     { name = "pillow" },
     { name = "plotly" },
     { name = "streamlit" },
@@ -928,6 +946,7 @@ dependencies = [
 requires-dist = [
     { name = "mediapipe", specifier = ">=0.10.21" },
     { name = "numpy", specifier = ">=1.26.4" },
+    { name = "opencv-python-headless", specifier = "==4.9.0.80" },
     { name = "pillow", specifier = ">=11.2.1" },
     { name = "plotly", specifier = ">=6.1.2" },
     { name = "streamlit", specifier = ">=1.45.1" },
