@@ -319,9 +319,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
             # Event type selection and marking
             st.markdown("**Mark Events at Current Time**")
             event_types = [
+                "🎯 Trigger Point", "🏏 Swing Start", "⚾ Ball Contact",
                 "Ball Delivery", "Batting Stance", "Shot Preparation", 
-                "Ball Contact", "Follow Through", "Wicket Fall", 
-                "Appeal", "Boundary", "Run Out Attempt", "Custom Event"
+                "Follow Through", "Wicket Fall", "Appeal", "Boundary", 
+                "Run Out Attempt", "Custom Event"
             ]
             
             col_event, col_mark = st.columns([3, 1])
@@ -412,6 +413,24 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         }
                         st.session_state.key_events.append(quick_event)
                         st.rerun()
+            
+            # Show marked cricket events summary
+            if st.session_state.key_events:
+                st.markdown("**Cricket Events Summary**")
+                cricket_events = ['🎯 Trigger Point', '🏏 Swing Start', '⚾ Ball Contact']
+                for cricket_event in cricket_events:
+                    found_event = None
+                    for event in st.session_state.key_events:
+                        if cricket_event.lower() in event['type'].lower():
+                            found_event = event
+                            break
+                    
+                    if found_event:
+                        st.success(f"{cricket_event}: {found_event['time']:.1f}s")
+                    else:
+                        st.info(f"{cricket_event}: Not marked")
+                        
+                st.markdown("These events will be used for Cover Drive Profile analysis.")
             
             # Finish event marking
             st.markdown("---")
@@ -1279,49 +1298,20 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 st.subheader("Cover Drive Profile")
                 st.markdown("**Normalized biomechanical parameters over time**")
                 
-                # Time Marker Controls
-                st.markdown("**Mark Key Cricket Events (Optional)**")
-                col1, col2, col3 = st.columns(3)
+                # Use stored cricket events from pre-analysis marking
+                trigger_time = 0.0
+                swing_start_time = 0.0
+                ball_contact_time = 0.0
                 
-                # Get video duration for slider limits
-                if st.session_state.get('video_processor') and all_results:
-                    video_duration = st.session_state.video_processor.get_duration()
-                    max_timestamp = min(video_duration, max([r.get('timestamp', 0) for r in all_results]) if all_results else video_duration)
-                else:
-                    max_timestamp = 10.0  # Default fallback
-                
-                with col1:
-                    trigger_time = st.slider(
-                        "🎯 Trigger Point", 
-                        min_value=0.0, 
-                        max_value=max_timestamp, 
-                        value=0.0, 
-                        step=0.1,
-                        help="Mark when the batsman triggers/initiates movement"
-                    )
-                    st.markdown(f"<small>Time: {trigger_time:.1f}s</small>", unsafe_allow_html=True)
-                
-                with col2:
-                    swing_start_time = st.slider(
-                        "🏏 Swing Start", 
-                        min_value=0.0, 
-                        max_value=max_timestamp, 
-                        value=max_timestamp * 0.3, 
-                        step=0.1,
-                        help="Mark when the bat swing begins"
-                    )
-                    st.markdown(f"<small>Time: {swing_start_time:.1f}s</small>", unsafe_allow_html=True)
-                
-                with col3:
-                    ball_contact_time = st.slider(
-                        "⚾ Ball Contact", 
-                        min_value=0.0, 
-                        max_value=max_timestamp, 
-                        value=max_timestamp * 0.6, 
-                        step=0.1,
-                        help="Mark when bat makes contact with ball"
-                    )
-                    st.markdown(f"<small>Time: {ball_contact_time:.1f}s</small>", unsafe_allow_html=True)
+                # Find specific cricket events if marked
+                for event in st.session_state.get('key_events', []):
+                    event_type = event['type'].lower()
+                    if 'trigger point' in event_type or 'trigger' in event_type or event['type'] == 'Shot Preparation':
+                        trigger_time = event['time']
+                    elif 'swing start' in event_type or 'swing' in event_type or event['type'] == 'Ball Delivery':
+                        swing_start_time = event['time']
+                    elif 'ball contact' in event_type or 'contact' in event_type:
+                        ball_contact_time = event['time']
                 
                 # Calculate Cover Drive Profile data
                 cover_drive_data = []
