@@ -103,6 +103,7 @@ Changelog:
 - June 26, 2025. Added new cricket events specification interface on video upload page with timing input for 3 key events
 - June 26, 2025. **FIXED**: Cricket events timing section persistence issue - moved to sidebar for guaranteed visibility throughout workflow
 - June 26, 2025. Removed "Stance Stability Check - Angles Analysis" and "Stance Stability Check - Distances Analysis" charts and CSV downloads as requested
+- June 26, 2025. Added comprehensive "Angles" time series chart with 13 specific biomechanical measurements including trigger point difference calculations
 
 ## Current Status
 

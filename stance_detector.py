@@ -498,6 +498,92 @@ class StanceDetector:
         features['right_wrist_x'] = right_wrist.x if is_valid_landmark(right_wrist) else 0.0
         features['right_wrist_y'] = right_wrist.y if is_valid_landmark(right_wrist) else 0.0
         
+        # Additional angle calculations for time series analysis
+        shoulder_center_x = (left_shoulder.x + right_shoulder.x) / 2
+        shoulder_center_y = (left_shoulder.y + right_shoulder.y) / 2
+        hip_center_x = (left_hip.x + right_hip.x) / 2
+        hip_center_y = (left_hip.y + right_hip.y) / 2
+        
+        # Body line (shoulder center to hip center)
+        body_line_angle = math.degrees(math.atan2(hip_center_y - shoulder_center_y, hip_center_x - shoulder_center_x))
+        
+        # Right upper arm to body angle
+        if is_valid_landmark(right_elbow):
+            right_upper_arm_angle = math.degrees(math.atan2(right_elbow.y - right_shoulder.y, right_elbow.x - right_shoulder.x))
+            features['right_upper_arm_to_body_angle'] = abs(right_upper_arm_angle - body_line_angle)
+        else:
+            features['right_upper_arm_to_body_angle'] = 0.0
+        
+        # Left upper arm to body angle  
+        if is_valid_landmark(left_elbow):
+            left_upper_arm_angle = math.degrees(math.atan2(left_elbow.y - left_shoulder.y, left_elbow.x - left_shoulder.x))
+            features['left_upper_arm_to_body_angle'] = abs(left_upper_arm_angle - body_line_angle)
+        else:
+            features['left_upper_arm_to_body_angle'] = 0.0
+        
+        # Right elbow angle (upper arm to forearm)
+        if is_valid_landmark(right_elbow) and is_valid_landmark(right_wrist):
+            features['right_elbow_angle'] = self._calculate_angle(
+                (right_shoulder.x, right_shoulder.y),
+                (right_elbow.x, right_elbow.y), 
+                (right_wrist.x, right_wrist.y)
+            )
+        else:
+            features['right_elbow_angle'] = 0.0
+        
+        # Left elbow angle (upper arm to forearm)
+        if is_valid_landmark(left_elbow) and is_valid_landmark(left_wrist):
+            features['left_elbow_angle'] = self._calculate_angle(
+                (left_shoulder.x, left_shoulder.y),
+                (left_elbow.x, left_elbow.y),
+                (left_wrist.x, left_wrist.y)
+            )
+        else:
+            features['left_elbow_angle'] = 0.0
+        
+        # Body tilt with respect to right upper leg
+        if is_valid_landmark(right_knee):
+            right_upper_leg_angle = math.degrees(math.atan2(right_knee.y - right_hip.y, right_knee.x - right_hip.x))
+            features['body_tilt_wrt_right_upper_leg'] = abs(body_line_angle - right_upper_leg_angle)
+        else:
+            features['body_tilt_wrt_right_upper_leg'] = 0.0
+        
+        # Body tilt with respect to ground (vertical = 90 degrees)
+        features['body_tilt_wrt_ground'] = abs(90 - abs(body_line_angle))
+        
+        # Left forearm angle with ground
+        if is_valid_landmark(left_elbow) and is_valid_landmark(left_wrist):
+            left_forearm_angle = math.degrees(math.atan2(left_wrist.y - left_elbow.y, left_wrist.x - left_elbow.x))
+            features['left_forearm_angle_with_ground'] = abs(left_forearm_angle)
+        else:
+            features['left_forearm_angle_with_ground'] = 0.0
+        
+        # Shoulder line tilt with respect to ground
+        shoulder_line_angle = math.degrees(math.atan2(right_shoulder.y - left_shoulder.y, right_shoulder.x - left_shoulder.x))
+        features['shoulder_line_tilt_with_ground'] = abs(shoulder_line_angle)
+        
+        # Store additional coordinates needed for calculations
+        features['left_shoulder_x'] = left_shoulder.x
+        features['left_shoulder_y'] = left_shoulder.y
+        features['right_shoulder_x'] = right_shoulder.x
+        features['right_shoulder_y'] = right_shoulder.y
+        features['left_hip_x'] = left_hip.x
+        features['left_hip_y'] = left_hip.y
+        features['right_hip_x'] = right_hip.x
+        features['right_hip_y'] = right_hip.y
+        features['left_ankle_x'] = left_ankle.x
+        features['left_ankle_y'] = left_ankle.y
+        features['right_ankle_x'] = right_ankle.x
+        features['right_ankle_y'] = right_ankle.y
+        features['left_knee_x'] = left_knee.x
+        features['left_knee_y'] = left_knee.y
+        features['right_knee_x'] = right_knee.x
+        features['right_knee_y'] = right_knee.y
+        features['left_elbow_x'] = left_elbow.x
+        features['left_elbow_y'] = left_elbow.y
+        features['right_elbow_x'] = right_elbow.x
+        features['right_elbow_y'] = right_elbow.y
+        
         # Store elbow coordinates for completeness
         features['left_elbow_x'] = left_elbow.x if is_valid_landmark(left_elbow) else 0.0
         features['left_elbow_y'] = left_elbow.y if is_valid_landmark(left_elbow) else 0.0

@@ -1743,8 +1743,242 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     else:
                         st.warning("No pose data available for Stance Stability Check analysis")
                 
+                # Angles Time Series Chart section
+                st.subheader("Angles")
+                st.markdown("**Time series analysis of 13 key biomechanical angle measurements**")
+                
+                if all_results:
+                    # Get cricket events timing from session state
+                    trigger_time = st.session_state.get('trigger_time', 0)
+                    swing_time = st.session_state.get('swing_time', 0) 
+                    contact_time = st.session_state.get('contact_time', 0)
+                    
+                    # Calculate angles data with trigger point differences
+                    angles_data = []
+                    angles_timestamps = []
+                    
+                    # Find trigger point frame for difference calculations
+                    trigger_frame_data = None
+                    for result in all_results:
+                        if result.get('biomech_data') and result['pose_confidence'] > 0.5:
+                            if abs(result['timestamp'] - trigger_time) < 0.1:  # Within 0.1s of trigger time
+                                trigger_frame_data = result['biomech_data']
+                                break
+                    
+                    # Extract trigger point reference values (if trigger frame found)
+                    trigger_left_knee_angle = trigger_frame_data.get('left_knee_angle', 0) if trigger_frame_data else 0
+                    trigger_right_knee_angle = trigger_frame_data.get('right_knee_angle', 0) if trigger_frame_data else 0
+                    trigger_shoulder_line_angle = trigger_frame_data.get('shoulder_line_angle', 0) if trigger_frame_data else 0
+                    trigger_hip_line_angle = trigger_frame_data.get('hip_line_angle', 0) if trigger_frame_data else 0
+                    
+                    for result in all_results:
+                        if result.get('biomech_data') and result['pose_confidence'] > 0.5:
+                            biomech_data = result['biomech_data']
+                            timestamp = result['timestamp']
+                            
+                            # 1. Left knee angle change (difference from trigger point)
+                            current_left_knee = biomech_data.get('left_knee_angle', 0)
+                            left_knee_change = current_left_knee - trigger_left_knee_angle
+                            
+                            # 2. Right knee angle change (difference from trigger point)  
+                            current_right_knee = biomech_data.get('right_knee_angle', 0)
+                            right_knee_change = current_right_knee - trigger_right_knee_angle
+                            
+                            # 3. Shoulder angle change (difference from trigger point)
+                            current_shoulder_angle = biomech_data.get('shoulder_line_angle', 0)
+                            shoulder_angle_change = current_shoulder_angle - trigger_shoulder_line_angle
+                            
+                            # 4. Shoulder line tilt with respect to ground
+                            shoulder_line_tilt = biomech_data.get('shoulder_line_tilt_with_ground', 0)
+                            
+                            # 5. Shoulder twist-hip (same as Cover Drive Profile)
+                            shoulder_twist_hip = biomech_data.get('shoulder_twist_hip', 0)
+                            
+                            # 6. Hip angle change (difference from trigger point)
+                            current_hip_angle = biomech_data.get('hip_line_angle', 0)
+                            hip_angle_change = current_hip_angle - trigger_hip_line_angle
+                            
+                            # 7. Right upper arm to body angle
+                            right_upper_arm_to_body = biomech_data.get('right_upper_arm_to_body_angle', 0)
+                            
+                            # 8. Right elbow angle
+                            right_elbow_angle = biomech_data.get('right_elbow_angle', 0)
+                            
+                            # 9. Left upper arm to body angle
+                            left_upper_arm_to_body = biomech_data.get('left_upper_arm_to_body_angle', 0)
+                            
+                            # 10. Left elbow angle
+                            left_elbow_angle = biomech_data.get('left_elbow_angle', 0)
+                            
+                            # 11. Body tilt wrt right upper leg
+                            body_tilt_right_leg = biomech_data.get('body_tilt_wrt_right_upper_leg', 0)
+                            
+                            # 12. Body tilt wrt ground
+                            body_tilt_ground = biomech_data.get('body_tilt_wrt_ground', 0)
+                            
+                            # 13. Left forearm angle with ground
+                            left_forearm_ground = biomech_data.get('left_forearm_angle_with_ground', 0)
+                            
+                            angles_data.append({
+                                'left_knee_change': left_knee_change,
+                                'right_knee_change': right_knee_change,
+                                'shoulder_angle_change': shoulder_angle_change,
+                                'shoulder_line_tilt': shoulder_line_tilt,
+                                'shoulder_twist_hip': shoulder_twist_hip,
+                                'hip_angle_change': hip_angle_change,
+                                'right_upper_arm_to_body': right_upper_arm_to_body,
+                                'right_elbow_angle': right_elbow_angle,
+                                'left_upper_arm_to_body': left_upper_arm_to_body,
+                                'left_elbow_angle': left_elbow_angle,
+                                'body_tilt_right_leg': body_tilt_right_leg,
+                                'body_tilt_ground': body_tilt_ground,
+                                'left_forearm_ground': left_forearm_ground
+                            })
+                            angles_timestamps.append(timestamp)
+                    
+                    if angles_data:
+                        # Create the Angles time series chart
+                        import plotly.graph_objects as go
+                        
+                        fig_angles = go.Figure()
+                        
+                        # Extract data arrays for plotting
+                        left_knee_changes = [d['left_knee_change'] for d in angles_data]
+                        right_knee_changes = [d['right_knee_change'] for d in angles_data]
+                        shoulder_angle_changes = [d['shoulder_angle_change'] for d in angles_data]
+                        shoulder_line_tilts = [d['shoulder_line_tilt'] for d in angles_data]
+                        shoulder_twist_hips = [d['shoulder_twist_hip'] for d in angles_data]
+                        hip_angle_changes = [d['hip_angle_change'] for d in angles_data]
+                        right_upper_arm_to_bodies = [d['right_upper_arm_to_body'] for d in angles_data]
+                        right_elbow_angles = [d['right_elbow_angle'] for d in angles_data]
+                        left_upper_arm_to_bodies = [d['left_upper_arm_to_body'] for d in angles_data]
+                        left_elbow_angles = [d['left_elbow_angle'] for d in angles_data]
+                        body_tilt_right_legs = [d['body_tilt_right_leg'] for d in angles_data]
+                        body_tilt_grounds = [d['body_tilt_ground'] for d in angles_data]
+                        left_forearm_grounds = [d['left_forearm_ground'] for d in angles_data]
+                        
+                        # Add all 13 angle measurements as traces
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=left_knee_changes,
+                            mode='lines+markers', name='1. Left Knee Angle Change',
+                            line=dict(color='#1f77b4', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=right_knee_changes,
+                            mode='lines+markers', name='2. Right Knee Angle Change',
+                            line=dict(color='#ff7f0e', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=shoulder_angle_changes,
+                            mode='lines+markers', name='3. Shoulder Angle Change',
+                            line=dict(color='#2ca02c', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=shoulder_line_tilts,
+                            mode='lines+markers', name='4. Shoulder Line Tilt with Ground',
+                            line=dict(color='#d62728', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=shoulder_twist_hips,
+                            mode='lines+markers', name='5. Shoulder Twist-Hip',
+                            line=dict(color='#9467bd', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=hip_angle_changes,
+                            mode='lines+markers', name='6. Hip Angle Change',
+                            line=dict(color='#8c564b', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=right_upper_arm_to_bodies,
+                            mode='lines+markers', name='7. Right Upper Arm to Body Angle',
+                            line=dict(color='#e377c2', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=right_elbow_angles,
+                            mode='lines+markers', name='8. Right Elbow Angle',
+                            line=dict(color='#7f7f7f', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=left_upper_arm_to_bodies,
+                            mode='lines+markers', name='9. Left Upper Arm to Body Angle',
+                            line=dict(color='#bcbd22', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=left_elbow_angles,
+                            mode='lines+markers', name='10. Left Elbow Angle',
+                            line=dict(color='#17becf', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=body_tilt_right_legs,
+                            mode='lines+markers', name='11. Body Tilt wrt Right Upper Leg',
+                            line=dict(color='#ff9896', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=body_tilt_grounds,
+                            mode='lines+markers', name='12. Body Tilt wrt Ground',
+                            line=dict(color='#c5b0d5', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_angles.add_trace(go.Scatter(
+                            x=angles_timestamps, y=left_forearm_grounds,
+                            mode='lines+markers', name='13. Left Forearm Angle with Ground',
+                            line=dict(color='#c49c94', width=2), marker=dict(size=3)
+                        ))
+                        
+                        # Add vertical lines for cricket events
+                        if trigger_time > 0:
+                            fig_angles.add_vline(x=trigger_time, line_dash="dash", line_color="red", 
+                                               annotation_text="Trigger", annotation_position="top")
+                        if swing_time > 0:
+                            fig_angles.add_vline(x=swing_time, line_dash="dash", line_color="blue", 
+                                               annotation_text="Swing Start", annotation_position="top")
+                        if contact_time > 0:
+                            fig_angles.add_vline(x=contact_time, line_dash="dash", line_color="green", 
+                                               annotation_text="Bat-Ball Connect", annotation_position="top")
+                        
+                        fig_angles.update_layout(
+                            title="Angles - Time Series Analysis of 13 Biomechanical Measurements",
+                            xaxis_title="Time (seconds)",
+                            yaxis_title="Angle (degrees)",
+                            height=600,
+                            hovermode='x unified',
+                            legend=dict(
+                                orientation="v",
+                                yanchor="top",
+                                y=1,
+                                xanchor="left",
+                                x=1.02
+                            )
+                        )
+                        
+                        st.plotly_chart(fig_angles, use_container_width=True)
+                        
+                        # Show summary information
+                        st.info(f"""
+                        **Angles Chart Information:**
+                        - Total frames analyzed: {len(angles_data)}
+                        - Time range: {min(angles_timestamps):.2f}s to {max(angles_timestamps):.2f}s
+                        - Trigger point reference frame: {trigger_time:.2f}s
+                        - Measurements 1-3 and 6 show changes from trigger point
+                        - Measurements 4-5 and 7-13 show absolute angle values
+                        - All angle measurements in degrees
+                        """)
+                    
+                    else:
+                        st.warning("No pose data available for Angles analysis")
                 else:
-                    st.warning("No results available for Stance Stability Check analysis")
+                    st.warning("No video analysis results available for Angles chart")
                 
                 # Debug section 1: Show frames from 0 to 1 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (0s - 1s)")
