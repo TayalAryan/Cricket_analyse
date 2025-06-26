@@ -38,6 +38,12 @@ if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
 if 'stance_results' not in st.session_state:
     st.session_state.stance_results = None
+if 'cricket_events' not in st.session_state:
+    st.session_state.cricket_events = {
+        'trigger': None,
+        'swing_start': None,
+        'bat_ball_connect': None
+    }
 
 
 # Sidebar for controls
@@ -221,6 +227,92 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f"Error loading video: {str(e)}")
                 st.stop()
+        
+        # Cricket Events Specification
+        if st.session_state.video_processor is not None:
+            st.markdown("---")
+            st.subheader("Cricket Events Timing")
+            st.markdown("Specify the timing for key cricket events (optional - helps with analysis)")
+            
+            # Get video duration for validation
+            video_duration = st.session_state.video_processor.get_duration()
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("**Trigger Point**")
+                trigger_time = st.number_input(
+                    "Time (seconds)",
+                    min_value=0.0,
+                    max_value=video_duration,
+                    value=st.session_state.cricket_events['trigger'] if st.session_state.cricket_events['trigger'] is not None else 0.0,
+                    step=0.01,
+                    format="%.2f",
+                    key="trigger_input",
+                    help="When the batsman initiates the shot trigger movement"
+                )
+                if st.button("Set Trigger", key="set_trigger"):
+                    st.session_state.cricket_events['trigger'] = trigger_time
+                    st.success(f"Trigger set at {trigger_time:.2f}s")
+            
+            with col2:
+                st.markdown("**Swing Start**")
+                swing_time = st.number_input(
+                    "Time (seconds)",
+                    min_value=0.0,
+                    max_value=video_duration,
+                    value=st.session_state.cricket_events['swing_start'] if st.session_state.cricket_events['swing_start'] is not None else 0.0,
+                    step=0.01,
+                    format="%.2f",
+                    key="swing_input",
+                    help="When the batsman begins the forward swing motion"
+                )
+                if st.button("Set Swing Start", key="set_swing"):
+                    st.session_state.cricket_events['swing_start'] = swing_time
+                    st.success(f"Swing Start set at {swing_time:.2f}s")
+            
+            with col3:
+                st.markdown("**Bat-Ball Connect**")
+                contact_time = st.number_input(
+                    "Time (seconds)",
+                    min_value=0.0,
+                    max_value=video_duration,
+                    value=st.session_state.cricket_events['bat_ball_connect'] if st.session_state.cricket_events['bat_ball_connect'] is not None else 0.0,
+                    step=0.01,
+                    format="%.2f",
+                    key="contact_input",
+                    help="When the bat makes contact with the ball"
+                )
+                if st.button("Set Contact", key="set_contact"):
+                    st.session_state.cricket_events['bat_ball_connect'] = contact_time
+                    st.success(f"Bat-Ball Connect set at {contact_time:.2f}s")
+            
+            # Show current event settings
+            st.markdown("**Current Event Settings:**")
+            events_set = []
+            if st.session_state.cricket_events['trigger'] is not None:
+                events_set.append(f"Trigger: {st.session_state.cricket_events['trigger']:.2f}s")
+            if st.session_state.cricket_events['swing_start'] is not None:
+                events_set.append(f"Swing Start: {st.session_state.cricket_events['swing_start']:.2f}s")
+            if st.session_state.cricket_events['bat_ball_connect'] is not None:
+                events_set.append(f"Bat-Ball Connect: {st.session_state.cricket_events['bat_ball_connect']:.2f}s")
+            
+            if events_set:
+                for event in events_set:
+                    st.info(event)
+            else:
+                st.info("No events set - analysis will proceed without event markers")
+            
+            # Clear all events button
+            if any(v is not None for v in st.session_state.cricket_events.values()):
+                if st.button("Clear All Events", type="secondary"):
+                    st.session_state.cricket_events = {
+                        'trigger': None,
+                        'swing_start': None,
+                        'bat_ball_connect': None
+                    }
+                    st.success("All events cleared")
+                    st.rerun()
 
 # Continue processing if we have a video loaded (from any method)
 if st.session_state.get('temp_video_path') and st.session_state.get('video_processor'):
@@ -1326,7 +1418,48 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
-
+                    # Add vertical lines for cricket events if specified
+                    if st.session_state.cricket_events['trigger'] is not None:
+                        fig.add_vline(
+                            x=st.session_state.cricket_events['trigger'],
+                            line=dict(color="red", width=3, dash="dash"),
+                            annotation_text="Trigger",
+                            annotation_position="top",
+                            annotation=dict(
+                                font=dict(color="red", size=12),
+                                bgcolor="rgba(255,255,255,0.9)",
+                                bordercolor="red",
+                                borderwidth=2
+                            )
+                        )
+                    
+                    if st.session_state.cricket_events['swing_start'] is not None:
+                        fig.add_vline(
+                            x=st.session_state.cricket_events['swing_start'],
+                            line=dict(color="blue", width=3, dash="dash"),
+                            annotation_text="Swing Start",
+                            annotation_position="top",
+                            annotation=dict(
+                                font=dict(color="blue", size=12),
+                                bgcolor="rgba(255,255,255,0.9)",
+                                bordercolor="blue",
+                                borderwidth=2
+                            )
+                        )
+                    
+                    if st.session_state.cricket_events['bat_ball_connect'] is not None:
+                        fig.add_vline(
+                            x=st.session_state.cricket_events['bat_ball_connect'],
+                            line=dict(color="green", width=3, dash="dash"),
+                            annotation_text="Bat-Ball Connect",
+                            annotation_position="top",
+                            annotation=dict(
+                                font=dict(color="green", size=12),
+                                bgcolor="rgba(255,255,255,0.9)",
+                                bordercolor="green",
+                                borderwidth=2
+                            )
+                        )
                     
                     fig.update_layout(
                         title="Cover Drive Profile - 8 Key Biomechanical Parameters",
