@@ -2034,6 +2034,249 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No video analysis results available for Angles chart")
                 
+                # Distances Time Series Chart section
+                st.subheader("Distances")
+                st.markdown("**Time series analysis of 9 key distance measurements**")
+                
+                if all_results:
+                    # Get cricket events timing from session state
+                    trigger_time = st.session_state.get('trigger_time', 0)
+                    swing_time = st.session_state.get('swing_time', 0) 
+                    contact_time = st.session_state.get('contact_time', 0)
+                    
+                    # Calculate distances data
+                    distances_data = []
+                    distances_timestamps = []
+                    
+                    # Get ball position (assume right edge of ROI at middle height)
+                    roi_coords = st.session_state.get('roi_coords', [0, 0, 640, 480])
+                    ball_x = roi_coords[2] / 640.0  # Right edge normalized
+                    ball_y = (roi_coords[1] + roi_coords[3]) / 2 / 480.0  # Middle height normalized
+                    
+                    # Get left pitch end (left edge of ROI at middle height)
+                    left_pitch_end_x = roi_coords[0] / 640.0  # Left edge normalized
+                    
+                    for result in all_results:
+                        if result.get('biomech_data') and result['pose_confidence'] > 0.5:
+                            biomech_data = result['biomech_data']
+                            timestamp = result['timestamp']
+                            
+                            # Extract coordinates
+                            left_ankle_x = biomech_data.get('left_ankle_x', 0)
+                            left_ankle_y = biomech_data.get('left_ankle_y', 0)
+                            right_ankle_x = biomech_data.get('right_ankle_x', 0)
+                            right_ankle_y = biomech_data.get('right_ankle_y', 0)
+                            left_elbow_x = biomech_data.get('left_elbow_x', 0)
+                            left_elbow_y = biomech_data.get('left_elbow_y', 0)
+                            
+                            # Calculate head position (shoulder center + offset)
+                            left_shoulder_x = biomech_data.get('left_shoulder_x', 0)
+                            left_shoulder_y = biomech_data.get('left_shoulder_y', 0)
+                            right_shoulder_x = biomech_data.get('right_shoulder_x', 0)
+                            right_shoulder_y = biomech_data.get('right_shoulder_y', 0)
+                            head_x = (left_shoulder_x + right_shoulder_x) / 2
+                            head_y = (left_shoulder_y + right_shoulder_y) / 2 - 0.05  # Head above shoulders
+                            
+                            # 1. Left-right ankle gap (euclidean distance)
+                            ankle_gap = ((left_ankle_x - right_ankle_x) ** 2 + (left_ankle_y - right_ankle_y) ** 2) ** 0.5
+                            
+                            # 2. Left ankle from left-end (X coordinate distance)
+                            left_ankle_from_left_end = abs(left_ankle_x - left_pitch_end_x)
+                            
+                            # 3. Right ankle from left-end (X coordinate distance)
+                            right_ankle_from_left_end = abs(right_ankle_x - left_pitch_end_x)
+                            
+                            # 4. Head X position wrt ball (X coordinate distance)
+                            head_x_wrt_ball = abs(head_x - ball_x)
+                            
+                            # 5. Head Y position wrt ball (Y coordinate distance)
+                            head_y_wrt_ball = abs(head_y - ball_y)
+                            
+                            # 6. Left ankle X position wrt ball (X coordinate distance)
+                            left_ankle_x_wrt_ball = abs(left_ankle_x - ball_x)
+                            
+                            # 7. Left ankle Y position wrt ball (Y coordinate distance)
+                            left_ankle_y_wrt_ball = abs(left_ankle_y - ball_y)
+                            
+                            # 8. Left elbow X position wrt head (X coordinate distance)
+                            left_elbow_x_wrt_head = abs(left_elbow_x - head_x)
+                            
+                            # 9. Left elbow Y position wrt head (Y coordinate distance)
+                            left_elbow_y_wrt_head = abs(left_elbow_y - head_y)
+                            
+                            distances_data.append({
+                                'ankle_gap': ankle_gap,
+                                'left_ankle_from_left_end': left_ankle_from_left_end,
+                                'right_ankle_from_left_end': right_ankle_from_left_end,
+                                'head_x_wrt_ball': head_x_wrt_ball,
+                                'head_y_wrt_ball': head_y_wrt_ball,
+                                'left_ankle_x_wrt_ball': left_ankle_x_wrt_ball,
+                                'left_ankle_y_wrt_ball': left_ankle_y_wrt_ball,
+                                'left_elbow_x_wrt_head': left_elbow_x_wrt_head,
+                                'left_elbow_y_wrt_head': left_elbow_y_wrt_head
+                            })
+                            distances_timestamps.append(timestamp)
+                    
+                    if distances_data:
+                        # Create the Distances time series chart
+                        import plotly.graph_objects as go
+                        
+                        fig_distances = go.Figure()
+                        
+                        # Extract data arrays for plotting
+                        ankle_gaps = [d['ankle_gap'] for d in distances_data]
+                        left_ankle_from_left_ends = [d['left_ankle_from_left_end'] for d in distances_data]
+                        right_ankle_from_left_ends = [d['right_ankle_from_left_end'] for d in distances_data]
+                        head_x_wrt_balls = [d['head_x_wrt_ball'] for d in distances_data]
+                        head_y_wrt_balls = [d['head_y_wrt_ball'] for d in distances_data]
+                        left_ankle_x_wrt_balls = [d['left_ankle_x_wrt_ball'] for d in distances_data]
+                        left_ankle_y_wrt_balls = [d['left_ankle_y_wrt_ball'] for d in distances_data]
+                        left_elbow_x_wrt_heads = [d['left_elbow_x_wrt_head'] for d in distances_data]
+                        left_elbow_y_wrt_heads = [d['left_elbow_y_wrt_head'] for d in distances_data]
+                        
+                        # Add all 9 distance measurements as traces
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=ankle_gaps,
+                            mode='lines+markers', name='1. Left-Right Ankle Gap',
+                            line=dict(color='#1f77b4', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=left_ankle_from_left_ends,
+                            mode='lines+markers', name='2. Left Ankle from Left-End',
+                            line=dict(color='#ff7f0e', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=right_ankle_from_left_ends,
+                            mode='lines+markers', name='3. Right Ankle from Left-End',
+                            line=dict(color='#2ca02c', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=head_x_wrt_balls,
+                            mode='lines+markers', name='4. Head X Position wrt Ball',
+                            line=dict(color='#d62728', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=head_y_wrt_balls,
+                            mode='lines+markers', name='5. Head Y Position wrt Ball',
+                            line=dict(color='#9467bd', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=left_ankle_x_wrt_balls,
+                            mode='lines+markers', name='6. Left Ankle X Position wrt Ball',
+                            line=dict(color='#8c564b', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=left_ankle_y_wrt_balls,
+                            mode='lines+markers', name='7. Left Ankle Y Position wrt Ball',
+                            line=dict(color='#e377c2', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=left_elbow_x_wrt_heads,
+                            mode='lines+markers', name='8. Left Elbow X Position wrt Head',
+                            line=dict(color='#7f7f7f', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_distances.add_trace(go.Scatter(
+                            x=distances_timestamps, y=left_elbow_y_wrt_heads,
+                            mode='lines+markers', name='9. Left Elbow Y Position wrt Head',
+                            line=dict(color='#bcbd22', width=2), marker=dict(size=3)
+                        ))
+                        
+                        # Add cricket event points as scatter overlays
+                        if trigger_time > 0:
+                            trigger_idx = min(range(len(distances_timestamps)), 
+                                             key=lambda i: abs(distances_timestamps[i] - trigger_time))
+                            if trigger_idx < len(distances_data):
+                                trigger_data = distances_data[trigger_idx]
+                                fig_distances.add_trace(go.Scatter(
+                                    x=[distances_timestamps[trigger_idx]] * 9,
+                                    y=[trigger_data['ankle_gap'], trigger_data['left_ankle_from_left_end'],
+                                       trigger_data['right_ankle_from_left_end'], trigger_data['head_x_wrt_ball'],
+                                       trigger_data['head_y_wrt_ball'], trigger_data['left_ankle_x_wrt_ball'],
+                                       trigger_data['left_ankle_y_wrt_ball'], trigger_data['left_elbow_x_wrt_head'],
+                                       trigger_data['left_elbow_y_wrt_head']],
+                                    mode='markers',
+                                    name='Trigger Point',
+                                    marker=dict(color='red', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
+                        if swing_time > 0:
+                            swing_idx = min(range(len(distances_timestamps)), 
+                                          key=lambda i: abs(distances_timestamps[i] - swing_time))
+                            if swing_idx < len(distances_data):
+                                swing_data = distances_data[swing_idx]
+                                fig_distances.add_trace(go.Scatter(
+                                    x=[distances_timestamps[swing_idx]] * 9,
+                                    y=[swing_data['ankle_gap'], swing_data['left_ankle_from_left_end'],
+                                       swing_data['right_ankle_from_left_end'], swing_data['head_x_wrt_ball'],
+                                       swing_data['head_y_wrt_ball'], swing_data['left_ankle_x_wrt_ball'],
+                                       swing_data['left_ankle_y_wrt_ball'], swing_data['left_elbow_x_wrt_head'],
+                                       swing_data['left_elbow_y_wrt_head']],
+                                    mode='markers',
+                                    name='Swing Start',
+                                    marker=dict(color='blue', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
+                        if contact_time > 0:
+                            contact_idx = min(range(len(distances_timestamps)), 
+                                            key=lambda i: abs(distances_timestamps[i] - contact_time))
+                            if contact_idx < len(distances_data):
+                                contact_data = distances_data[contact_idx]
+                                fig_distances.add_trace(go.Scatter(
+                                    x=[distances_timestamps[contact_idx]] * 9,
+                                    y=[contact_data['ankle_gap'], contact_data['left_ankle_from_left_end'],
+                                       contact_data['right_ankle_from_left_end'], contact_data['head_x_wrt_ball'],
+                                       contact_data['head_y_wrt_ball'], contact_data['left_ankle_x_wrt_ball'],
+                                       contact_data['left_ankle_y_wrt_ball'], contact_data['left_elbow_x_wrt_head'],
+                                       contact_data['left_elbow_y_wrt_head']],
+                                    mode='markers',
+                                    name='Bat-Ball Connect',
+                                    marker=dict(color='green', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
+                        fig_distances.update_layout(
+                            title="Distances - Time Series Analysis of 9 Key Distance Measurements",
+                            xaxis_title="Time (seconds)",
+                            yaxis_title="Distance (normalized coordinates)",
+                            height=600,
+                            hovermode='x unified',
+                            legend=dict(
+                                orientation="v",
+                                yanchor="top",
+                                y=1,
+                                xanchor="left",
+                                x=1.02
+                            )
+                        )
+                        
+                        st.plotly_chart(fig_distances, use_container_width=True)
+                        
+                        # Show summary information
+                        st.info(f"""
+                        **Distances Chart Information:**
+                        - Total frames analyzed: {len(distances_data)}
+                        - Time range: {min(distances_timestamps):.2f}s to {max(distances_timestamps):.2f}s
+                        - Ball position: Right edge of ROI at middle height
+                        - Left pitch end: Left edge of ROI at middle height
+                        - Head position: Calculated as shoulder center with upward offset
+                        - All distance measurements in normalized coordinates (0-1 scale)
+                        """)
+                    
+                    else:
+                        st.warning("No pose data available for Distances analysis")
+                else:
+                    st.warning("No video analysis results available for Distances chart")
+                
                 # Debug section 1: Show frames from 0 to 1 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (0s - 1s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
