@@ -2098,11 +2098,11 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             # 7. Left ankle Y position wrt ball (Y coordinate distance)
                             left_ankle_y_wrt_ball = abs(left_ankle_y - ball_y)
                             
-                            # 8. Left elbow X position wrt head (X coordinate distance)
-                            left_elbow_x_wrt_head = abs(left_elbow_x - head_x)
+                            # 8. Left elbow X position wrt head (signed integer difference)
+                            left_elbow_x_wrt_head = int((left_elbow_x - head_x) * 1000)  # Convert to integer (millipixels)
                             
-                            # 9. Left elbow Y position wrt head (Y coordinate distance)
-                            left_elbow_y_wrt_head = abs(left_elbow_y - head_y)
+                            # 9. Left elbow Y position wrt head (signed integer difference)
+                            left_elbow_y_wrt_head = int((left_elbow_y - head_y) * 1000)  # Convert to integer (millipixels)
                             
                             distances_data.append({
                                 'ankle_gap': ankle_gap,
