@@ -101,6 +101,8 @@ Changelog:
 - June 19, 2025. **BLOCKED**: OpenCV libGL.so.1 dependency issue preventing application startup - support ticket created
 - June 26, 2025. Completely removed cricket events marking functionality as requested by user
 - June 26, 2025. Added new cricket events specification interface on video upload page with timing input for 3 key events
+- June 26, 2025. **FIXED**: Cricket events timing section persistence issue - moved to sidebar for guaranteed visibility throughout workflow
+- June 26, 2025. Removed "Stance Stability Check - Angles Analysis" and "Stance Stability Check - Distances Analysis" charts and CSV downloads as requested
 
 ## Current Status
 
