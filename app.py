@@ -51,6 +51,61 @@ if 'cricket_events' not in st.session_state:
 with st.sidebar:
     st.header("Configuration")
     
+    # Cricket Events Timing - Show if video is loaded
+    if st.session_state.video_processor is not None:
+        st.subheader("Cricket Events Timing")
+        
+        # Get video duration for validation
+        video_duration = st.session_state.video_processor.get_duration()
+        
+        # Trigger Point
+        trigger_time = st.number_input(
+            "Trigger (seconds)",
+            min_value=0.0,
+            max_value=video_duration,
+            value=st.session_state.cricket_events.get('trigger', 0.0) or 0.0,
+            step=0.01,
+            format="%.2f",
+            key="sidebar_trigger_input",
+            help="When the batsman initiates the shot trigger movement"
+        )
+        st.session_state.cricket_events['trigger'] = trigger_time if trigger_time > 0.0 else None
+        
+        # Swing Start
+        swing_time = st.number_input(
+            "Swing Start (seconds)",
+            min_value=0.0,
+            max_value=video_duration,
+            value=st.session_state.cricket_events.get('swing_start', 0.0) or 0.0,
+            step=0.01,
+            format="%.2f",
+            key="sidebar_swing_input",
+            help="When the batsman begins the forward swing motion"
+        )
+        st.session_state.cricket_events['swing_start'] = swing_time if swing_time > 0.0 else None
+        
+        # Bat-Ball Connect
+        contact_time = st.number_input(
+            "Bat-Ball Connect (seconds)",
+            min_value=0.0,
+            max_value=video_duration,
+            value=st.session_state.cricket_events.get('bat_ball_connect', 0.0) or 0.0,
+            step=0.01,
+            format="%.2f",
+            key="sidebar_contact_input",
+            help="When the bat makes contact with the ball"
+        )
+        st.session_state.cricket_events['bat_ball_connect'] = contact_time if contact_time > 0.0 else None
+        
+        # Show current settings
+        events_count = sum(1 for v in st.session_state.cricket_events.values() if v is not None)
+        if events_count > 0:
+            st.success(f"{events_count} event(s) set")
+        else:
+            st.info("No events specified")
+        
+        st.markdown("---")
+    
     # Camera perspective configuration
     st.subheader("Camera Perspective")
     camera_perspective = st.radio(
@@ -229,88 +284,7 @@ if uploaded_file is not None:
                 st.error(f"Error loading video: {str(e)}")
                 st.stop()
         
-        # Cricket Events Specification - Always show if video is loaded
-        if st.session_state.video_processor is not None:
-            st.markdown("---")
-            st.subheader("Cricket Events Timing")
-            st.markdown("Specify the timing for key cricket events (optional - helps with analysis)")
-            
-            # Get video duration for validation
-            video_duration = st.session_state.video_processor.get_duration()
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.markdown("**Trigger Point**")
-                trigger_time = st.number_input(
-                    "Time (seconds)",
-                    min_value=0.0,
-                    max_value=video_duration,
-                    value=0.0,
-                    step=0.01,
-                    format="%.2f",
-                    key="trigger_input",
-                    help="When the batsman initiates the shot trigger movement"
-                )
-                # Automatically store the value
-                if trigger_time > 0.0:
-                    st.session_state.cricket_events['trigger'] = trigger_time
-                else:
-                    st.session_state.cricket_events['trigger'] = None
-            
-            with col2:
-                st.markdown("**Swing Start**")
-                swing_time = st.number_input(
-                    "Time (seconds)",
-                    min_value=0.0,
-                    max_value=video_duration,
-                    value=0.0,
-                    step=0.01,
-                    format="%.2f",
-                    key="swing_input",
-                    help="When the batsman begins the forward swing motion"
-                )
-                # Automatically store the value
-                if swing_time > 0.0:
-                    st.session_state.cricket_events['swing_start'] = swing_time
-                else:
-                    st.session_state.cricket_events['swing_start'] = None
-            
-            with col3:
-                st.markdown("**Bat-Ball Connect**")
-                contact_time = st.number_input(
-                    "Time (seconds)",
-                    min_value=0.0,
-                    max_value=video_duration,
-                    value=0.0,
-                    step=0.01,
-                    format="%.2f",
-                    key="contact_input",
-                    help="When the bat makes contact with the ball"
-                )
-                # Automatically store the value
-                if contact_time > 0.0:
-                    st.session_state.cricket_events['bat_ball_connect'] = contact_time
-                else:
-                    st.session_state.cricket_events['bat_ball_connect'] = None
-            
-            # Show current event settings preview
-            st.markdown("**Events Preview:**")
-            events_preview = []
-            if st.session_state.cricket_events['trigger'] is not None:
-                events_preview.append(f"Trigger: {st.session_state.cricket_events['trigger']:.2f}s")
-            if st.session_state.cricket_events['swing_start'] is not None:
-                events_preview.append(f"Swing Start: {st.session_state.cricket_events['swing_start']:.2f}s")
-            if st.session_state.cricket_events['bat_ball_connect'] is not None:
-                events_preview.append(f"Bat-Ball Connect: {st.session_state.cricket_events['bat_ball_connect']:.2f}s")
-            
-            if events_preview:
-                for event in events_preview:
-                    st.info(event)
-            else:
-                st.info("No events specified - enter values above 0.00 to set events")
-            
-            st.markdown("*Events will be marked on the Cover Drive Profile chart after analysis*")
+
 
 # Continue processing if we have a video loaded (from any method)
 if st.session_state.get('temp_video_path') and st.session_state.get('video_processor'):
