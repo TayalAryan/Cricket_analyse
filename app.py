@@ -228,8 +228,8 @@ if uploaded_file is not None:
                 st.error(f"Error loading video: {str(e)}")
                 st.stop()
         
-        # Cricket Events Specification - Always show if video is loaded and analysis not complete
-        if st.session_state.video_processor is not None and not st.session_state.analysis_complete:
+        # Cricket Events Specification - Show if video is loaded and rectangle not confirmed yet
+        if st.session_state.video_processor is not None and st.session_state.rectangle_coords is None:
             st.markdown("---")
             st.subheader("Cricket Events Timing")
             st.markdown("Specify the timing for key cricket events (optional - helps with analysis)")
