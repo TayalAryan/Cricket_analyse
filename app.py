@@ -1936,16 +1936,70 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             line=dict(color='#c49c94', width=2), marker=dict(size=3)
                         ))
                         
-                        # Add vertical lines for cricket events
+                        # Add cricket event points as scatter overlays (same as Cover Drive Profile)
                         if trigger_time > 0:
-                            fig_angles.add_vline(x=trigger_time, line_dash="dash", line_color="red", 
-                                               annotation_text="Trigger", annotation_position="top")
+                            # Find closest data point to trigger time
+                            trigger_idx = min(range(len(angles_timestamps)), 
+                                             key=lambda i: abs(angles_timestamps[i] - trigger_time))
+                            if trigger_idx < len(angles_data):
+                                # Add scatter points for all 13 measurements at trigger time
+                                trigger_data = angles_data[trigger_idx]
+                                fig_angles.add_trace(go.Scatter(
+                                    x=[angles_timestamps[trigger_idx]] * 13,
+                                    y=[trigger_data['left_knee_change'], trigger_data['right_knee_change'],
+                                       trigger_data['shoulder_angle_change'], trigger_data['shoulder_line_tilt'],
+                                       trigger_data['shoulder_twist_hip'], trigger_data['hip_angle_change'],
+                                       trigger_data['right_upper_arm_to_body'], trigger_data['right_elbow_angle'],
+                                       trigger_data['left_upper_arm_to_body'], trigger_data['left_elbow_angle'],
+                                       trigger_data['body_tilt_right_leg'], trigger_data['body_tilt_ground'],
+                                       trigger_data['left_forearm_ground']],
+                                    mode='markers',
+                                    name='Trigger Point',
+                                    marker=dict(color='red', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
                         if swing_time > 0:
-                            fig_angles.add_vline(x=swing_time, line_dash="dash", line_color="blue", 
-                                               annotation_text="Swing Start", annotation_position="top")
+                            # Find closest data point to swing time
+                            swing_idx = min(range(len(angles_timestamps)), 
+                                          key=lambda i: abs(angles_timestamps[i] - swing_time))
+                            if swing_idx < len(angles_data):
+                                swing_data = angles_data[swing_idx]
+                                fig_angles.add_trace(go.Scatter(
+                                    x=[angles_timestamps[swing_idx]] * 13,
+                                    y=[swing_data['left_knee_change'], swing_data['right_knee_change'],
+                                       swing_data['shoulder_angle_change'], swing_data['shoulder_line_tilt'],
+                                       swing_data['shoulder_twist_hip'], swing_data['hip_angle_change'],
+                                       swing_data['right_upper_arm_to_body'], swing_data['right_elbow_angle'],
+                                       swing_data['left_upper_arm_to_body'], swing_data['left_elbow_angle'],
+                                       swing_data['body_tilt_right_leg'], swing_data['body_tilt_ground'],
+                                       swing_data['left_forearm_ground']],
+                                    mode='markers',
+                                    name='Swing Start',
+                                    marker=dict(color='blue', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
                         if contact_time > 0:
-                            fig_angles.add_vline(x=contact_time, line_dash="dash", line_color="green", 
-                                               annotation_text="Bat-Ball Connect", annotation_position="top")
+                            # Find closest data point to contact time
+                            contact_idx = min(range(len(angles_timestamps)), 
+                                            key=lambda i: abs(angles_timestamps[i] - contact_time))
+                            if contact_idx < len(angles_data):
+                                contact_data = angles_data[contact_idx]
+                                fig_angles.add_trace(go.Scatter(
+                                    x=[angles_timestamps[contact_idx]] * 13,
+                                    y=[contact_data['left_knee_change'], contact_data['right_knee_change'],
+                                       contact_data['shoulder_angle_change'], contact_data['shoulder_line_tilt'],
+                                       contact_data['shoulder_twist_hip'], contact_data['hip_angle_change'],
+                                       contact_data['right_upper_arm_to_body'], contact_data['right_elbow_angle'],
+                                       contact_data['left_upper_arm_to_body'], contact_data['left_elbow_angle'],
+                                       contact_data['body_tilt_right_leg'], contact_data['body_tilt_ground'],
+                                       contact_data['left_forearm_ground']],
+                                    mode='markers',
+                                    name='Bat-Ball Connect',
+                                    marker=dict(color='green', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
                         
                         fig_angles.update_layout(
                             title="Angles - Time Series Analysis of 13 Biomechanical Measurements",
