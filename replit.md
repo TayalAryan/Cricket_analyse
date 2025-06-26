@@ -105,6 +105,7 @@ Changelog:
 - June 26, 2025. Removed "Stance Stability Check - Angles Analysis" and "Stance Stability Check - Distances Analysis" charts and CSV downloads as requested
 - June 26, 2025. Added comprehensive "Angles" time series chart with 13 specific biomechanical measurements including trigger point difference calculations
 - June 26, 2025. Added "Distances" time series chart with 9 key distance measurements including ankle gaps, body-ball relationships, and elbow-head positioning
+- June 26, 2025. Added "Speed" time series chart with left wrist speed and body angles speed calculations, including cricket event overlays
 
 ## Current Status
 

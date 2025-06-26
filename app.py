@@ -2277,6 +2277,185 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No video analysis results available for Distances chart")
                 
+                # Speed Time Series Chart section
+                st.subheader("Speed")
+                st.markdown("**Time series analysis of movement speeds**")
+                
+                if all_results:
+                    # Get cricket events timing from session state
+                    trigger_time = st.session_state.get('trigger_time', 0)
+                    swing_time = st.session_state.get('swing_time', 0) 
+                    contact_time = st.session_state.get('contact_time', 0)
+                    
+                    # Calculate speed data
+                    speed_data = []
+                    speed_timestamps = []
+                    
+                    # Variables to store previous frame data for speed calculation
+                    prev_left_wrist_x = None
+                    prev_left_wrist_y = None
+                    prev_shoulder_angle_change = None
+                    prev_shoulder_line_tilt = None
+                    prev_shoulder_twist_hip = None
+                    prev_hip_angle_change = None
+                    prev_timestamp = None
+                    
+                    for result in all_results:
+                        if result.get('biomech_data') and result['pose_confidence'] > 0.5:
+                            biomech_data = result['biomech_data']
+                            timestamp = result['timestamp']
+                            
+                            # Extract current frame data
+                            left_wrist_x = biomech_data.get('left_wrist_x', 0)
+                            left_wrist_y = biomech_data.get('left_wrist_y', 0)
+                            
+                            # Get angle measurements for body angles speed
+                            shoulder_angle_change = biomech_data.get('shoulder_angle_change', 0)
+                            shoulder_line_tilt = biomech_data.get('shoulder_line_tilt', 0)
+                            shoulder_twist_hip = biomech_data.get('shoulder_twist_hip', 0)
+                            hip_angle_change = biomech_data.get('hip_angle_change', 0)
+                            
+                            # Calculate speeds if we have previous frame data
+                            if (prev_left_wrist_x is not None and prev_timestamp is not None and 
+                                timestamp > prev_timestamp):
+                                
+                                time_diff = timestamp - prev_timestamp
+                                
+                                # 1. Left wrist speed (euclidean distance per second)
+                                wrist_distance = ((left_wrist_x - prev_left_wrist_x) ** 2 + 
+                                                (left_wrist_y - prev_left_wrist_y) ** 2) ** 0.5
+                                left_wrist_speed = wrist_distance / time_diff if time_diff > 0 else 0
+                                
+                                # 2. Body angles speed (average of absolute speeds of 4 key angles)
+                                shoulder_angle_speed = abs(shoulder_angle_change - prev_shoulder_angle_change) / time_diff if time_diff > 0 else 0
+                                shoulder_tilt_speed = abs(shoulder_line_tilt - prev_shoulder_line_tilt) / time_diff if time_diff > 0 else 0
+                                shoulder_twist_speed = abs(shoulder_twist_hip - prev_shoulder_twist_hip) / time_diff if time_diff > 0 else 0
+                                hip_angle_speed = abs(hip_angle_change - prev_hip_angle_change) / time_diff if time_diff > 0 else 0
+                                
+                                body_angles_speed = (shoulder_angle_speed + shoulder_tilt_speed + 
+                                                   shoulder_twist_speed + hip_angle_speed) / 4
+                                
+                                speed_data.append({
+                                    'left_wrist_speed': left_wrist_speed,
+                                    'body_angles_speed': body_angles_speed
+                                })
+                                speed_timestamps.append(timestamp)
+                            
+                            # Store current frame data for next iteration
+                            prev_left_wrist_x = left_wrist_x
+                            prev_left_wrist_y = left_wrist_y
+                            prev_shoulder_angle_change = shoulder_angle_change
+                            prev_shoulder_line_tilt = shoulder_line_tilt
+                            prev_shoulder_twist_hip = shoulder_twist_hip
+                            prev_hip_angle_change = hip_angle_change
+                            prev_timestamp = timestamp
+                    
+                    if speed_data:
+                        # Create the Speed time series chart
+                        import plotly.graph_objects as go
+                        
+                        fig_speed = go.Figure()
+                        
+                        # Extract data arrays for plotting
+                        left_wrist_speeds = [d['left_wrist_speed'] for d in speed_data]
+                        body_angles_speeds = [d['body_angles_speed'] for d in speed_data]
+                        
+                        # Add speed measurements as traces
+                        fig_speed.add_trace(go.Scatter(
+                            x=speed_timestamps, y=left_wrist_speeds,
+                            mode='lines+markers', name='1. Left Wrist Speed',
+                            line=dict(color='#1f77b4', width=2), marker=dict(size=3)
+                        ))
+                        
+                        fig_speed.add_trace(go.Scatter(
+                            x=speed_timestamps, y=body_angles_speeds,
+                            mode='lines+markers', name='2. Body Angles Speed',
+                            line=dict(color='#ff7f0e', width=2), marker=dict(size=3)
+                        ))
+                        
+                        # Add cricket event points as scatter overlays
+                        if trigger_time > 0:
+                            trigger_idx = min(range(len(speed_timestamps)), 
+                                             key=lambda i: abs(speed_timestamps[i] - trigger_time))
+                            if trigger_idx < len(speed_data):
+                                trigger_data = speed_data[trigger_idx]
+                                fig_speed.add_trace(go.Scatter(
+                                    x=[speed_timestamps[trigger_idx]] * 2,
+                                    y=[trigger_data['left_wrist_speed'], trigger_data['body_angles_speed']],
+                                    mode='markers',
+                                    name='Trigger Point',
+                                    marker=dict(color='red', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
+                        if swing_time > 0:
+                            swing_idx = min(range(len(speed_timestamps)), 
+                                          key=lambda i: abs(speed_timestamps[i] - swing_time))
+                            if swing_idx < len(speed_data):
+                                swing_data = speed_data[swing_idx]
+                                fig_speed.add_trace(go.Scatter(
+                                    x=[speed_timestamps[swing_idx]] * 2,
+                                    y=[swing_data['left_wrist_speed'], swing_data['body_angles_speed']],
+                                    mode='markers',
+                                    name='Swing Start',
+                                    marker=dict(color='blue', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
+                        if contact_time > 0:
+                            contact_idx = min(range(len(speed_timestamps)), 
+                                            key=lambda i: abs(speed_timestamps[i] - contact_time))
+                            if contact_idx < len(speed_data):
+                                contact_data = speed_data[contact_idx]
+                                fig_speed.add_trace(go.Scatter(
+                                    x=[speed_timestamps[contact_idx]] * 2,
+                                    y=[contact_data['left_wrist_speed'], contact_data['body_angles_speed']],
+                                    mode='markers',
+                                    name='Bat-Ball Connect',
+                                    marker=dict(color='green', size=8, symbol='diamond'),
+                                    showlegend=True
+                                ))
+                        
+                        fig_speed.update_layout(
+                            title="Speed - Time Series Analysis of Movement Speeds",
+                            xaxis_title="Time (seconds)",
+                            yaxis_title="Speed (units per second)",
+                            height=600,
+                            hovermode='x unified',
+                            legend=dict(
+                                orientation="v",
+                                yanchor="top",
+                                y=1,
+                                xanchor="left",
+                                x=1.02
+                            )
+                        )
+                        
+                        st.plotly_chart(fig_speed, use_container_width=True)
+                        
+                        # Show summary information
+                        if speed_data:
+                            max_wrist_speed = max(left_wrist_speeds)
+                            max_body_speed = max(body_angles_speeds)
+                            avg_wrist_speed = sum(left_wrist_speeds) / len(left_wrist_speeds)
+                            avg_body_speed = sum(body_angles_speeds) / len(body_angles_speeds)
+                            
+                            st.info(f"""
+                            **Speed Chart Information:**
+                            - Total frames analyzed: {len(speed_data)}
+                            - Time range: {min(speed_timestamps):.2f}s to {max(speed_timestamps):.2f}s
+                            - Max left wrist speed: {max_wrist_speed:.4f} units/second
+                            - Average left wrist speed: {avg_wrist_speed:.4f} units/second
+                            - Max body angles speed: {max_body_speed:.2f} degrees/second
+                            - Average body angles speed: {avg_body_speed:.2f} degrees/second
+                            - Body angles speed includes: Shoulder angle, Shoulder tilt, Shoulder twist-hip, Hip angle
+                            """)
+                    
+                    else:
+                        st.warning("No pose data available for Speed analysis")
+                else:
+                    st.warning("No video analysis results available for Speed chart")
+                
                 # Debug section 1: Show frames from 0 to 1 seconds (n-3 frame comparison)
                 st.subheader("Debug: Shot Trigger Analysis (0s - 1s)")
                 st.markdown("**Detailed frame-by-frame analysis for debugging shot trigger detection**")
