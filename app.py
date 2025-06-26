@@ -38,10 +38,7 @@ if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
 if 'stance_results' not in st.session_state:
     st.session_state.stance_results = None
-if 'key_events' not in st.session_state:
-    st.session_state.key_events = []
-if 'events_marked' not in st.session_state:
-    st.session_state.events_marked = False
+
 
 # Sidebar for controls
 with st.sidebar:
@@ -282,186 +279,11 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
             st.markdown("- Exclude spectators and background")
             st.markdown("- Leave some margin around the expected batting position")
     
-    # Key Events Marking
-    elif st.session_state.rectangle_coords is not None and not st.session_state.events_marked:
-        st.subheader("Step 2: Mark Key Cricket Events")
-        st.markdown("Mark important moments in the video to focus analysis on specific events.")
-        
-        # Video controls for event marking
-        video_duration = st.session_state.video_processor.get_duration()
-        fps = st.session_state.video_processor.get_fps()
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            st.markdown("**Video Preview & Event Marking**")
-            
-            # Time scrubber for video navigation
-            current_time = st.slider(
-                "Video Timeline (seconds)",
-                min_value=0.0,
-                max_value=video_duration,
-                value=0.0,
-                step=0.1,
-                help="Navigate through the video to find key moments"
-            )
-            
-            # Get and display current frame
-            current_frame = st.session_state.video_processor.get_frame_at_time(current_time)
-            if current_frame is not None:
-                # Apply rectangle overlay
-                x1, y1, x2, y2 = st.session_state.rectangle_coords
-                frame_with_rect = current_frame.copy()
-                cv2.rectangle(frame_with_rect, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                frame_rgb = cv2.cvtColor(frame_with_rect, cv2.COLOR_BGR2RGB)
-                st.image(frame_rgb, caption=f"Time: {current_time:.1f}s", use_container_width=True)
-            
-            # Event type selection and marking
-            st.markdown("**Mark Events at Current Time**")
-            event_types = [
-                "🎯 Trigger Point", "🏏 Swing Start", "⚾ Ball Contact",
-                "Ball Delivery", "Batting Stance", "Shot Preparation", 
-                "Follow Through", "Wicket Fall", "Appeal", "Boundary", 
-                "Run Out Attempt", "Custom Event"
-            ]
-            
-            col_event, col_mark = st.columns([3, 1])
-            with col_event:
-                selected_event = st.selectbox("Event Type", event_types)
-                if selected_event == "Custom Event":
-                    custom_event = st.text_input("Custom Event Name", placeholder="Enter event description")
-                    selected_event = custom_event if custom_event else "Custom Event"
-            
-            with col_mark:
-                st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
-                if st.button("Mark Event", type="primary"):
-                    new_event = {
-                        'time': current_time,
-                        'type': selected_event,
-                        'frame_number': int(current_time * fps),
-                        'description': f"{selected_event} at {current_time:.1f}s"
-                    }
-                    st.session_state.key_events.append(new_event)
-                    st.success(f"Marked: {selected_event} at {current_time:.1f}s")
-                    st.rerun()
-        
-        with col2:
-            st.markdown("**Marked Events**")
-            
-            if st.session_state.key_events:
-                # Display marked events
-                for i, event in enumerate(st.session_state.key_events):
-                    with st.container():
-                        col_info, col_del = st.columns([4, 1])
-                        with col_info:
-                            st.markdown(f"**{event['type']}**")
-                            st.markdown(f"Time: {event['time']:.1f}s")
-                        with col_del:
-                            if st.button("❌", key=f"del_event_{i}", help="Delete event"):
-                                st.session_state.key_events.pop(i)
-                                st.rerun()
-                        st.divider()
-                
-                # Quick navigation to events
-                st.markdown("**Quick Navigation**")
-                for event in st.session_state.key_events:
-                    if st.button(f"Go to {event['type']}", key=f"nav_{event['time']}"):
-                        # This would update the slider, but we'll use a simpler approach
-                        st.markdown(f"Navigate to {event['time']:.1f}s using the timeline above")
-                
-                # Analysis focus options
-                st.markdown("**Analysis Focus**")
-                focus_option = st.radio(
-                    "Analysis Scope",
-                    ["Full Video", "Around Marked Events", "Between Events"],
-                    help="Choose how to focus the analysis"
-                )
-                
-                if focus_option == "Around Marked Events":
-                    buffer_time = st.slider("Buffer Time (seconds)", 0.5, 5.0, 2.0, 0.5,
-                                           help="Analyze this many seconds before and after each event")
-                elif focus_option == "Between Events":
-                    if len(st.session_state.key_events) >= 2:
-                        st.info("Will analyze segments between consecutive events")
-                    else:
-                        st.warning("Need at least 2 events for between-events analysis")
-                
-                # Store analysis preferences
-                st.session_state.analysis_focus = {
-                    'type': focus_option,
-                    'buffer_time': buffer_time if focus_option == "Around Marked Events" else 2.0
-                }
-                
-            else:
-                st.info("No events marked yet")
-                st.markdown("**Quick Event Templates**")
-                quick_events = [
-                    ("Start of Over", 0.0),
-                    ("Ball 1", video_duration * 0.2),
-                    ("Ball 2", video_duration * 0.4),
-                    ("Ball 3", video_duration * 0.6),
-                    ("Ball 4", video_duration * 0.8)
-                ]
-                
-                for event_name, suggested_time in quick_events:
-                    if st.button(f"Add {event_name}", key=f"quick_{event_name}"):
-                        quick_event = {
-                            'time': suggested_time,
-                            'type': event_name,
-                            'frame_number': int(suggested_time * fps),
-                            'description': f"{event_name} at {suggested_time:.1f}s"
-                        }
-                        st.session_state.key_events.append(quick_event)
-                        st.rerun()
-            
-            # Show marked cricket events summary
-            if st.session_state.key_events:
-                st.markdown("**Cricket Events Summary**")
-                cricket_events = ['🎯 Trigger Point', '🏏 Swing Start', '⚾ Ball Contact']
-                for cricket_event in cricket_events:
-                    found_event = None
-                    for event in st.session_state.key_events:
-                        if cricket_event.lower() in event['type'].lower():
-                            found_event = event
-                            break
-                    
-                    if found_event:
-                        st.success(f"{cricket_event}: {found_event['time']:.1f}s")
-                    else:
-                        st.info(f"{cricket_event}: Not marked")
-                        
-                st.markdown("These events will be used for Cover Drive Profile analysis.")
-            
-            # Finish event marking
-            st.markdown("---")
-            if st.button("Proceed to Analysis", type="primary"):
-                st.session_state.events_marked = True
-                if not st.session_state.key_events:
-                    # Set default to full video analysis
-                    st.session_state.analysis_focus = {'type': 'Full Video', 'buffer_time': 2.0}
-                st.success("Event marking complete!")
-                st.rerun()
-            
-            # Skip event marking option
-            if st.button("Skip Event Marking"):
-                st.session_state.events_marked = True
-                st.session_state.analysis_focus = {'type': 'Full Video', 'buffer_time': 2.0}
-                st.info("Proceeding with full video analysis")
-                st.rerun()
-    
     # Stance detection
-    elif st.session_state.rectangle_coords is not None and st.session_state.events_marked:
+    elif st.session_state.rectangle_coords is not None:
         st.subheader("Step 3: Stance Detection Analysis")
         
-        # Display analysis scope
-        if hasattr(st.session_state, 'analysis_focus'):
-            focus_info = st.session_state.analysis_focus
-            if focus_info['type'] == 'Full Video':
-                st.info("Analyzing entire video")
-            elif focus_info['type'] == 'Around Marked Events':
-                st.info(f"Analyzing {len(st.session_state.key_events)} marked events with {focus_info['buffer_time']}s buffer")
-            elif focus_info['type'] == 'Between Events':
-                st.info(f"Analyzing segments between {len(st.session_state.key_events)} marked events")
+        st.info("Analyzing entire video for stance detection")
         
         if not st.session_state.analysis_complete:
             if st.button("Start Analysis", type="primary"):
@@ -482,46 +304,16 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 status_text = st.empty()
                 
                 try:
-                    # Determine analysis scope based on marked events
-                    analysis_focus = st.session_state.get('analysis_focus', {'type': 'Full Video', 'buffer_time': 2.0})
+                    # Full video analysis
                     fps = st.session_state.video_processor.get_fps()
                     video_duration = st.session_state.video_processor.get_duration()
+                    frames_to_analyze = list(range(0, int(video_duration * fps)))
                     
-                    # Calculate frames to analyze
-                    frames_to_analyze = []
-                    
-                    if analysis_focus['type'] == 'Full Video':
-                        # Analyze entire video
-                        frames_to_analyze = list(range(0, int(video_duration * fps)))
-                    elif analysis_focus['type'] == 'Around Marked Events':
-                        # Analyze around each marked event
-                        buffer_frames = int(analysis_focus['buffer_time'] * fps)
-                        for event in st.session_state.key_events:
-                            event_frame = int(event['time'] * fps)
-                            start_frame = max(0, event_frame - buffer_frames)
-                            end_frame = min(int(video_duration * fps), event_frame + buffer_frames)
-                            frames_to_analyze.extend(range(start_frame, end_frame))
-                        # Remove duplicates and sort
-                        frames_to_analyze = sorted(list(set(frames_to_analyze)))
-                    elif analysis_focus['type'] == 'Between Events':
-                        # Analyze segments between events
-                        if len(st.session_state.key_events) >= 2:
-                            sorted_events = sorted(st.session_state.key_events, key=lambda x: x['time'])
-                            for i in range(len(sorted_events) - 1):
-                                start_time = sorted_events[i]['time']
-                                end_time = sorted_events[i + 1]['time']
-                                start_frame = int(start_time * fps)
-                                end_frame = int(end_time * fps)
-                                frames_to_analyze.extend(range(start_frame, end_frame))
-                        else:
-                            # Fallback to full video if insufficient events
-                            frames_to_analyze = list(range(0, int(video_duration * fps)))
-                    
-                    # Process selected frames
+                    # Process all frames
                     results = []
                     total_frames = len(frames_to_analyze)
                     
-                    status_text.text(f"Analyzing {total_frames} frames based on marked events...")
+                    status_text.text(f"Analyzing {total_frames} frames...")
                     
                     for i, frame_idx in enumerate(frames_to_analyze):
                         # Get frame at specific index
@@ -1297,21 +1089,6 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 # Cover Drive Profile section
                 st.subheader("Cover Drive Profile")
                 st.markdown("**Normalized biomechanical parameters over time**")
-                
-                # Use stored cricket events from pre-analysis marking
-                trigger_time = 0.0
-                swing_start_time = 0.0
-                ball_contact_time = 0.0
-                
-                # Find specific cricket events if marked
-                for event in st.session_state.get('key_events', []):
-                    event_type = event['type'].lower()
-                    if 'trigger point' in event_type or 'trigger' in event_type or event['type'] == 'Shot Preparation':
-                        trigger_time = event['time']
-                    elif 'swing start' in event_type or 'swing' in event_type or event['type'] == 'Ball Delivery':
-                        swing_start_time = event['time']
-                    elif 'ball contact' in event_type or 'contact' in event_type:
-                        ball_contact_time = event['time']
                 
                 # Calculate Cover Drive Profile data
                 cover_drive_data = []
