@@ -228,8 +228,8 @@ if uploaded_file is not None:
                 st.error(f"Error loading video: {str(e)}")
                 st.stop()
         
-        # Cricket Events Specification
-        if st.session_state.video_processor is not None:
+        # Cricket Events Specification - Always show if video is loaded and analysis not complete
+        if st.session_state.video_processor is not None and not st.session_state.analysis_complete:
             st.markdown("---")
             st.subheader("Cricket Events Timing")
             st.markdown("Specify the timing for key cricket events (optional - helps with analysis)")
@@ -245,15 +245,17 @@ if uploaded_file is not None:
                     "Time (seconds)",
                     min_value=0.0,
                     max_value=video_duration,
-                    value=st.session_state.cricket_events['trigger'] if st.session_state.cricket_events['trigger'] is not None else 0.0,
+                    value=0.0,
                     step=0.01,
                     format="%.2f",
                     key="trigger_input",
                     help="When the batsman initiates the shot trigger movement"
                 )
-                if st.button("Set Trigger", key="set_trigger"):
+                # Automatically store the value
+                if trigger_time > 0.0:
                     st.session_state.cricket_events['trigger'] = trigger_time
-                    st.success(f"Trigger set at {trigger_time:.2f}s")
+                else:
+                    st.session_state.cricket_events['trigger'] = None
             
             with col2:
                 st.markdown("**Swing Start**")
@@ -261,15 +263,17 @@ if uploaded_file is not None:
                     "Time (seconds)",
                     min_value=0.0,
                     max_value=video_duration,
-                    value=st.session_state.cricket_events['swing_start'] if st.session_state.cricket_events['swing_start'] is not None else 0.0,
+                    value=0.0,
                     step=0.01,
                     format="%.2f",
                     key="swing_input",
                     help="When the batsman begins the forward swing motion"
                 )
-                if st.button("Set Swing Start", key="set_swing"):
+                # Automatically store the value
+                if swing_time > 0.0:
                     st.session_state.cricket_events['swing_start'] = swing_time
-                    st.success(f"Swing Start set at {swing_time:.2f}s")
+                else:
+                    st.session_state.cricket_events['swing_start'] = None
             
             with col3:
                 st.markdown("**Bat-Ball Connect**")
@@ -277,42 +281,35 @@ if uploaded_file is not None:
                     "Time (seconds)",
                     min_value=0.0,
                     max_value=video_duration,
-                    value=st.session_state.cricket_events['bat_ball_connect'] if st.session_state.cricket_events['bat_ball_connect'] is not None else 0.0,
+                    value=0.0,
                     step=0.01,
                     format="%.2f",
                     key="contact_input",
                     help="When the bat makes contact with the ball"
                 )
-                if st.button("Set Contact", key="set_contact"):
+                # Automatically store the value
+                if contact_time > 0.0:
                     st.session_state.cricket_events['bat_ball_connect'] = contact_time
-                    st.success(f"Bat-Ball Connect set at {contact_time:.2f}s")
+                else:
+                    st.session_state.cricket_events['bat_ball_connect'] = None
             
-            # Show current event settings
-            st.markdown("**Current Event Settings:**")
-            events_set = []
+            # Show current event settings preview
+            st.markdown("**Events Preview:**")
+            events_preview = []
             if st.session_state.cricket_events['trigger'] is not None:
-                events_set.append(f"Trigger: {st.session_state.cricket_events['trigger']:.2f}s")
+                events_preview.append(f"Trigger: {st.session_state.cricket_events['trigger']:.2f}s")
             if st.session_state.cricket_events['swing_start'] is not None:
-                events_set.append(f"Swing Start: {st.session_state.cricket_events['swing_start']:.2f}s")
+                events_preview.append(f"Swing Start: {st.session_state.cricket_events['swing_start']:.2f}s")
             if st.session_state.cricket_events['bat_ball_connect'] is not None:
-                events_set.append(f"Bat-Ball Connect: {st.session_state.cricket_events['bat_ball_connect']:.2f}s")
+                events_preview.append(f"Bat-Ball Connect: {st.session_state.cricket_events['bat_ball_connect']:.2f}s")
             
-            if events_set:
-                for event in events_set:
+            if events_preview:
+                for event in events_preview:
                     st.info(event)
             else:
-                st.info("No events set - analysis will proceed without event markers")
+                st.info("No events specified - enter values above 0.00 to set events")
             
-            # Clear all events button
-            if any(v is not None for v in st.session_state.cricket_events.values()):
-                if st.button("Clear All Events", type="secondary"):
-                    st.session_state.cricket_events = {
-                        'trigger': None,
-                        'swing_start': None,
-                        'bat_ball_connect': None
-                    }
-                    st.success("All events cleared")
-                    st.rerun()
+            st.markdown("*Events will be marked on the Cover Drive Profile chart after analysis*")
 
 # Continue processing if we have a video loaded (from any method)
 if st.session_state.get('temp_video_path') and st.session_state.get('video_processor'):
