@@ -99,7 +99,7 @@ Changelog:
 - June 14, 2025. Added "Stance Stability Check" section with comprehensive 14-parameter biomechanical analysis chart
 - June 19, 2025. Fixed critical wrist coordinate extraction bug in stance_detector.py
 - June 19, 2025. **BLOCKED**: OpenCV libGL.so.1 dependency issue preventing application startup - support ticket created
-- June 26, 2025. Moved cricket events marking (Trigger Point, Swing Start, Ball Contact) from Cover Drive Profile to pre-analysis Step 2
+- June 26, 2025. Completely removed cricket events marking functionality as requested by user
 
 ## Current Status
 

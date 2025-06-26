@@ -1326,48 +1326,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         marker=dict(size=4)
                     ))
                     
-                    # Add vertical lines for user-marked cricket events
-                    if trigger_time > 0:
-                        fig.add_vline(
-                            x=trigger_time,
-                            line=dict(color="red", width=3, dash="dash"),
-                            annotation_text="🎯 Trigger",
-                            annotation_position="top",
-                            annotation=dict(
-                                font=dict(color="red", size=12),
-                                bgcolor="rgba(255,255,255,0.9)",
-                                bordercolor="red",
-                                borderwidth=2
-                            )
-                        )
-                    
-                    if swing_start_time > 0:
-                        fig.add_vline(
-                            x=swing_start_time,
-                            line=dict(color="blue", width=3, dash="dash"),
-                            annotation_text="🏏 Swing Start",
-                            annotation_position="top",
-                            annotation=dict(
-                                font=dict(color="blue", size=12),
-                                bgcolor="rgba(255,255,255,0.9)",
-                                bordercolor="blue",
-                                borderwidth=2
-                            )
-                        )
-                    
-                    if ball_contact_time > 0:
-                        fig.add_vline(
-                            x=ball_contact_time,
-                            line=dict(color="green", width=3, dash="dash"),
-                            annotation_text="⚾ Ball Contact",
-                            annotation_position="top",
-                            annotation=dict(
-                                font=dict(color="green", size=12),
-                                bgcolor="rgba(255,255,255,0.9)",
-                                bordercolor="green",
-                                borderwidth=2
-                            )
-                        )
+
                     
                     fig.update_layout(
                         title="Cover Drive Profile - 8 Key Biomechanical Parameters",
