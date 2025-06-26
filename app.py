@@ -44,6 +44,8 @@ if 'cricket_events' not in st.session_state:
         'swing_start': None,
         'bat_ball_connect': None
     }
+if 'show_events_section' not in st.session_state:
+    st.session_state.show_events_section = True
 
 
 # Sidebar for controls
@@ -228,8 +230,8 @@ if uploaded_file is not None:
                 st.error(f"Error loading video: {str(e)}")
                 st.stop()
         
-        # Cricket Events Specification - Show if video is loaded and rectangle not confirmed yet
-        if st.session_state.video_processor is not None and st.session_state.rectangle_coords is None:
+        # Cricket Events Specification - Show if video is loaded and events section flag is True
+        if st.session_state.video_processor is not None and st.session_state.show_events_section:
             st.markdown("---")
             st.subheader("Cricket Events Timing")
             st.markdown("Specify the timing for key cricket events (optional - helps with analysis)")
@@ -356,6 +358,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
             if st.button("Confirm Selection", type="primary"):
                 if x2 > x1 and y2 > y1:
                     st.session_state.rectangle_coords = (int(x1), int(y1), int(x2), int(y2))
+                    st.session_state.show_events_section = False  # Hide events section after confirmation
                     st.success("Analysis area selected successfully!")
                     st.rerun()
                 else:
@@ -376,6 +379,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
         
         if not st.session_state.analysis_complete:
             if st.button("Start Analysis", type="primary"):
+                st.session_state.show_events_section = False  # Hide events section when analysis starts
                 x1, y1, x2, y2 = st.session_state.rectangle_coords
                 
                 # Initialize stance detector
