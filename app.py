@@ -1749,9 +1749,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 
                 if all_results:
                     # Get cricket events timing from session state
-                    trigger_time = st.session_state.get('trigger_time', 0)
-                    swing_time = st.session_state.get('swing_time', 0) 
-                    contact_time = st.session_state.get('contact_time', 0)
+                    trigger_time = st.session_state.cricket_events.get('trigger', 0) or 0
+                    swing_time = st.session_state.cricket_events.get('swing_start', 0) or 0
+                    contact_time = st.session_state.cricket_events.get('bat_ball_connect', 0) or 0
                     
                     # Calculate angles data with trigger point differences
                     angles_data = []
@@ -2040,9 +2040,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 
                 if all_results:
                     # Get cricket events timing from session state
-                    trigger_time = st.session_state.get('trigger_time', 0)
-                    swing_time = st.session_state.get('swing_time', 0) 
-                    contact_time = st.session_state.get('contact_time', 0)
+                    trigger_time = st.session_state.cricket_events.get('trigger', 0) or 0
+                    swing_time = st.session_state.cricket_events.get('swing_start', 0) or 0
+                    contact_time = st.session_state.cricket_events.get('bat_ball_connect', 0) or 0
                     
                     # Calculate distances data
                     distances_data = []
@@ -2283,9 +2283,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 
                 if all_results:
                     # Get cricket events timing from session state
-                    trigger_time = st.session_state.get('trigger_time', 0)
-                    swing_time = st.session_state.get('swing_time', 0) 
-                    contact_time = st.session_state.get('contact_time', 0)
+                    trigger_time = st.session_state.cricket_events.get('trigger', 0) or 0
+                    swing_time = st.session_state.cricket_events.get('swing_start', 0) or 0
+                    contact_time = st.session_state.cricket_events.get('bat_ball_connect', 0) or 0
                     
                     # Calculate speed data
                     speed_data = []
