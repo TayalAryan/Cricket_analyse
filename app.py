@@ -2372,6 +2372,117 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No video analysis results available for Distances chart")
                 
+                # Left Wrist Swing Coordinates Section
+                st.subheader("🎯 Left Wrist Swing Coordinates")
+                st.markdown("**X-Y coordinate trajectory of left wrist movement throughout the batting motion**")
+                
+                if all_results:
+                    # Extract left wrist coordinates
+                    wrist_x_coords = []
+                    wrist_y_coords = []
+                    frame_numbers = []
+                    
+                    for i, result in enumerate(all_results):
+                        if result.get('biomech_data') and result['biomech_data'].get('left_wrist_x') is not None:
+                            wrist_x_coords.append(result['biomech_data']['left_wrist_x'])
+                            wrist_y_coords.append(result['biomech_data']['left_wrist_y'])
+                            frame_numbers.append(i)
+                    
+                    if len(wrist_x_coords) > 0:
+                        # Create X-Y coordinate plot
+                        fig_wrist_xy = go.Figure()
+                        
+                        # Add wrist trajectory line
+                        fig_wrist_xy.add_trace(go.Scatter(
+                            x=wrist_x_coords,
+                            y=wrist_y_coords,
+                            mode='lines+markers',
+                            name='Left Wrist Path',
+                            line=dict(color='blue', width=2),
+                            marker=dict(size=4, color='blue')
+                        ))
+                        
+                        # Mark start and end points
+                        if len(wrist_x_coords) > 1:
+                            fig_wrist_xy.add_trace(go.Scatter(
+                                x=[wrist_x_coords[0]],
+                                y=[wrist_y_coords[0]],
+                                mode='markers',
+                                name='Start Position',
+                                marker=dict(size=10, color='green', symbol='circle')
+                            ))
+                            
+                            fig_wrist_xy.add_trace(go.Scatter(
+                                x=[wrist_x_coords[-1]],
+                                y=[wrist_y_coords[-1]],
+                                mode='markers',
+                                name='End Position',
+                                marker=dict(size=10, color='red', symbol='circle')
+                            ))
+                        
+                        # Add cricket event markers if they exist
+                        trigger_time = st.session_state.cricket_events.get('trigger', 0) or 0
+                        swing_time = st.session_state.cricket_events.get('swing_start', 0) or 0
+                        contact_time = st.session_state.cricket_events.get('bat_ball_connect', 0) or 0
+                        video_duration = st.session_state.video_processor.get_duration()
+                        fps = st.session_state.video_processor.get_fps()
+                        
+                        events_to_plot = []
+                        if trigger_time > 0:
+                            events_to_plot.append(('Trigger', trigger_time, 'red'))
+                        if swing_time > 0:
+                            events_to_plot.append(('Swing Start', swing_time, 'blue'))
+                        if contact_time > 0:
+                            events_to_plot.append(('Bat-Ball Connect', contact_time, 'green'))
+                        
+                        for event_name, event_time, event_color in events_to_plot:
+                            if event_time is not None and 0 <= event_time <= video_duration:
+                                event_frame = int(event_time * fps)
+                                if event_frame < len(all_results) and all_results[event_frame].get('biomech_data'):
+                                    event_data = all_results[event_frame]['biomech_data']
+                                    if event_data.get('left_wrist_x') is not None:
+                                        fig_wrist_xy.add_trace(go.Scatter(
+                                            x=[event_data['left_wrist_x']],
+                                            y=[event_data['left_wrist_y']],
+                                            mode='markers',
+                                            name=event_name,
+                                            marker=dict(size=12, color=event_color, symbol='diamond')
+                                        ))
+                        
+                        fig_wrist_xy.update_layout(
+                            title="Left Wrist Movement Pattern (X-Y Coordinates)",
+                            xaxis_title="X Coordinate (normalized)",
+                            yaxis_title="Y Coordinate (normalized)",
+                            height=500,
+                            showlegend=True,
+                            hovermode='closest'
+                        )
+                        
+                        # Invert Y-axis to match video coordinates (0,0 at top-left)
+                        fig_wrist_xy.update_yaxes(autorange="reversed")
+                        
+                        st.plotly_chart(fig_wrist_xy, use_container_width=True)
+                        
+                        # Show statistics
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            x_range = max(wrist_x_coords) - min(wrist_x_coords)
+                            st.metric("X-axis Range", f"{x_range:.3f}")
+                        with col2:
+                            y_range = max(wrist_y_coords) - min(wrist_y_coords)
+                            st.metric("Y-axis Range", f"{y_range:.3f}")
+                        with col3:
+                            total_distance = 0
+                            for i in range(1, len(wrist_x_coords)):
+                                dx = wrist_x_coords[i] - wrist_x_coords[i-1]
+                                dy = wrist_y_coords[i] - wrist_y_coords[i-1]
+                                total_distance += (dx**2 + dy**2)**0.5
+                            st.metric("Total Path Distance", f"{total_distance:.3f}")
+                    else:
+                        st.info("No left wrist coordinate data available for plotting.")
+                else:
+                    st.warning("No video analysis results available for left wrist coordinates chart")
+                
                 # Speed Time Series Chart section
                 st.subheader("Speed")
                 st.markdown("**Time series analysis of movement speeds**")
