@@ -1743,6 +1743,88 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     else:
                         st.warning("No pose data available for Stance Stability Check analysis")
                 
+                # Debug Section - Show processed frames between 1st to 2nd second
+                st.markdown("---")
+                st.subheader("Debug: Processed Frames (1-2 seconds)")
+                
+                # Find frames between 1 and 2 seconds
+                debug_frames = []
+                fps = st.session_state.video_processor.get_fps()
+                for result in all_results:
+                    timestamp = result['timestamp']
+                    if 1.0 <= timestamp <= 2.0:
+                        debug_frames.append(result)
+                
+                if debug_frames:
+                    st.info(f"Showing {len(debug_frames)} frames between 1.0 and 2.0 seconds")
+                    
+                    # Process debug frames with pose landmarks
+                    import mediapipe as mp
+                    mp_pose = mp.solutions.pose
+                    mp_drawing = mp.solutions.drawing_utils
+                    mp_drawing_styles = mp.solutions.drawing_styles
+                    
+                    # Initialize pose detector for debug visualization
+                    with mp_pose.Pose(
+                        static_image_mode=False,
+                        model_complexity=1,
+                        enable_segmentation=False,
+                        min_detection_confidence=0.5
+                    ) as pose:
+                        
+                        cols = st.columns(3)  # Show 3 frames per row
+                        col_idx = 0
+                        
+                        for i, result in enumerate(debug_frames[:9]):  # Limit to 9 frames
+                            frame_idx = result['frame']
+                            timestamp = result['timestamp']
+                            
+                            # Get frame from video
+                            processor = st.session_state.video_processor
+                            processor.seek_to_frame(frame_idx)
+                            frame = processor.get_next_frame()
+                            
+                            if frame is not None:
+                                # Get ROI coordinates from session state
+                                roi = st.session_state.get('roi_coordinates', {})
+                                x1, y1, x2, y2 = roi.get('x1', 0), roi.get('y1', 0), roi.get('x2', frame.shape[1]), roi.get('y2', frame.shape[0])
+                                
+                                # Crop frame to ROI
+                                cropped_frame = crop_frame(frame, x1, y1, x2, y2)
+                                
+                                # Convert to RGB for MediaPipe
+                                rgb_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
+                                
+                                # Process with MediaPipe pose  
+                                pose_results = pose.process(rgb_frame)
+                                
+                                # Draw landmarks if detected
+                                annotated_frame = rgb_frame.copy()
+                                if pose_results.pose_landmarks:
+                                    mp_drawing.draw_landmarks(
+                                        annotated_frame,
+                                        pose_results.pose_landmarks,
+                                        mp_pose.POSE_CONNECTIONS,
+                                        landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
+                                    )
+                                
+                                # Display frame in column
+                                with cols[col_idx]:
+                                    st.image(annotated_frame, 
+                                           caption=f"Frame {frame_idx} ({timestamp:.2f}s)",
+                                           use_column_width=True)
+                                    
+                                    # Show key measurements
+                                    if result.get('biomech_data'):
+                                        biomech_data = result['biomech_data']
+                                        st.caption(f"Confidence: {result.get('pose_confidence', 0):.2f}")
+                                        st.caption(f"Hip Distance: {biomech_data.get('hip_distance', 0):.1f}")
+                                        st.caption(f"Hip Twist: {biomech_data.get('hip_twist', 0):.1f}°")
+                                
+                                col_idx = (col_idx + 1) % 3
+                else:
+                    st.warning("No frames found between 1.0 and 2.0 seconds")
+                
                 # Angles Time Series Chart section
                 st.subheader("Angles")
                 st.markdown("**Time series analysis of 13 key biomechanical angle measurements**")
