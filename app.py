@@ -2372,12 +2372,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                 else:
                     st.warning("No video analysis results available for Distances chart")
                 
-                # Left Wrist Swing Coordinates Section
-                st.subheader("🎯 Left Wrist Swing Coordinates (from 1.8s onwards)")
-                st.markdown("**X-Y coordinate trajectory of left wrist movement from 1.8 seconds onwards**")
+                # Right Wrist Swing Coordinates Section
+                st.subheader("🎯 Right Wrist Swing Coordinates (from 1.8s onwards)")
+                st.markdown("**X-Y coordinate trajectory of right wrist movement from 1.8 seconds onwards**")
                 
                 if all_results:
-                    # Extract left wrist coordinates from 1.8 seconds onwards
+                    # Extract right wrist coordinates from 1.8 seconds onwards
                     wrist_x_coords = []
                     wrist_y_coords = []
                     frame_numbers = []
@@ -2388,9 +2388,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     start_frame = int(start_time * fps)
                     
                     for i, result in enumerate(all_results):
-                        if i >= start_frame and result.get('biomech_data') and result['biomech_data'].get('left_wrist_x') is not None:
-                            wrist_x_coords.append(result['biomech_data']['left_wrist_x'])
-                            wrist_y_coords.append(result['biomech_data']['left_wrist_y'])
+                        if i >= start_frame and result.get('biomech_data') and result['biomech_data'].get('right_wrist_x') is not None:
+                            wrist_x_coords.append(result['biomech_data']['right_wrist_x'])
+                            wrist_y_coords.append(result['biomech_data']['right_wrist_y'])
                             frame_numbers.append(i)
                             timestamps.append(i / fps)
                     
@@ -2403,7 +2403,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                             x=wrist_x_coords,
                             y=wrist_y_coords,
                             mode='lines+markers',
-                            name='Left Wrist Path',
+                            name='Right Wrist Path',
                             line=dict(color='blue', width=2),
                             marker=dict(size=4, color='blue')
                         ))
@@ -2446,17 +2446,17 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 event_frame = int(event_time * fps)
                                 if event_frame < len(all_results) and all_results[event_frame].get('biomech_data'):
                                     event_data = all_results[event_frame]['biomech_data']
-                                    if event_data.get('left_wrist_x') is not None:
+                                    if event_data.get('right_wrist_x') is not None:
                                         fig_wrist_xy.add_trace(go.Scatter(
-                                            x=[event_data['left_wrist_x']],
-                                            y=[event_data['left_wrist_y']],
+                                            x=[event_data['right_wrist_x']],
+                                            y=[event_data['right_wrist_y']],
                                             mode='markers',
                                             name=event_name,
                                             marker=dict(size=12, color=event_color, symbol='diamond')
                                         ))
                         
                         fig_wrist_xy.update_layout(
-                            title="Left Wrist Movement Pattern (X-Y Coordinates)",
+                            title="Right Wrist Movement Pattern (X-Y Coordinates)",
                             xaxis_title="X Coordinate (normalized)",
                             yaxis_title="Y Coordinate (normalized)",
                             height=500,
@@ -2491,9 +2491,9 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         else:
                             st.info("Starting analysis from 1.8 seconds onwards")
                     else:
-                        st.info("No left wrist coordinate data available for plotting.")
+                        st.info("No right wrist coordinate data available for plotting.")
                 else:
-                    st.warning("No video analysis results available for left wrist coordinates chart")
+                    st.warning("No video analysis results available for right wrist coordinates chart")
                 
                 # Speed Time Series Chart section
                 st.subheader("Speed")
