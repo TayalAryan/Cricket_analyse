@@ -1802,25 +1802,37 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 # Draw landmarks if detected
                                 annotated_frame = rgb_frame.copy()
                                 if pose_results.pose_landmarks:
+                                    # Draw landmarks and connections
                                     mp_drawing.draw_landmarks(
                                         annotated_frame,
                                         pose_results.pose_landmarks,
                                         mp_pose.POSE_CONNECTIONS,
-                                        landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
+                                        landmark_drawing_spec=mp_drawing.DrawingSpec(
+                                            color=(255, 0, 0), thickness=2, circle_radius=2
+                                        ),
+                                        connection_drawing_spec=mp_drawing.DrawingSpec(
+                                            color=(0, 255, 0), thickness=2
+                                        )
                                     )
                                 
                                 # Display frame in column
                                 with cols[col_idx]:
                                     st.image(annotated_frame, 
                                            caption=f"Frame {frame_idx} ({timestamp:.2f}s)",
-                                           use_column_width=True)
+                                           use_container_width=True)
                                     
-                                    # Show key measurements
+                                    # Show key measurements and pose detection status
                                     if result.get('biomech_data'):
                                         biomech_data = result['biomech_data']
                                         st.caption(f"Confidence: {result.get('pose_confidence', 0):.2f}")
                                         st.caption(f"Hip Distance: {biomech_data.get('hip_distance', 0):.1f}")
                                         st.caption(f"Hip Twist: {biomech_data.get('hip_twist', 0):.1f}°")
+                                    
+                                    # Show pose detection status
+                                    if pose_results.pose_landmarks:
+                                        st.caption("✅ Pose detected")
+                                    else:
+                                        st.caption("❌ No pose detected")
                                 
                                 col_idx = (col_idx + 1) % 3
                 else:
