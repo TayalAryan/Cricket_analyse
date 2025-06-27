@@ -2387,12 +2387,18 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     start_time = 1.8  # Start from 1.8 seconds
                     start_frame = int(start_time * fps)
                     
+                    # Debug info
+                    st.write(f"Debug: Total results: {len(all_results)}, Start frame: {start_frame}, FPS: {fps}")
+                    
                     for i, result in enumerate(all_results):
                         if i >= start_frame and result.get('biomech_data') and result['biomech_data'].get('right_wrist_x') is not None:
                             wrist_x_coords.append(result['biomech_data']['right_wrist_x'])
                             wrist_y_coords.append(result['biomech_data']['right_wrist_y'])
                             frame_numbers.append(i)
                             timestamps.append(i / fps)
+                    
+                    # Debug info
+                    st.write(f"Debug: Found {len(wrist_x_coords)} right wrist coordinate points")
                     
                     if len(wrist_x_coords) > 0:
                         # Create X-Y coordinate plot
