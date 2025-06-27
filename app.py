@@ -2373,20 +2373,26 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     st.warning("No video analysis results available for Distances chart")
                 
                 # Left Wrist Swing Coordinates Section
-                st.subheader("🎯 Left Wrist Swing Coordinates")
-                st.markdown("**X-Y coordinate trajectory of left wrist movement throughout the batting motion**")
+                st.subheader("🎯 Left Wrist Swing Coordinates (from 1.8s onwards)")
+                st.markdown("**X-Y coordinate trajectory of left wrist movement from 1.8 seconds onwards**")
                 
                 if all_results:
-                    # Extract left wrist coordinates
+                    # Extract left wrist coordinates from 1.8 seconds onwards
                     wrist_x_coords = []
                     wrist_y_coords = []
                     frame_numbers = []
+                    timestamps = []
+                    
+                    fps = st.session_state.video_processor.get_fps()
+                    start_time = 1.8  # Start from 1.8 seconds
+                    start_frame = int(start_time * fps)
                     
                     for i, result in enumerate(all_results):
-                        if result.get('biomech_data') and result['biomech_data'].get('left_wrist_x') is not None:
+                        if i >= start_frame and result.get('biomech_data') and result['biomech_data'].get('left_wrist_x') is not None:
                             wrist_x_coords.append(result['biomech_data']['left_wrist_x'])
                             wrist_y_coords.append(result['biomech_data']['left_wrist_y'])
                             frame_numbers.append(i)
+                            timestamps.append(i / fps)
                     
                     if len(wrist_x_coords) > 0:
                         # Create X-Y coordinate plot
@@ -2478,6 +2484,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                 dy = wrist_y_coords[i] - wrist_y_coords[i-1]
                                 total_distance += (dx**2 + dy**2)**0.5
                             st.metric("Total Path Distance", f"{total_distance:.3f}")
+                        
+                        # Show time range info
+                        if timestamps:
+                            st.info(f"Analysis covers {timestamps[0]:.2f}s to {timestamps[-1]:.2f}s ({len(wrist_x_coords)} data points)")
+                        else:
+                            st.info("Starting analysis from 1.8 seconds onwards")
                     else:
                         st.info("No left wrist coordinate data available for plotting.")
                 else:
