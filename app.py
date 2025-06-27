@@ -1760,6 +1760,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     
                     # Process debug frames with pose landmarks
                     import mediapipe as mp
+                    from utils import crop_frame
                     mp_pose = mp.solutions.pose
                     mp_drawing = mp.solutions.drawing_utils
                     mp_drawing_styles = mp.solutions.drawing_styles
