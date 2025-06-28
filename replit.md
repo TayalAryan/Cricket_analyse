@@ -106,6 +106,8 @@ Changelog:
 - June 26, 2025. Added comprehensive "Angles" time series chart with 13 specific biomechanical measurements including trigger point difference calculations
 - June 26, 2025. Added "Distances" time series chart with 9 key distance measurements including ankle gaps, body-ball relationships, and elbow-head positioning
 - June 26, 2025. Added "Speed" time series chart with left wrist speed and body angles speed calculations, including cricket event overlays
+- June 28, 2025. Changed Left Wrist Swing Coordinates to track right wrist movement for better batting hand analysis
+- June 28, 2025. Added complete Body Landmarks CSV export feature with 29 data fields per frame including all joint coordinates and analysis results
 
 ## Current Status
 

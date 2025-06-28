@@ -2387,18 +2387,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     start_time = 1.8  # Start from 1.8 seconds
                     start_frame = int(start_time * fps)
                     
-                    # Debug info
-                    st.write(f"Debug: Total results: {len(all_results)}, Start frame: {start_frame}, FPS: {fps}")
-                    
                     for i, result in enumerate(all_results):
                         if i >= start_frame and result.get('biomech_data') and result['biomech_data'].get('right_wrist_x') is not None:
                             wrist_x_coords.append(result['biomech_data']['right_wrist_x'])
                             wrist_y_coords.append(result['biomech_data']['right_wrist_y'])
                             frame_numbers.append(i)
                             timestamps.append(i / fps)
-                    
-                    # Debug info
-                    st.write(f"Debug: Found {len(wrist_x_coords)} right wrist coordinate points")
                     
                     if len(wrist_x_coords) > 0:
                         # Create X-Y coordinate plot
@@ -2500,6 +2494,106 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         st.info("No right wrist coordinate data available for plotting.")
                 else:
                     st.warning("No video analysis results available for right wrist coordinates chart")
+                
+                # Body Landmarks CSV Download section
+                st.subheader("📊 Body Landmarks Data Export")
+                st.markdown("**Download complete X-Y coordinates for all body landmarks across all frames**")
+                
+                if all_results:
+                    # Prepare CSV data with all body landmarks
+                    landmark_csv_data = []
+                    
+                    for i, result in enumerate(all_results):
+                        if result.get('biomech_data') and result['pose_confidence'] > 0.3:
+                            biomech_data = result['biomech_data']
+                            timestamp = result['timestamp']
+                            
+                            # Create row with basic info
+                            row = {
+                                'Frame': i,
+                                'Timestamp (s)': f"{timestamp:.3f}",
+                                'Pose_Confidence': f"{result['pose_confidence']:.3f}",
+                                'Is_Stable_Stance': result.get('is_stable_stance', False)
+                            }
+                            
+                            # Add all landmark coordinates
+                            landmark_coords = {
+                                'Left_Shoulder_X': biomech_data.get('left_shoulder_x', 0),
+                                'Left_Shoulder_Y': biomech_data.get('left_shoulder_y', 0),
+                                'Right_Shoulder_X': biomech_data.get('right_shoulder_x', 0),
+                                'Right_Shoulder_Y': biomech_data.get('right_shoulder_y', 0),
+                                'Left_Hip_X': biomech_data.get('left_hip_x', 0),
+                                'Left_Hip_Y': biomech_data.get('left_hip_y', 0),
+                                'Right_Hip_X': biomech_data.get('right_hip_x', 0),
+                                'Right_Hip_Y': biomech_data.get('right_hip_y', 0),
+                                'Left_Elbow_X': biomech_data.get('left_elbow_x', 0),
+                                'Left_Elbow_Y': biomech_data.get('left_elbow_y', 0),
+                                'Right_Elbow_X': biomech_data.get('right_elbow_x', 0),
+                                'Right_Elbow_Y': biomech_data.get('right_elbow_y', 0),
+                                'Left_Wrist_X': biomech_data.get('left_wrist_x', 0),
+                                'Left_Wrist_Y': biomech_data.get('left_wrist_y', 0),
+                                'Right_Wrist_X': biomech_data.get('right_wrist_x', 0),
+                                'Right_Wrist_Y': biomech_data.get('right_wrist_y', 0),
+                                'Left_Knee_X': biomech_data.get('left_knee_x', 0),
+                                'Left_Knee_Y': biomech_data.get('left_knee_y', 0),
+                                'Right_Knee_X': biomech_data.get('right_knee_x', 0),
+                                'Right_Knee_Y': biomech_data.get('right_knee_y', 0),
+                                'Left_Ankle_X': biomech_data.get('left_ankle_x', 0),
+                                'Left_Ankle_Y': biomech_data.get('left_ankle_y', 0),
+                                'Right_Ankle_X': biomech_data.get('right_ankle_x', 0),
+                                'Right_Ankle_Y': biomech_data.get('right_ankle_y', 0),
+                                'Head_X': biomech_data.get('head_x', (biomech_data.get('left_shoulder_x', 0) + biomech_data.get('right_shoulder_x', 0)) / 2),
+                                'Head_Y': biomech_data.get('head_y', (biomech_data.get('left_shoulder_y', 0) + biomech_data.get('right_shoulder_y', 0)) / 2 - 0.05),
+                                'CoG_X': biomech_data.get('cog_x', 0),
+                                'CoG_Y': biomech_data.get('cog_y', 0),
+                                'Weight_Distribution': biomech_data.get('weight_distribution', 'Unknown'),
+                                'Weight_Numeric': biomech_data.get('weight_numeric', -1)
+                            }
+                            
+                            # Merge basic info with landmark coordinates
+                            row.update(landmark_coords)
+                            landmark_csv_data.append(row)
+                    
+                    if landmark_csv_data:
+                        # Convert to CSV string
+                        import io
+                        import csv
+                        
+                        output = io.StringIO()
+                        fieldnames = landmark_csv_data[0].keys()
+                        writer = csv.DictWriter(output, fieldnames=fieldnames)
+                        writer.writeheader()
+                        writer.writerows(landmark_csv_data)
+                        csv_string = output.getvalue()
+                        
+                        # Show summary and download button
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Total Frames", len(landmark_csv_data))
+                        with col2:
+                            st.metric("Data Points per Frame", "29 fields")
+                        
+                        st.download_button(
+                            label="📥 Download Body Landmarks CSV",
+                            data=csv_string,
+                            file_name=f"cricket_body_landmarks_{len(landmark_csv_data)}_frames.csv",
+                            mime="text/csv",
+                            help="Complete X-Y coordinates for all body landmarks across all analyzed frames"
+                        )
+                        
+                        st.info(f"""
+                        **CSV Contains:**
+                        - {len(landmark_csv_data)} frames with pose data (confidence > 0.3)
+                        - 27 body landmark coordinates (X,Y pairs for 13 landmarks + CoG + Head)
+                        - Frame numbers, timestamps, and pose confidence scores
+                        - Stable stance detection results (True/False)
+                        - Weight distribution analysis (Left Foot/Right Foot/Balanced)
+                        - All coordinates normalized to 0-1 scale relative to video frame
+                        """)
+                    else:
+                        st.warning("No landmark data available for export")
+                else:
+                    st.warning("No analysis results available for landmarks export")
                 
                 # Speed Time Series Chart section
                 st.subheader("Speed")
