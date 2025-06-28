@@ -2517,6 +2517,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         # Add all 33 MediaPipe landmark coordinates - only raw coordinates, no calculated values
                         if biomech_data:
                             landmarks = biomech_data.get('raw_landmarks')
+                            # Debug: check what we're getting
+                            print(f"Frame {i}: biomech_data keys: {biomech_data.keys()}")
+                            print(f"Frame {i}: landmarks type: {type(landmarks)}")
+                            if landmarks:
+                                print(f"Frame {i}: landmarks length: {len(landmarks)}")
+                                print(f"Frame {i}: first landmark: {landmarks[0] if len(landmarks) > 0 else 'None'}")
                             if landmarks:
                                 landmark_names = [
                                     'NOSE', 'LEFT_EYE_INNER', 'LEFT_EYE', 'LEFT_EYE_OUTER', 'RIGHT_EYE_INNER', 'RIGHT_EYE', 'RIGHT_EYE_OUTER',
