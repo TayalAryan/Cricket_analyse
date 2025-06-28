@@ -136,6 +136,9 @@ class StanceDetector:
         features['confidence'] = np.mean(confidences)
         features['normalized_landmarks'] = normalized_landmarks
         
+        # Store all 33 raw landmarks for CSV export
+        features['raw_landmarks'] = landmarks
+        
         # Calculate specific stance features
         features.update(self._calculate_stance_features(landmarks))
         
