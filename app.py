@@ -2504,22 +2504,18 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     landmark_csv_data = []
                     
                     for i, result in enumerate(all_results):
-                        if result.get('biomech_data') and result['pose_confidence'] > 0.3:
-                            biomech_data = result['biomech_data']
-                            timestamp = result['timestamp']
-                            
-                            # Create row with basic info
-                            row = {
-                                'Frame': i,
-                                'Timestamp (s)': f"{timestamp:.3f}",
-                                'Pose_Confidence': f"{result['pose_confidence']:.3f}",
-                                'Is_Stable_Stance': result.get('is_stable_stance', False)
-                            }
-                            
-                            # Add all 33 MediaPipe landmark coordinates
-                            landmark_coords = {}
-                            
-                            # Get landmarks from pose data if available
+                        biomech_data = result.get('biomech_data')
+                        timestamp = result['timestamp']
+                        
+                        # Create row with only basic info - no calculated values
+                        row = {
+                            'Frame': i,
+                            'Timestamp (s)': f"{timestamp:.3f}",
+                            'Pose_Confidence': f"{result['pose_confidence']:.3f}"
+                        }
+                        
+                        # Add all 33 MediaPipe landmark coordinates - only raw coordinates, no calculated values
+                        if biomech_data:
                             landmarks = biomech_data.get('raw_landmarks')
                             if landmarks:
                                 landmark_names = [
@@ -2530,57 +2526,47 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                                     'RIGHT_ANKLE', 'LEFT_HEEL', 'RIGHT_HEEL', 'LEFT_FOOT_INDEX', 'RIGHT_FOOT_INDEX'
                                 ]
                                 
-                                for i, name in enumerate(landmark_names):
-                                    if i < len(landmarks):
-                                        landmark_coords[f'{name}_X'] = landmarks[i].x if hasattr(landmarks[i], 'x') else 0
-                                        landmark_coords[f'{name}_Y'] = landmarks[i].y if hasattr(landmarks[i], 'y') else 0
-                                        landmark_coords[f'{name}_Z'] = landmarks[i].z if hasattr(landmarks[i], 'z') else 0
-                                        landmark_coords[f'{name}_VISIBILITY'] = landmarks[i].visibility if hasattr(landmarks[i], 'visibility') else 0
+                                for idx, name in enumerate(landmark_names):
+                                    if idx < len(landmarks) and landmarks[idx] is not None:
+                                        row[f'{name}_X'] = landmarks[idx].x if hasattr(landmarks[idx], 'x') else 0
+                                        row[f'{name}_Y'] = landmarks[idx].y if hasattr(landmarks[idx], 'y') else 0
+                                        row[f'{name}_Z'] = landmarks[idx].z if hasattr(landmarks[idx], 'z') else 0
+                                        row[f'{name}_VISIBILITY'] = landmarks[idx].visibility if hasattr(landmarks[idx], 'visibility') else 0
                                     else:
-                                        landmark_coords[f'{name}_X'] = 0
-                                        landmark_coords[f'{name}_Y'] = 0
-                                        landmark_coords[f'{name}_Z'] = 0
-                                        landmark_coords[f'{name}_VISIBILITY'] = 0
+                                        row[f'{name}_X'] = 0
+                                        row[f'{name}_Y'] = 0
+                                        row[f'{name}_Z'] = 0
+                                        row[f'{name}_VISIBILITY'] = 0
                             else:
-                                # Fallback to existing biomech_data fields if landmarks not available
-                                landmark_coords.update({
-                                    'LEFT_SHOULDER_X': biomech_data.get('left_shoulder_x', 0),
-                                    'LEFT_SHOULDER_Y': biomech_data.get('left_shoulder_y', 0),
-                                    'RIGHT_SHOULDER_X': biomech_data.get('right_shoulder_x', 0),
-                                    'RIGHT_SHOULDER_Y': biomech_data.get('right_shoulder_y', 0),
-                                    'LEFT_HIP_X': biomech_data.get('left_hip_x', 0),
-                                    'LEFT_HIP_Y': biomech_data.get('left_hip_y', 0),
-                                    'RIGHT_HIP_X': biomech_data.get('right_hip_x', 0),
-                                    'RIGHT_HIP_Y': biomech_data.get('right_hip_y', 0),
-                                    'LEFT_ELBOW_X': biomech_data.get('left_elbow_x', 0),
-                                    'LEFT_ELBOW_Y': biomech_data.get('left_elbow_y', 0),
-                                    'RIGHT_ELBOW_X': biomech_data.get('right_elbow_x', 0),
-                                    'RIGHT_ELBOW_Y': biomech_data.get('right_elbow_y', 0),
-                                    'LEFT_WRIST_X': biomech_data.get('left_wrist_x', 0),
-                                    'LEFT_WRIST_Y': biomech_data.get('left_wrist_y', 0),
-                                    'RIGHT_WRIST_X': biomech_data.get('right_wrist_x', 0),
-                                    'RIGHT_WRIST_Y': biomech_data.get('right_wrist_y', 0),
-                                    'LEFT_KNEE_X': biomech_data.get('left_knee_x', 0),
-                                    'LEFT_KNEE_Y': biomech_data.get('left_knee_y', 0),
-                                    'RIGHT_KNEE_X': biomech_data.get('right_knee_x', 0),
-                                    'RIGHT_KNEE_Y': biomech_data.get('right_knee_y', 0),
-                                    'LEFT_ANKLE_X': biomech_data.get('left_ankle_x', 0),
-                                    'LEFT_ANKLE_Y': biomech_data.get('left_ankle_y', 0),
-                                    'RIGHT_ANKLE_X': biomech_data.get('right_ankle_x', 0),
-                                    'RIGHT_ANKLE_Y': biomech_data.get('right_ankle_y', 0)
-                                })
-                            
-                            # Add calculated values
-                            landmark_coords.update({
-                                'CoG_X': biomech_data.get('cog_x', 0),
-                                'CoG_Y': biomech_data.get('cog_y', 0),
-                                'Weight_Distribution': biomech_data.get('weight_distribution', 'Unknown'),
-                                'Weight_Numeric': biomech_data.get('weight_numeric', -1)
-                            })
-                            
-                            # Merge basic info with landmark coordinates
-                            row.update(landmark_coords)
-                            landmark_csv_data.append(row)
+                                # No landmarks available - fill with zeros
+                                landmark_names = [
+                                    'NOSE', 'LEFT_EYE_INNER', 'LEFT_EYE', 'LEFT_EYE_OUTER', 'RIGHT_EYE_INNER', 'RIGHT_EYE', 'RIGHT_EYE_OUTER',
+                                    'LEFT_EAR', 'RIGHT_EAR', 'MOUTH_LEFT', 'MOUTH_RIGHT', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+                                    'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_PINKY', 'RIGHT_PINKY', 'LEFT_INDEX', 'RIGHT_INDEX',
+                                    'LEFT_THUMB', 'RIGHT_THUMB', 'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+                                    'RIGHT_ANKLE', 'LEFT_HEEL', 'RIGHT_HEEL', 'LEFT_FOOT_INDEX', 'RIGHT_FOOT_INDEX'
+                                ]
+                                for name in landmark_names:
+                                    row[f'{name}_X'] = 0
+                                    row[f'{name}_Y'] = 0
+                                    row[f'{name}_Z'] = 0
+                                    row[f'{name}_VISIBILITY'] = 0
+                        else:
+                            # No biomech data - fill with zeros
+                            landmark_names = [
+                                'NOSE', 'LEFT_EYE_INNER', 'LEFT_EYE', 'LEFT_EYE_OUTER', 'RIGHT_EYE_INNER', 'RIGHT_EYE', 'RIGHT_EYE_OUTER',
+                                'LEFT_EAR', 'RIGHT_EAR', 'MOUTH_LEFT', 'MOUTH_RIGHT', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+                                'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_PINKY', 'RIGHT_PINKY', 'LEFT_INDEX', 'RIGHT_INDEX',
+                                'LEFT_THUMB', 'RIGHT_THUMB', 'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+                                'RIGHT_ANKLE', 'LEFT_HEEL', 'RIGHT_HEEL', 'LEFT_FOOT_INDEX', 'RIGHT_FOOT_INDEX'
+                            ]
+                            for name in landmark_names:
+                                row[f'{name}_X'] = 0
+                                row[f'{name}_Y'] = 0
+                                row[f'{name}_Z'] = 0
+                                row[f'{name}_VISIBILITY'] = 0
+                        
+                        landmark_csv_data.append(row)
                     
                     if landmark_csv_data:
                         # Convert to CSV string
@@ -2599,7 +2585,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         with col1:
                             st.metric("Total Frames", len(landmark_csv_data))
                         with col2:
-                            st.metric("Data Points per Frame", "137+ fields")
+                            st.metric("Data Points per Frame", "135 fields")
                         
                         st.download_button(
                             label="📥 Download Body Landmarks CSV",
@@ -2611,12 +2597,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         
                         st.info(f"""
                         **CSV Contains:**
-                        - {len(landmark_csv_data)} frames with pose data (confidence > 0.3)
+                        - {len(landmark_csv_data)} frames of raw MediaPipe pose data (all frames regardless of confidence)
                         - All 33 MediaPipe body landmarks with X, Y, Z coordinates and visibility scores
                         - Frame numbers, timestamps, and pose confidence scores
-                        - Stable stance detection results (True/False)
-                        - Weight distribution analysis (Left Foot/Right Foot/Balanced)
-                        - Center of gravity calculations
+                        - Only raw landmark coordinates - no calculated values or derived metrics
                         - All coordinates normalized to 0-1 scale relative to video frame
                         """)
                     else:

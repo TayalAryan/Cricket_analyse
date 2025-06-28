@@ -109,6 +109,7 @@ Changelog:
 - June 28, 2025. Changed Left Wrist Swing Coordinates to track right wrist movement for better batting hand analysis
 - June 28, 2025. Added complete Body Landmarks CSV export feature with 29 data fields per frame including all joint coordinates and analysis results
 - June 28, 2025. Enhanced CSV export to include all 33 MediaPipe landmarks with X, Y, Z coordinates and visibility scores (137+ data fields per frame)
+- June 28, 2025. Cleaned CSV export to only include raw MediaPipe coordinates - removed all calculated values, includes all frames regardless of confidence (135 fields per frame)
 
 ## Current Status
 
