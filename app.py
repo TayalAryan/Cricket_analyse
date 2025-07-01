@@ -3458,12 +3458,12 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                     st.info(f"Debug time range (42.0s - 42.5s) is outside video duration ({video_duration:.1f}s)")
             
             # Weight Distribution Debug Section
-            st.subheader("🏏 Weight Distribution Debug (0.6s - 1.2s)")
+            st.subheader("🏏 Weight Distribution Debug (2.0s - 2.66s)")
             st.markdown("Analyze weight distribution classification and center of gravity calculations")
             
             video_duration = st.session_state.video_processor.get_duration()
-            debug_start_time = 0.6
-            debug_end_time = 1.2
+            debug_start_time = 2.0
+            debug_end_time = 2.66
             
             if debug_end_time <= video_duration:
                 # Filter results for the debug time range
