@@ -1267,7 +1267,7 @@ class StanceDetector:
         stance_center_x = (left_ankle.x + right_ankle.x) / 2
         
         # Calculate signed distance from CoG to stance center
-        # Negative = toward left foot, Positive = toward right foot
+        # Negative = toward right foot, Positive = toward left foot
         cog_offset_from_center = cog_x - stance_center_x
         
         # Define balanced zone as 15% of stance width on each side of center
@@ -1277,12 +1277,12 @@ class StanceDetector:
         if abs(cog_offset_from_center) <= balanced_threshold:
             weight_state = "Balanced"
             weight_numeric = 2
-        elif cog_offset_from_center < 0:  # CoG shifted toward left foot
-            weight_state = "Left Foot"
-            weight_numeric = 1
-        else:  # CoG shifted toward right foot
+        elif cog_offset_from_center < 0:  # CoG shifted toward right foot
             weight_state = "Right Foot"
             weight_numeric = 0
+        else:  # CoG shifted toward left foot
+            weight_state = "Left Foot"
+            weight_numeric = 1
         
         # Calculate additional metrics for analysis
         left_foot_distance = ((cog_x - left_ankle.x)**2 + (cog_y - left_ankle.y)**2)**0.5
