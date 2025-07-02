@@ -111,6 +111,9 @@ Changelog:
 - June 28, 2025. Enhanced CSV export to include all 33 MediaPipe landmarks with X, Y, Z coordinates and visibility scores (137+ data fields per frame)
 - June 28, 2025. Cleaned CSV export to only include raw MediaPipe coordinates - removed all calculated values, includes all frames regardless of confidence (135 fields per frame)
 - June 28, 2025. **FIXED**: CSV coordinate export issue - raw landmarks now properly transferred from stance detector to results data
+- July 2, 2025. Added CoG_X, CoG_Y, and Weight_Distribution fields to Body Landmarks CSV export
+- July 2, 2025. **FIXED**: Weight distribution left/right foot assignment logic - corrected backwards assignment bug
+- July 2, 2025. Added "In-Transition" weight distribution state for balanced stance with changing ankle distance (0.005 threshold)
 
 ## Current Status
 
