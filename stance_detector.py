@@ -216,8 +216,24 @@ class StanceDetector:
         cog_x = cog_result['cog_x']
         cog_y = cog_result['cog_y']
         
-        # Calculate weight distribution - completely new implementation
-        weight_distribution_result = self._calculate_weight_distribution(cog_x, cog_y, left_ankle, right_ankle)
+        # Get previous frame ankle data for In-Transition detection
+        prev_left_ankle = None
+        prev_right_ankle = None
+        if len(self.pose_history) > 0:
+            prev_frame = self.pose_history[-1]
+            if 'LEFT_ANKLE' in prev_frame['landmarks'] and 'RIGHT_ANKLE' in prev_frame['landmarks']:
+                prev_left_data = prev_frame['landmarks']['LEFT_ANKLE']
+                prev_right_data = prev_frame['landmarks']['RIGHT_ANKLE']
+                # Create simple objects with x, y attributes for consistency
+                class AnkleData:
+                    def __init__(self, x, y):
+                        self.x = x
+                        self.y = y
+                prev_left_ankle = AnkleData(prev_left_data['x'], prev_left_data['y'])
+                prev_right_ankle = AnkleData(prev_right_data['x'], prev_right_data['y'])
+        
+        # Calculate weight distribution with In-Transition detection
+        weight_distribution_result = self._calculate_weight_distribution(cog_x, cog_y, left_ankle, right_ankle, prev_left_ankle, prev_right_ankle)
         
         # Store original CoG and foot data for other calculations
         features['cog_x'] = cog_x
@@ -1257,10 +1273,10 @@ class StanceDetector:
             'stability_percentage': len([r for r in results if r['is_stable_stance']]) / len(results) * 100 if results else 0
         }
     
-    def _calculate_weight_distribution(self, cog_x, cog_y, left_ankle, right_ankle):
+    def _calculate_weight_distribution(self, cog_x, cog_y, left_ankle, right_ankle, prev_left_ankle=None, prev_right_ankle=None):
         """
         Calculate weight distribution based on center of gravity position relative to feet.
-        Returns clean 3-state classification: Right Foot, Left Foot, or Balanced.
+        Returns clean 4-state classification: Right Foot, Left Foot, Balanced, or In-Transition.
         """
         # Calculate stance geometry
         stance_width = abs(left_ankle.x - right_ankle.x)
@@ -1283,6 +1299,20 @@ class StanceDetector:
         else:  # CoG shifted toward left foot
             weight_state = "Left Foot"
             weight_numeric = 1
+        
+        # Check for In-Transition state (overrides Balanced if conditions met)
+        if weight_state == "Balanced" and prev_left_ankle is not None and prev_right_ankle is not None:
+            # Calculate current ankle distance
+            current_ankle_distance = ((left_ankle.x - right_ankle.x)**2 + (left_ankle.y - right_ankle.y)**2)**0.5
+            
+            # Calculate previous ankle distance
+            prev_ankle_distance = ((prev_left_ankle.x - prev_right_ankle.x)**2 + (prev_left_ankle.y - prev_right_ankle.y)**2)**0.5
+            
+            # Check if stance width changed significantly (threshold = 0.005)
+            ankle_distance_change = abs(current_ankle_distance - prev_ankle_distance)
+            if ankle_distance_change > 0.005:
+                weight_state = "In-Transition"
+                weight_numeric = 3
         
         # Calculate additional metrics for analysis
         left_foot_distance = ((cog_x - left_ankle.x)**2 + (cog_y - left_ankle.y)**2)**0.5
