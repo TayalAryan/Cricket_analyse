@@ -2515,7 +2515,10 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         row = {
                             'Frame': i,
                             'Timestamp (s)': f"{timestamp:.3f}",
-                            'Pose_Confidence': f"{result['pose_confidence']:.3f}"
+                            'Pose_Confidence': f"{result['pose_confidence']:.3f}",
+                            'CoG_X': f"{biomech_data.get('cog_x', 0):.6f}" if biomech_data else "0.000000",
+                            'CoG_Y': f"{biomech_data.get('cog_y', 0):.6f}" if biomech_data else "0.000000",
+                            'Weight_Distribution': biomech_data.get('weight_distribution_text', 'Unknown') if biomech_data else 'Unknown'
                         }
                         
                         # Add all 33 MediaPipe landmark coordinates - only raw coordinates, no calculated values
