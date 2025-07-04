@@ -228,6 +228,9 @@ if uploaded_file is not None:
         
         st.info(f"Processing video file: {uploaded_file.name} ({file_size_mb:.1f} MB)")
         
+        # Store the original filename for CSV naming
+        st.session_state.uploaded_filename = uploaded_file.name
+        
         # Create a unique filename
         import uuid
         unique_id = str(uuid.uuid4())[:8]
@@ -2515,6 +2518,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         row = {
                             'Frame': i,
                             'Timestamp (s)': f"{timestamp:.3f}",
+                            'Stage': '',  # Keep blank as requested
                             'Pose_Confidence': f"{result['pose_confidence']:.3f}",
                             'CoG_X': f"{biomech_data.get('cog_x', 0):.6f}" if biomech_data else "0.000000",
                             'CoG_Y': f"{biomech_data.get('cog_y', 0):.6f}" if biomech_data else "0.000000",
@@ -2594,10 +2598,14 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         with col2:
                             st.metric("Data Points per Frame", "135 fields")
                         
+                        # Create filename using original uploaded file name
+                        base_filename = os.path.splitext(st.session_state.get('uploaded_filename', 'video'))[0]
+                        csv_filename = f"{base_filename}_body_landmarks_{len(landmark_csv_data)}_frames.csv"
+                        
                         st.download_button(
                             label="📥 Download Body Landmarks CSV",
                             data=csv_string,
-                            file_name=f"cricket_body_landmarks_{len(landmark_csv_data)}_frames.csv",
+                            file_name=csv_filename,
                             mime="text/csv",
                             help="Complete X-Y coordinates for all body landmarks across all analyzed frames"
                         )
