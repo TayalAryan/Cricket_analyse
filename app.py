@@ -107,15 +107,22 @@ with st.sidebar:
         
         st.markdown("---")
     
-    # Camera perspective configuration
+    # In app.py
     st.subheader("Camera Perspective")
+    # Define the display names for the options
+    perspective_options = {
+        "front": "Front view",
+        "right": "Bowler on Right",
+        "left": "Bowler on Left"
+    }
     camera_perspective = st.radio(
-        "Bowler Position",
-        options=["right", "left"],
-        format_func=lambda x: "Bowler on Right" if x == "right" else "Bowler on Left",
+        "Camera Perspective",
+        options=list(perspective_options.keys()),
+        format_func=lambda x: perspective_options[x],
         index=0,
-        help="Select which side of the camera the bowler is positioned"
-    )
+        help="Select the camera's viewing angle"
+    )# Camera perspective configuration
+    
     
     # Stance detection parameters
     st.subheader("Detection Parameters")
@@ -153,7 +160,7 @@ st.markdown("### Load Cricket Video") # Changed header for clarity
 # This block will attempt to load a video from a hardcoded path FIRST.
 if st.session_state.video_processor is None: # Only try to load if no video is currently processed
     # IMPORTANT: THIS IS YOUR HARDCODED VIDEO PATH
-    HARDCODED_VIDEO_PATH = "C:/Users/aryan/Downloads/ABD side.mp4" # <--- YOUR SPECIFIC PATH HERE
+    HARDCODED_VIDEO_PATH = "C:/Users/aryan\Downloads/Front view- no zoom-harsh- cut.mp4" # <--- YOUR SPECIFIC PATH HERE
 
     st.subheader("Video Loading Status (Hardcoded Mode)")
 
@@ -342,58 +349,64 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
     
     # Rectangle selection on first frame
     if st.session_state.first_frame is not None and st.session_state.rectangle_coords is None:
+        # In app.py
         st.subheader("Step 1: Select Analysis Area")
-        st.markdown("Click and drag to select the rectangular area where the batsman should be analyzed.")
-        
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            # Display first frame for rectangle selection
-            frame_rgb = cv2.cvtColor(st.session_state.first_frame, cv2.COLOR_BGR2RGB)
+        height, width = st.session_state.first_frame.shape[:2]
+
+        # Conditionally set the bounding box based on camera perspective
+        if camera_perspective == 'front':
+            st.info("A fixed, percentage-based bounding box is used for 'Front view'.")
             
-            # Create a simple rectangle selection interface
-            st.markdown("**Instructions:**")
-            st.markdown("1. Enter the coordinates for the analysis rectangle")
-            st.markdown("2. The rectangle should encompass the batting area near the stumps")
-            st.markdown("3. Adjust coordinates based on the frame preview below")
-            
-            # Show frame dimensions
-            height, width = frame_rgb.shape[:2]
+            # Calculate fixed coordinates based on percentages
+            x1 = int(width * 0.15)
+            y1 = int(height * 0.10)
+            x2 = int(width * 0.85)
+            y2 = int(height * 0.80)
+
+            # Draw and display the fixed rectangle
+            frame_with_rect = st.session_state.first_frame.copy()
+            cv2.rectangle(frame_with_rect, (x1, y1), (x2, y2), (255, 0, 0), 3)
+            st.image(cv2.cvtColor(frame_with_rect, cv2.COLOR_BGR2RGB), caption=f"Fixed Analysis Area for Front View: ({x1},{y1}) to ({x2},{y2})", use_container_width=True)
+
+            if st.button("Confirm Fixed Area", type="primary"):
+                st.session_state.rectangle_coords = (x1, y1, x2, y2)
+                st.success("Fixed analysis area confirmed!")
+                st.rerun()
+
+        else: # For 'right' or 'left' views, allow manual input
+            st.markdown("Click and drag to select the rectangular area where the batsman should be analyzed.")
             st.info(f"Frame dimensions: {width} x {height} pixels")
             
-            # Rectangle coordinate inputs
+            # Original manual coordinate inputs
             col_x1, col_y1, col_x2, col_y2 = st.columns(4)
             with col_x1:
-                x1 = st.number_input("X1 (left)", min_value=0, max_value=width-1, value=width//4)
+                x1_manual = st.number_input("X1 (left)", min_value=0, max_value=width-1, value=int(width * 0.25))
             with col_y1:
-                y1 = st.number_input("Y1 (top)", min_value=0, max_value=height-1, value=height//4)
+                y1_manual = st.number_input("Y1 (top)", min_value=0, max_value=height-1, value=int(height * 0.25))
             with col_x2:
-                x2 = st.number_input("X2 (right)", min_value=0, max_value=width-1, value=3*width//4)
+                x2_manual = st.number_input("X2 (right)", min_value=0, max_value=width-1, value=int(width * 0.75))
             with col_y2:
-                y2 = st.number_input("Y2 (bottom)", min_value=0, max_value=height-1, value=3*height//4)
-            
-            # Draw rectangle on frame
-            frame_with_rect = frame_rgb.copy()
-            cv2.rectangle(frame_with_rect, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 3)
-            
-            # Display frame with rectangle
-            st.image(frame_with_rect, caption="First frame with analysis area", use_container_width=True)
-            
+                y2_manual = st.number_input("Y2 (bottom)", min_value=0, max_value=height-1, value=int(height * 0.75))
+
+            # Draw and display the manually selected rectangle
+            frame_with_rect = st.session_state.first_frame.copy()
+            cv2.rectangle(frame_with_rect, (int(x1_manual), int(y1_manual)), (int(x2_manual), int(y2_manual)), (255, 0, 0), 3)
+            st.image(cv2.cvtColor(frame_with_rect, cv2.COLOR_BGR2RGB), caption="Manually selected analysis area", use_container_width=True)
+
             if st.button("Confirm Selection", type="primary"):
-                if x2 > x1 and y2 > y1:
-                    st.session_state.rectangle_coords = (int(x1), int(y1), int(x2), int(y2))
+                if x2_manual > x1_manual and y2_manual > y1_manual:
+                    st.session_state.rectangle_coords = (int(x1_manual), int(y1_manual), int(x2_manual), int(y2_manual))
                     st.success("Analysis area selected successfully!")
                     st.rerun()
                 else:
                     st.error("Invalid rectangle coordinates. X2 must be greater than X1, and Y2 must be greater than Y1.")
+            with col2:
+                st.markdown("**Rectangle Selection Tips:**")
+                st.markdown("- Focus on the batting crease area")
+                st.markdown("- Include space for batsman movement")
+                st.markdown("- Exclude spectators and background")
+                st.markdown("- Leave some margin around the expected batting position")
         
-        with col2:
-            st.markdown("**Rectangle Selection Tips:**")
-            st.markdown("- Focus on the batting crease area")
-            st.markdown("- Include space for batsman movement")
-            st.markdown("- Exclude spectators and background")
-            st.markdown("- Leave some margin around the expected batting position")
-    
     # Stance detection
     elif st.session_state.rectangle_coords is not None:
         st.subheader("Step 3: Stance Detection Analysis")
@@ -450,7 +463,7 @@ if st.session_state.get('temp_video_path') and st.session_state.get('video_proce
                         
                         # Store comprehensive biomechanical data for shot trigger analysis
                         biomech_data = None
-                        if pose_data and pose_data.get('confidence', 0) > 0.5:
+                        if pose_data and pose_data.get('confidence', 0) > 0:
                             # Pass through all stance detector features directly
                             biomech_data = pose_data.copy()
                             
